@@ -54,6 +54,7 @@ const SAMPLE_EVENTS: DemandEvent[] = [
 export class AppComponent {
   readonly speedOptions = [0.5, 1, 2, 5, 10, 25];
   readonly events = signal<DemandEvent[]>(SAMPLE_EVENTS);
+  readonly theme = signal<"light" | "dark">("light");
   readonly speed = signal(1);
   readonly playing = signal(false);
   readonly loading = signal(false);
@@ -141,6 +142,7 @@ export class AppComponent {
   }
 
   togglePlayback(): void { this.playing() ? this.pause() : this.play(); }
+  toggleTheme(): void { this.theme.update((theme) => theme === "light" ? "dark" : "light"); }
   setSpeed(speed: number): void { this.speed.set(speed); }
   timelineLabel(): string { return this.currentDate().toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" }); }
   rangeLabel(date: Date): string { return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }); }

@@ -1,10 +1,15 @@
-<main class="app-shell">
+<main class="app-shell" [class.light-theme]="theme() === 'light'">
   <header class="topbar">
     <div class="brand"><span class="brand-mark" aria-hidden="true">↗</span><span>fluxo<span>_</span>demandas</span></div>
-    <label class="import-button" [class.is-loading]="loading()">
-      <input type="file" accept=".xlsx,.xls" (change)="importSpreadsheet($event)" [disabled]="loading()" />
-      <span>{{ loading() ? 'Lendo planilha…' : 'Importar planilha' }}</span>
-    </label>
+    <div class="topbar-actions">
+      <button class="theme-toggle" type="button" (click)="toggleTheme()" [attr.aria-label]="theme() === 'light' ? 'Ativar tema escuro' : 'Ativar tema claro'">
+        <span aria-hidden="true">{{ theme() === 'light' ? '☾' : '☀' }}</span>{{ theme() === 'light' ? 'Tema escuro' : 'Tema claro' }}
+      </button>
+      <label class="import-button" [class.is-loading]="loading()">
+        <input type="file" accept=".xlsx,.xls" (change)="importSpreadsheet($event)" [disabled]="loading()" />
+        <span>{{ loading() ? 'Lendo planilha…' : 'Importar planilha' }}</span>
+      </label>
+    </div>
   </header>
 
   <section class="overview" aria-label="Resumo da simulação">

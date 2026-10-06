@@ -54,6 +54,15 @@ test("o cursor pode retornar ao início ao ser arrastado", () => {
   assert.ok(end > app.currentTime());
 });
 
+test("inicia no tema claro e alterna para o tema escuro", () => {
+  const app = new AppComponent();
+  assert.equal(app.theme(), "light");
+  app.toggleTheme();
+  assert.equal(app.theme(), "dark");
+  app.toggleTheme();
+  assert.equal(app.theme(), "light");
+});
+
 test("calcula indicadores de tempo e pico por situação", () => {
   const day = 86_400_000;
   const app = new AppComponent() as TestableApp;
