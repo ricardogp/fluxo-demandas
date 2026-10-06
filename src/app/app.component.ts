@@ -21,6 +21,15 @@ interface ActiveDemand {
   progress: number;
 }
 
+interface StatusMetrics {
+  maxConcurrent: number;
+  averageMs: number;
+  fastest: DemandEvent;
+  longest: DemandEvent;
+  p90Ms: number;
+  p95Ms: number;
+}
+
 type SpreadsheetRow = Record<string, unknown>;
 
 const SAMPLE_EVENTS: DemandEvent[] = [
@@ -71,6 +80,7 @@ export class AppComponent {
   });
 
   readonly statusOrder = computed(() => this.inferStatusOrder(this.histories()));
+  readonly statusMetrics = computed(() => this.calculateStatusMetrics(this.events()));
   readonly activeByStatus = computed(() => {
     const current = this.currentTime();
     const lanes = new Map<string, ActiveDemand[]>();
@@ -132,6 +142,10 @@ export class AppComponent {
   setSpeed(speed: number): void { this.speed.set(speed); }
   timelineLabel(): string { return this.currentDate().toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" }); }
   rangeLabel(date: Date): string { return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }); }
+  durationLabel(durationMs: number): string {
+    const days = durationMs / 86_400_000;
+    return `${days.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} d`;
+  }
 
   laneColor(status: string): string {
     const colors = ["#6f77dc", "#d79b42", "#3aa888", "#d76370", "#4e91c7", "#8a6ec5"];
@@ -246,7 +260,55 @@ export class AppComponent {
     });
   }
 
+  // Datas sem horário representam dias inteiros; por isso o último dia também
+  // entra na duração e no cálculo do pico de demandas simultâneas.
+  private calculateStatusMetrics(events: DemandEvent[]): Map<string, StatusMetrics> {
+    const eventsByStatus = new Map<string, DemandEvent[]>();
+    for (const event of events) {
+      const items = eventsByStatus.get(event.status) ?? [];
+      items.push(event);
+      eventsByStatus.set(event.status, items);
+    }
+
+    const metrics = new Map<string, StatusMetrics>();
+    for (const [status, items] of eventsByStatus) {
+      const sortedByDuration = [...items].sort((first, second) => {
+        const difference = this.eventDurationMs(first) - this.eventDurationMs(second);
+        return difference || first.demand.localeCompare(second.demand, "pt-BR") || first.row - second.row;
+      });
+      const durations = sortedByDuration.map((item) => this.eventDurationMs(item));
+      metrics.set(status, {
+        maxConcurrent: this.maxConcurrent(items),
+        averageMs: durations.reduce((total, duration) => total + duration, 0) / durations.length,
+        fastest: sortedByDuration[0],
+        longest: sortedByDuration[sortedByDuration.length - 1],
+        p90Ms: this.percentile(durations, 0.9),
+        p95Ms: this.percentile(durations, 0.95),
+      });
+    }
+    return metrics;
+  }
+
+  private maxConcurrent(events: DemandEvent[]): number {
+    const boundaries = events.flatMap((event) => [
+      { time: event.startedAt.getTime(), change: 1 },
+      { time: event.endedAt.getTime() + 86_400_000, change: -1 },
+    ]).sort((first, second) => first.time - second.time || second.change - first.change);
+    let current = 0;
+    let maximum = 0;
+    for (const boundary of boundaries) {
+      current += boundary.change;
+      maximum = Math.max(maximum, current);
+    }
+    return maximum;
+  }
+
+  private percentile(sortedValues: number[], fraction: number): number {
+    return sortedValues[Math.max(0, Math.ceil(sortedValues.length * fraction) - 1)] ?? 0;
+  }
+
   private contains(event: DemandEvent, time: number): boolean { return time >= event.startedAt.getTime() && time <= event.endedAt.getTime() + 86_399_999; }
+  private eventDurationMs(event: DemandEvent): number { return event.endedAt.getTime() - event.startedAt.getTime() + 86_400_000; }
   private eventProgress(event: DemandEvent, time: number): number {
     const length = Math.max(event.endedAt.getTime() - event.startedAt.getTime(), 1);
     return Math.min(100, Math.max(0, ((time - event.startedAt.getTime()) / length) * 100));

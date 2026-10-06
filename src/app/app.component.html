@@ -21,7 +21,19 @@
   <section class="flow" aria-label="Fluxo de demandas por situação">
     @for (status of statusOrder(); track status) {
       <article class="lane" [style.--lane-color]="laneColor(status)">
-        <header class="lane-header"><span class="lane-dot"></span><h2>{{ status }}</h2><span class="lane-count">{{ activeByStatus().get(status)?.length ?? 0 }}</span></header>
+        <header class="lane-header">
+          <div class="lane-title"><span class="lane-dot"></span><h2>{{ status }}</h2><span class="lane-count">{{ activeByStatus().get(status)?.length ?? 0 }}</span></div>
+          @if (statusMetrics().get(status); as metrics) {
+            <dl class="lane-statistics" aria-label="Estatísticas de {{ status }}">
+              <div><dt>Pico</dt><dd>{{ metrics.maxConcurrent }}</dd></div>
+              <div><dt>Média</dt><dd>{{ durationLabel(metrics.averageMs) }}</dd></div>
+              <div><dt>Mais rápida</dt><dd title="{{ metrics.fastest.demand }}">{{ metrics.fastest.demand }} · {{ durationLabel(metrics.fastest.endedAt.getTime() - metrics.fastest.startedAt.getTime() + 86400000) }}</dd></div>
+              <div><dt>Mais longa</dt><dd title="{{ metrics.longest.demand }}">{{ metrics.longest.demand }} · {{ durationLabel(metrics.longest.endedAt.getTime() - metrics.longest.startedAt.getTime() + 86400000) }}</dd></div>
+              <div><dt>P90</dt><dd>{{ durationLabel(metrics.p90Ms) }}</dd></div>
+              <div><dt>P95</dt><dd>{{ durationLabel(metrics.p95Ms) }}</dd></div>
+            </dl>
+          }
+        </header>
         <div class="lane-content">
           @for (item of activeByStatus().get(status) ?? []; track trackByName($index, item)) {
             <article class="demand-card">

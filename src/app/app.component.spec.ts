@@ -8,6 +8,14 @@ import { AppComponent } from "./app.component";
 type TestableApp = AppComponent & {
   parseRows(rows: Array<Record<string, unknown>>): Array<{ demand: string; status: string; startedAt: Date; endedAt: Date }>;
   inferStatusOrder(histories: Array<{ name: string; events: Array<{ status: string }> }>): string[];
+  calculateStatusMetrics(events: Array<{ demand: string; status: string; startedAt: Date; endedAt: Date; row: number }>): Map<string, {
+    maxConcurrent: number;
+    averageMs: number;
+    fastest: { demand: string };
+    longest: { demand: string };
+    p90Ms: number;
+    p95Ms: number;
+  }>;
 };
 
 test("lê cabeçalhos normalizados e datas brasileiras", () => {
@@ -44,4 +52,22 @@ test("o cursor pode retornar ao início ao ser arrastado", () => {
 
   assert.equal(app.currentTime(), app.timelineStart().getTime());
   assert.ok(end > app.currentTime());
+});
+
+test("calcula indicadores de tempo e pico por situação", () => {
+  const day = 86_400_000;
+  const app = new AppComponent() as TestableApp;
+  const metrics = app.calculateStatusMetrics([
+    { demand: "Acesso", status: "Análise", startedAt: new Date(2026, 0, 1), endedAt: new Date(2026, 0, 1), row: 2 },
+    { demand: "Relatório", status: "Análise", startedAt: new Date(2026, 0, 1), endedAt: new Date(2026, 0, 3), row: 3 },
+    { demand: "Portal", status: "Análise", startedAt: new Date(2026, 0, 2), endedAt: new Date(2026, 0, 6), row: 4 },
+  ]).get("Análise");
+
+  assert.ok(metrics);
+  assert.equal(metrics.maxConcurrent, 3);
+  assert.equal(metrics.averageMs, 3 * day);
+  assert.equal(metrics.fastest.demand, "Acesso");
+  assert.equal(metrics.longest.demand, "Portal");
+  assert.equal(metrics.p90Ms, 5 * day);
+  assert.equal(metrics.p95Ms, 5 * day);
 });
