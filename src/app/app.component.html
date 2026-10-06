@@ -16,7 +16,7 @@
     <div>
       <p class="source">{{ sourceName() }} · {{ histories().length }} demandas · {{ events().length }} registros</p>
     </div>
-    <div class="live-stat"><span>EM ANDAMENTO</span><strong>{{ activeCount() }}</strong><small>na data selecionada</small></div>
+    <div class="live-stat"><span>Em andamento na data selecionada:</span><strong>{{ activeCount() }}</strong></div>
   </section>
 
   @if (error()) { <p class="error-message" role="alert">{{ error() }}</p> }
