@@ -102,7 +102,9 @@ export class AppComponent {
     return lanes;
   });
 
-  readonly activeCount = computed(() => [...this.activeByStatus().values()].reduce((total, items) => total + items.length, 0));
+  readonly activeCount = computed(() => [...this.activeByStatus().entries()]
+    .filter(([status]) => this.statusVisible(status))
+    .reduce((total, [, items]) => total + items.length, 0));
   readonly currentDate = computed(() => new Date(this.currentTime()));
   readonly sliderValue = computed(() => {
     const range = this.timelineEnd().getTime() - this.timelineStart().getTime();

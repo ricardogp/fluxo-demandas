@@ -17,7 +17,7 @@ Cada situação também exibe métricas calculadas até a data atualmente seleci
 
 O tema claro é o padrão da aplicação. O botão na barra superior alterna para o tema escuro sem alterar os dados importados ou a posição da simulação.
 
-Use o botão `+ Situações visíveis` para expandir o filtro de etapas. Desmarcar uma situação apenas a oculta da visualização; a simulação e os cálculos permanecem baseados em todos os dados importados.
+Use o botão `+ Situações visíveis` para expandir o filtro de etapas. Desmarcar uma situação a oculta da visualização e do contador de demandas em andamento; a simulação e os cálculos históricos permanecem baseados em todos os dados importados.
 
 ## Desenvolvimento
 

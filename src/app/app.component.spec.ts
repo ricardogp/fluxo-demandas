@@ -75,6 +75,18 @@ test("oculta apenas a situação selecionada no filtro", () => {
   assert.equal(app.statusVisible(status), true);
 });
 
+test("o contador em andamento respeita as situações visíveis", () => {
+  const app = new AppComponent();
+  const [status, activeItems] = [...app.activeByStatus().entries()][0] ?? [];
+  assert.ok(status);
+  assert.ok(activeItems);
+  const initialCount = app.activeCount();
+
+  app.toggleStatusVisibility(status);
+
+  assert.equal(app.activeCount(), initialCount - activeItems.length);
+});
+
 test("calcula indicadores de tempo e pico por situação", () => {
   const day = 86_400_000;
   const app = new AppComponent() as TestableApp;
