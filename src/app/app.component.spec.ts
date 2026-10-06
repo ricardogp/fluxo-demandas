@@ -63,6 +63,13 @@ test("inicia no tema claro e alterna para o tema escuro", () => {
   assert.equal(app.theme(), "light");
 });
 
+test("formata as datas compactas do card em dd/mmm", () => {
+  const app = new AppComponent();
+
+  assert.equal(app.cardDateLabel(new Date(2026, 0, 3)), "03/jan");
+  assert.equal(app.cardDateLabel(new Date(2026, 11, 19)), "19/dez");
+});
+
 test("oculta apenas a situação selecionada no filtro", () => {
   const app = new AppComponent();
   const status = app.statusOrder()[0];

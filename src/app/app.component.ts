@@ -58,6 +58,8 @@ const SAMPLE_EVENTS: DemandEvent[] = [
   { demandNumber: "DEM-1071", demandTitle: "Relatório de SLA", status: "Entregue", startedAt: new Date(2026, 8, 11), endedAt: new Date(2026, 8, 11), row: 10 },
 ];
 
+const MONTH_ABBREVIATIONS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+
 @Component({
   selector: "app-root",
   imports: [DecimalPipe],
@@ -175,6 +177,7 @@ export class AppComponent {
   setSpeed(speed: number): void { this.speed.set(speed); }
   timelineLabel(): string { return this.currentDate().toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" }); }
   rangeLabel(date: Date): string { return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }); }
+  cardDateLabel(date: Date): string { return `${date.getDate().toString().padStart(2, "0")}/${MONTH_ABBREVIATIONS[date.getMonth()]}`; }
   durationLabel(durationMs: number): string {
     const days = durationMs / 86_400_000;
     return `${days.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} d`;

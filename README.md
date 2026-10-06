@@ -21,7 +21,7 @@ Use o botão `+ Situações visíveis` para expandir o filtro de etapas. Desmarc
 
 Ao passar o mouse ou navegar por teclado até um card de demanda, um painel contextual apresenta o título e o tempo acumulado em cada situação até a data selecionada.
 
-Cada coluna de situação comporta duas demandas por linha. Os cards são compactos para manter essa organização sem espaço excedente na coluna.
+Cada coluna de situação comporta duas demandas por linha. Os cards são compactos e apresentam o início e o fim do intervalo em linhas separadas, no formato `dd/mmm`.
 
 ## Desenvolvimento
 
