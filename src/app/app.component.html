@@ -40,6 +40,15 @@
       </select>
       <small id="visible-demand-summary">{{ visibleDemandSummary() }}</small>
     </label>
+    <label class="visibility-combo">
+      <span>Tipos de demanda visíveis</span>
+      <select multiple size="4" (change)="setVisibleDemandTypes($event)" aria-describedby="visible-demand-type-summary">
+        @for (demandType of demandTypeOrder(); track demandType) {
+          <option [value]="demandType" [selected]="demandTypeVisible(demandType)">{{ demandType }}</option>
+        }
+      </select>
+      <small id="visible-demand-type-summary">{{ visibleDemandTypeSummary() }}</small>
+    </label>
   </section>
 
   <section class="time-control" aria-labelledby="timeline-title">
@@ -85,7 +94,7 @@
           @for (item of visibleActiveByStatus().get(status) ?? []; track trackByNumber($index, item)) {
             <article class="demand-card" tabindex="0" (pointerenter)="showDemandHint($event, item)" (pointerleave)="hideDemandHint()" (focusin)="showDemandHint($event, item)" (focusout)="hideDemandHint()" [attr.aria-describedby]="'demand-hint-' + item.number">
               <div class="card-topline"><span>{{ item.progress | number:'1.0-0' }}%</span></div>
-              <h3>{{ item.number }}</h3>
+              <h3 [style.color]="demandTypeColor(item.demandType)">{{ item.number }}</h3>
               <p class="card-date-range" [attr.aria-label]="'Período de ' + rangeLabel(item.event.startedAt) + ' até ' + rangeLabel(item.event.endedAt)">
                 <span>{{ cardDateLabel(item.event.startedAt) }}</span>
                 <span class="card-date-range-separator" aria-hidden="true">a</span>

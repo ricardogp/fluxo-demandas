@@ -5,6 +5,7 @@ import * as XLSX from "xlsx";
 interface DemandEvent {
   demandNumber: string;
   demandTitle: string;
+  demandType: string;
   status: string;
   startedAt: Date;
   endedAt: Date;
@@ -14,12 +15,14 @@ interface DemandEvent {
 interface DemandHistory {
   number: string;
   title: string;
+  demandType: string;
   events: DemandEvent[];
 }
 
 interface ActiveDemand {
   number: string;
   title: string;
+  demandType: string;
   event: DemandEvent;
   events: DemandEvent[];
   progress: number;
@@ -47,15 +50,15 @@ interface StatusMetrics {
 type SpreadsheetRow = Record<string, unknown>;
 
 const SAMPLE_EVENTS: DemandEvent[] = [
-  { demandNumber: "DEM-1042", demandTitle: "Portal de fornecedores", status: "Descoberta", startedAt: new Date(2026, 7, 3), endedAt: new Date(2026, 7, 7), row: 2 },
-  { demandNumber: "DEM-1042", demandTitle: "Portal de fornecedores", status: "Desenvolvimento", startedAt: new Date(2026, 7, 8), endedAt: new Date(2026, 7, 22), row: 3 },
-  { demandNumber: "DEM-1042", demandTitle: "Portal de fornecedores", status: "Validação", startedAt: new Date(2026, 7, 23), endedAt: new Date(2026, 7, 27), row: 4 },
-  { demandNumber: "DEM-1057", demandTitle: "Central de ajuda", status: "Descoberta", startedAt: new Date(2026, 7, 9), endedAt: new Date(2026, 7, 12), row: 5 },
-  { demandNumber: "DEM-1057", demandTitle: "Central de ajuda", status: "Desenvolvimento", startedAt: new Date(2026, 7, 13), endedAt: new Date(2026, 8, 2), row: 6 },
-  { demandNumber: "DEM-1071", demandTitle: "Relatório de SLA", status: "Descoberta", startedAt: new Date(2026, 7, 16), endedAt: new Date(2026, 7, 18), row: 7 },
-  { demandNumber: "DEM-1071", demandTitle: "Relatório de SLA", status: "Desenvolvimento", startedAt: new Date(2026, 7, 19), endedAt: new Date(2026, 8, 4), row: 8 },
-  { demandNumber: "DEM-1071", demandTitle: "Relatório de SLA", status: "Validação", startedAt: new Date(2026, 8, 5), endedAt: new Date(2026, 8, 10), row: 9 },
-  { demandNumber: "DEM-1071", demandTitle: "Relatório de SLA", status: "Entregue", startedAt: new Date(2026, 8, 11), endedAt: new Date(2026, 8, 11), row: 10 },
+  { demandNumber: "DEM-1042", demandTitle: "Portal de fornecedores", demandType: "Evolutiva", status: "Descoberta", startedAt: new Date(2026, 7, 3), endedAt: new Date(2026, 7, 7), row: 2 },
+  { demandNumber: "DEM-1042", demandTitle: "Portal de fornecedores", demandType: "Evolutiva", status: "Desenvolvimento", startedAt: new Date(2026, 7, 8), endedAt: new Date(2026, 7, 22), row: 3 },
+  { demandNumber: "DEM-1042", demandTitle: "Portal de fornecedores", demandType: "Evolutiva", status: "Validação", startedAt: new Date(2026, 7, 23), endedAt: new Date(2026, 7, 27), row: 4 },
+  { demandNumber: "DEM-1057", demandTitle: "Central de ajuda", demandType: "Corretiva", status: "Descoberta", startedAt: new Date(2026, 7, 9), endedAt: new Date(2026, 7, 12), row: 5 },
+  { demandNumber: "DEM-1057", demandTitle: "Central de ajuda", demandType: "Corretiva", status: "Desenvolvimento", startedAt: new Date(2026, 7, 13), endedAt: new Date(2026, 8, 2), row: 6 },
+  { demandNumber: "DEM-1071", demandTitle: "Relatório de SLA", demandType: "Sustentação", status: "Descoberta", startedAt: new Date(2026, 7, 16), endedAt: new Date(2026, 7, 18), row: 7 },
+  { demandNumber: "DEM-1071", demandTitle: "Relatório de SLA", demandType: "Sustentação", status: "Desenvolvimento", startedAt: new Date(2026, 7, 19), endedAt: new Date(2026, 8, 4), row: 8 },
+  { demandNumber: "DEM-1071", demandTitle: "Relatório de SLA", demandType: "Sustentação", status: "Validação", startedAt: new Date(2026, 8, 5), endedAt: new Date(2026, 8, 10), row: 9 },
+  { demandNumber: "DEM-1071", demandTitle: "Relatório de SLA", demandType: "Sustentação", status: "Entregue", startedAt: new Date(2026, 8, 11), endedAt: new Date(2026, 8, 11), row: 10 },
 ];
 
 const MONTH_ABBREVIATIONS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
@@ -72,6 +75,7 @@ export class AppComponent {
   readonly theme = signal<"light" | "dark">("light");
   readonly hiddenStatuses = signal<Set<string>>(new Set());
   readonly hiddenDemands = signal<Set<string>>(new Set());
+  readonly hiddenDemandTypes = signal<Set<string>>(new Set());
   readonly activeHint = signal<ActiveHint | undefined>(undefined);
   readonly speed = signal(1);
   readonly playing = signal(false);
@@ -95,12 +99,15 @@ export class AppComponent {
       .map(([number, events]) => ({
         number,
         title: events[0].demandTitle,
+        demandType: events[0].demandType,
         events: [...events].sort((first, second) => first.startedAt.getTime() - second.startedAt.getTime() || first.row - second.row),
       }))
       .sort((first, second) => first.number.localeCompare(second.number, "pt-BR", { numeric: true }));
   });
 
   readonly statusOrder = computed(() => this.inferStatusOrder(this.histories()));
+  readonly demandTypeOrder = computed(() => [...new Set(this.histories().map((history) => history.demandType))]
+    .sort((first, second) => first.localeCompare(second, "pt-BR")));
   readonly visibleStatusOrder = computed(() => this.statusOrder().filter((status) => this.statusVisible(status)));
   readonly statusMetrics = computed(() => this.calculateStatusMetrics(this.events(), this.currentTime()));
   readonly activeByStatus = computed(() => {
@@ -112,7 +119,7 @@ export class AppComponent {
       if (!event) continue;
 
       const active = lanes.get(event.status) ?? [];
-      active.push({ number: history.number, title: history.title, event, progress: this.eventProgress(event, current), events: history.events });
+      active.push({ number: history.number, title: history.title, demandType: history.demandType, event, progress: this.eventProgress(event, current), events: history.events });
       lanes.set(event.status, active);
     }
     return lanes;
@@ -121,7 +128,7 @@ export class AppComponent {
   readonly visibleActiveByStatus = computed(() => {
     const visibleLanes = new Map<string, ActiveDemand[]>();
     for (const [status, items] of this.activeByStatus()) {
-      visibleLanes.set(status, items.filter((item) => this.demandVisible(item.number)));
+      visibleLanes.set(status, items.filter((item) => this.demandVisible(item.number) && this.demandTypeVisible(item.demandType)));
     }
     return visibleLanes;
   });
@@ -174,6 +181,7 @@ export class AppComponent {
   toggleTheme(): void { this.theme.update((theme) => theme === "light" ? "dark" : "light"); }
   statusVisible(status: string): boolean { return !this.hiddenStatuses().has(status); }
   demandVisible(number: string): boolean { return !this.hiddenDemands().has(number); }
+  demandTypeVisible(demandType: string): boolean { return !this.hiddenDemandTypes().has(demandType); }
   toggleStatusVisibility(status: string): void {
     this.hiddenStatuses.update((hidden) => {
       const next = new Set(hidden);
@@ -189,8 +197,13 @@ export class AppComponent {
     const selected = this.selectedValues(event);
     this.hiddenDemands.set(new Set(this.histories().map((history) => history.number).filter((number) => !selected.has(number))));
   }
+  setVisibleDemandTypes(event: Event): void {
+    const selected = this.selectedValues(event);
+    this.hiddenDemandTypes.set(new Set(this.demandTypeOrder().filter((demandType) => !selected.has(demandType))));
+  }
   visibleStatusSummary(): string { return `${this.visibleStatusOrder().length} de ${this.statusOrder().length} visíveis`; }
   visibleDemandSummary(): string { return `${this.histories().filter((history) => this.demandVisible(history.number)).length} de ${this.histories().length} visíveis`; }
+  visibleDemandTypeSummary(): string { return `${this.demandTypeOrder().filter((demandType) => this.demandTypeVisible(demandType)).length} de ${this.demandTypeOrder().length} visíveis`; }
   setSpeed(speed: number): void { this.speed.set(speed); }
   timelineLabel(): string { return this.currentDate().toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" }); }
   rangeLabel(date: Date): string { return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }); }
@@ -203,6 +216,10 @@ export class AppComponent {
   laneColor(status: string): string {
     const colors = ["#6f77dc", "#d79b42", "#3aa888", "#d76370", "#4e91c7", "#8a6ec5"];
     return colors[this.statusOrder().indexOf(status) % colors.length] ?? colors[0];
+  }
+  demandTypeColor(demandType: string): string {
+    const colors = ["#4f7fd8", "#bd7a18", "#178668", "#ba4d5c", "#6d54b1", "#0d7f95"];
+    return colors[this.demandTypeOrder().indexOf(demandType) % colors.length] ?? colors[0];
   }
 
   trackByNumber(_index: number, item: ActiveDemand): string { return item.number; }
@@ -261,6 +278,7 @@ export class AppComponent {
     const headers = Object.keys(rows[0] ?? {});
     const demandNumberHeader = this.findHeader(headers, ["numero da demanda", "número da demanda", "numero", "número", "id da demanda"]);
     const demandTitleHeader = this.findHeader(headers, ["titulo da demanda", "título da demanda", "titulo", "título", "nome da demanda"]);
+    const demandTypeHeader = this.findHeader(headers, ["tipo de demanda", "tipo"]);
     const statusHeader = this.findHeader(headers, ["situacao", "situação", "status", "etapa"]);
     const startHeader = this.findHeader(headers, ["data inicio", "data de inicio", "início", "inicio", "inicio da etapa"]);
     const endHeader = this.findHeader(headers, ["data fim", "data de fim", "fim", "termino", "término", "fim da etapa"]);
@@ -272,13 +290,14 @@ export class AppComponent {
     rows.forEach((row, index) => {
       const demandNumber = String(row[demandNumberHeader] ?? "").trim();
       const demandTitle = String(row[demandTitleHeader] ?? "").trim();
+      const demandType = demandTypeHeader ? String(row[demandTypeHeader] ?? "").trim() || "Sem tipo" : "Sem tipo";
       const status = String(row[statusHeader] ?? "").trim();
       const startedAt = this.parseDate(row[startHeader]);
       const endedAt = this.parseDate(row[endHeader]);
       if (!demandNumber && !demandTitle && !status && !startedAt && !endedAt) return;
       if (!demandNumber || !demandTitle || !status || !startedAt || !endedAt) throw new Error(`A linha ${index + 2} está incompleta. Informe número, título, situação, início e fim.`);
       if (endedAt < startedAt) throw new Error(`A data final da linha ${index + 2} é anterior à data inicial.`);
-      events.push({ demandNumber, demandTitle, status, startedAt, endedAt, row: index + 2 });
+      events.push({ demandNumber, demandTitle, demandType, status, startedAt, endedAt, row: index + 2 });
     });
     return events;
   }

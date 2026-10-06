@@ -4,12 +4,12 @@ Aplicação desktop Tauri + Angular para reproduzir visualmente a evolução de 
 
 ## Planilha de entrada
 
-Na primeira aba do arquivo `.xlsx` ou `.xls`, cada linha representa a permanência de uma demanda em uma situação. São reconhecidos os cabeçalhos `Número da demanda`, `Título da demanda`, `Situação`, `Data de início` e `Data de fim` (também são aceitas variações sem acentos, como `Número`, `Título`, `Status`, `Etapa`, `Início` e `Fim`).
+Na primeira aba do arquivo `.xlsx` ou `.xls`, cada linha representa a permanência de uma demanda em uma situação. São reconhecidos os cabeçalhos `Número da demanda`, `Título da demanda`, `Situação`, `Data de início` e `Data de fim` (também são aceitas variações sem acentos, como `Número`, `Título`, `Status`, `Etapa`, `Início` e `Fim`). A coluna opcional `Tipo de demanda`, à direita das demais, identifica o tipo da demanda.
 
-| Número da demanda | Título da demanda | Situação | Data de início | Data de fim |
-| --- | --- | --- | --- | --- |
-| DEM-142 | Login com SSO | Análise | 02/09/2026 | 05/09/2026 |
-| DEM-142 | Login com SSO | Desenvolvimento | 06/09/2026 | 18/09/2026 |
+| Número da demanda | Título da demanda | Situação | Data de início | Data de fim | Tipo de demanda |
+| --- | --- | --- | --- | --- | --- |
+| DEM-142 | Login com SSO | Análise | 02/09/2026 | 05/09/2026 | Evolutiva |
+| DEM-142 | Login com SSO | Desenvolvimento | 06/09/2026 | 18/09/2026 | Evolutiva |
 
 A aplicação ordena as linhas de cada demanda por data e infere a sequência das situações a partir das transições encontradas. A linha do tempo aceita navegação nos dois sentidos; durante a reprodução, cada intervalo consome tempo proporcional à duração registrada na planilha.
 
@@ -25,7 +25,7 @@ Cada coluna de situação comporta duas demandas por linha. Os cards são compac
 
 O controle do tempo fica imediatamente acima das situações e reúne a navegação da linha do tempo, a reprodução e a velocidade em uma área compacta. A data exibida acompanha o marcador durante a navegação.
 
-Os filtros de visualização permitem selecionar múltiplas situações e demandas. Para selecionar itens não contíguos na lista, use `Ctrl` no Windows/Linux ou `⌘` no macOS.
+Os filtros de visualização permitem selecionar múltiplas situações, demandas e tipos de demanda. Cada tipo recebe uma cor própria no número exibido no card. Para selecionar itens não contíguos na lista, use `Ctrl` no Windows/Linux ou `⌘` no macOS.
 
 ## Desenvolvimento
 

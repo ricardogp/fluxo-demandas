@@ -6,7 +6,7 @@ import "@angular/compiler";
 import { AppComponent } from "./app.component";
 
 type TestableApp = AppComponent & {
-  parseRows(rows: Array<Record<string, unknown>>): Array<{ demandNumber: string; demandTitle: string; status: string; startedAt: Date; endedAt: Date }>;
+  parseRows(rows: Array<Record<string, unknown>>): Array<{ demandNumber: string; demandTitle: string; demandType: string; status: string; startedAt: Date; endedAt: Date }>;
   inferStatusOrder(histories: Array<{ name: string; events: Array<{ status: string }> }>): string[];
   calculateStatusMetrics(events: Array<{ demand: string; status: string; startedAt: Date; endedAt: Date; row: number }>, asOf: number): Map<string, {
     maxConcurrent: number;
@@ -21,6 +21,7 @@ test("lê cabeçalhos normalizados e datas brasileiras", () => {
   const events = app.parseRows([{
     "Número da demanda": "DEM-200",
     "Título da demanda": "Acesso por SSO",
+    "Tipo de demanda": "Evolutiva",
     "Situação": "Desenvolvimento",
     "Data de início": "02/09/2026",
     "Data de fim": "18/09/2026",
@@ -29,8 +30,22 @@ test("lê cabeçalhos normalizados e datas brasileiras", () => {
   assert.equal(events.length, 1);
   assert.equal(events[0].demandNumber, "DEM-200");
   assert.equal(events[0].demandTitle, "Acesso por SSO");
+  assert.equal(events[0].demandType, "Evolutiva");
   assert.equal(events[0].status, "Desenvolvimento");
   assert.equal(events[0].startedAt.toLocaleDateString("pt-BR"), "02/09/2026");
+});
+
+test("atribui Sem tipo quando a planilha não tem a coluna opcional", () => {
+  const app = new AppComponent() as TestableApp;
+  const events = app.parseRows([{
+    "Número da demanda": "DEM-201",
+    "Título da demanda": "Acesso por SSO",
+    "Situação": "Desenvolvimento",
+    "Data de início": "02/09/2026",
+    "Data de fim": "18/09/2026",
+  }]);
+
+  assert.equal(events[0].demandType, "Sem tipo");
 });
 
 test("infere uma sequência a partir das transições históricas", () => {
@@ -121,6 +136,28 @@ test("o seletor de demandas oculta os cards e atualiza o contador", () => {
 
   assert.equal(app.demandVisible(activeDemand.number), false);
   assert.equal(app.activeCount(), initialCount - 1);
+});
+
+test("o seletor de tipos oculta os cards e atualiza o contador", () => {
+  const app = new AppComponent();
+  const activeDemand = [...app.activeByStatus().values()][0]?.[0];
+  assert.ok(activeDemand);
+  const initialCount = app.activeCount();
+
+  const selectedOptions = app.demandTypeOrder()
+    .filter((demandType) => demandType !== activeDemand.demandType)
+    .map((value) => ({ value }));
+  app.setVisibleDemandTypes({ target: { selectedOptions } } as unknown as Event);
+
+  assert.equal(app.demandTypeVisible(activeDemand.demandType), false);
+  assert.equal(app.activeCount(), initialCount - 1);
+});
+
+test("a cor do número da demanda é estável para cada tipo", () => {
+  const app = new AppComponent();
+
+  assert.equal(app.demandTypeColor("Corretiva"), app.demandTypeColor("Corretiva"));
+  assert.notEqual(app.demandTypeColor("Corretiva"), app.demandTypeColor("Evolutiva"));
 });
 
 test("o painel da demanda mostra o tempo acumulado até o passo selecionado", () => {

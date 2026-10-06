@@ -32,7 +32,12 @@ test("o controle de tempo compacto antecede as situações", () => {
 test("os filtros usam seletores múltiplos de situações e demandas", () => {
   assert.match(template, /<section class="visibility-controls" aria-label="Filtros de visualização">[\s\S]*<select multiple size="4" \(change\)="setVisibleStatuses\(\$event\)"/);
   assert.match(template, /<select multiple size="4" \(change\)="setVisibleDemands\(\$event\)"/);
+  assert.match(template, /<select multiple size="4" \(change\)="setVisibleDemandTypes\(\$event\)"/);
   assert.match(stylesheet, /\.visibility-combo select \{[^}]*min-height: 82px;/);
+});
+
+test("o número do card recebe a cor do tipo da demanda", () => {
+  assert.match(template, /<h3 \[style\.color\]="demandTypeColor\(item\.demandType\)">\{\{ item\.number \}\}<\/h3>/);
 });
 
 test("a data exibida acompanha o marcador da linha do tempo", () => {
