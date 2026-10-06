@@ -34,8 +34,24 @@ Para gerar o frontend:
 npm run build
 ```
 
-Para executar como aplicação desktop, instale o Rust e os pré-requisitos Linux do Tauri e então use:
+## Aplicativo desktop
+
+Os comandos abaixo geram o aplicativo instalável para o sistema operacional em que forem executados:
 
 ```bash
-npm run tauri dev
+npm run desktop:dev
+npm run desktop:build
 ```
+
+Os arquivos gerados ficam em `src-tauri/target/release/bundle/`. No Windows, serão produzidos instaladores `.msi` e `.exe` (NSIS); no Linux, `.AppImage`, `.deb` e `.rpm`.
+
+Para compilar localmente, instale o Rust estável e os pré-requisitos do Tauri. Em Ubuntu/Debian:
+
+```bash
+sudo apt-get update
+sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf xdg-utils
+```
+
+No Windows, instale o Rust com o toolchain MSVC e as Ferramentas de Build do Visual Studio com o workload de desenvolvimento em C++.
+
+O workflow manual **Desktop bundles** em GitHub Actions gera os instaladores Windows e Linux sem exigir que a máquina local tenha Rust ou as bibliotecas Linux instaladas. Depois de executá-lo em **Actions**, os arquivos ficam disponíveis como artefatos do workflow.
