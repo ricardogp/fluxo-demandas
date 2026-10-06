@@ -1,0 +1,52 @@
+<main class="app-shell">
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark" aria-hidden="true">↗</span><span>fluxo<span>_</span>demandas</span></div>
+    <label class="import-button" [class.is-loading]="loading()">
+      <input type="file" accept=".xlsx,.xls" (change)="importSpreadsheet($event)" [disabled]="loading()" />
+      <span>{{ loading() ? 'Lendo planilha…' : 'Importar planilha' }}</span>
+    </label>
+  </header>
+
+  <section class="overview" aria-labelledby="page-title">
+    <div>
+      <p class="eyebrow">SIMULAÇÃO DE EVOLUÇÃO</p>
+      <h1 id="page-title">O tempo conta a história de cada demanda.</h1>
+      <p class="source">{{ sourceName() }} · {{ histories().length }} demandas · {{ events().length }} registros</p>
+    </div>
+    <div class="live-stat"><span>EM ANDAMENTO</span><strong>{{ activeCount() }}</strong><small>na data selecionada</small></div>
+  </section>
+
+  @if (error()) { <p class="error-message" role="alert">{{ error() }}</p> }
+
+  <section class="flow" aria-label="Fluxo de demandas por situação">
+    @for (status of statusOrder(); track status) {
+      <article class="lane" [style.--lane-color]="laneColor(status)">
+        <header class="lane-header"><span class="lane-dot"></span><h2>{{ status }}</h2><span class="lane-count">{{ activeByStatus().get(status)?.length ?? 0 }}</span></header>
+        <div class="lane-content">
+          @for (item of activeByStatus().get(status) ?? []; track trackByName($index, item)) {
+            <article class="demand-card">
+              <div class="card-topline"><span>EM FLUXO</span><span>{{ item.progress | number:'1.0-0' }}%</span></div>
+              <h3>{{ item.name }}</h3>
+              <p>{{ rangeLabel(item.event.startedAt) }} — {{ rangeLabel(item.event.endedAt) }}</p>
+              <div class="progress-track" aria-hidden="true"><span [style.width.%]="item.progress"></span></div>
+            </article>
+          } @empty { <p class="empty-lane">Nenhuma demanda nesta etapa.</p> }
+        </div>
+      </article>
+    }
+  </section>
+
+  <section class="time-control" aria-label="Controles da simulação">
+    <div class="date-row"><span>{{ rangeLabel(timelineStart()) }}</span><strong>{{ timelineLabel() }}</strong><span>{{ rangeLabel(timelineEnd()) }}</span></div>
+    <input class="timeline" type="range" min="0" max="1000" [value]="sliderValue()" (input)="scrub($event)" aria-label="Navegar na linha do tempo" />
+    <div class="playback-row">
+      <button class="play-button" type="button" (click)="togglePlayback()" [attr.aria-label]="playing() ? 'Pausar simulação' : 'Reproduzir simulação'"><span aria-hidden="true">{{ playing() ? 'Ⅱ' : '▶' }}</span>{{ playing() ? 'Pausar' : 'Reproduzir' }}</button>
+      <div class="speed-control" aria-label="Velocidade da simulação">
+        <span>VELOCIDADE</span>
+        @for (option of speedOptions; track option) { <button type="button" [class.active]="speed() === option" (click)="setSpeed(option)">{{ option }}x</button> }
+      </div>
+    </div>
+  </section>
+
+  <footer><span class="footer-dot"></span>A ordem das etapas é inferida a partir da cronologia das demandas importadas.</footer>
+</main>
