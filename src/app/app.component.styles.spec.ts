@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 const stylesheet = readFileSync(new URL("./app.component.css", import.meta.url), "utf8");
+const template = readFileSync(new URL("./app.component.html", import.meta.url), "utf8");
 
 test("as colunas acomodam dois cards com dois terços da largura anterior", () => {
   const previousCardWidth = (265 - 24 - 8) / 2;
@@ -15,4 +16,9 @@ test("as colunas acomodam dois cards com dois terços da largura anterior", () =
   assert.match(stylesheet, /\.lane \{[^}]*min-width: 187\.333px;/);
   assert.match(stylesheet, /\.lane-content \{[^}]*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\);/);
   assert.match(stylesheet, /\.card-date-range \{[^}]*display: grid;[^}]*line-height: 1\.2;/);
+  assert.match(stylesheet, /\.card-date-range-separator \{ justify-self: center; \}/);
+});
+
+test("o intervalo do card exibe a preposição em uma terceira linha", () => {
+  assert.match(template, /<span>\{\{ cardDateLabel\(item\.event\.startedAt\) \}\}<\/span>\s*<span class="card-date-range-separator" aria-hidden="true">a<\/span>\s*<span>\{\{ cardDateLabel\(item\.event\.endedAt\) \}\}<\/span>/);
 });

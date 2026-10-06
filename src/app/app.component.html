@@ -63,6 +63,7 @@
               <h3>{{ item.number }}</h3>
               <p class="card-date-range" [attr.aria-label]="'Período de ' + rangeLabel(item.event.startedAt) + ' até ' + rangeLabel(item.event.endedAt)">
                 <span>{{ cardDateLabel(item.event.startedAt) }}</span>
+                <span class="card-date-range-separator" aria-hidden="true">a</span>
                 <span>{{ cardDateLabel(item.event.endedAt) }}</span>
               </p>
               <div class="progress-track" aria-hidden="true"><span [style.width.%]="item.progress"></span></div>
