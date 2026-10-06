@@ -1,4 +1,6 @@
 :host { display: block; min-height: 100vh; }
+:host .demand-card { box-shadow: 0 3px #0004, 0 9px 18px #0004; }
+:host .light-theme .demand-card { box-shadow: 0 3px #2a374f14, 0 9px 18px #2a374f1f; }
 .app-shell { min-height: 100vh; padding: 0 5.5vw 28px; color: #eff1f7; }
 .topbar { height: 80px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #272a3a; }
 .topbar-actions { display: flex; align-items: center; gap: 9px; }
