@@ -4,8 +4,10 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
-    "test": "node --import tsx --test src/**/*.spec.ts",
-    "build": "ng build",
+    "test": "node --import tsx --test src/**/*.spec.ts scripts/*.spec.cjs",
+    "build": "npm run build:web && npm run build:static",
+    "build:web": "ng build",
+    "build:static": "node scripts/create-static.cjs",
     "watch": "ng build --watch --configuration development",
     "tauri": "tauri",
     "desktop:dev": "tauri dev",

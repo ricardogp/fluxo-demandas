@@ -34,6 +34,8 @@ Para gerar o frontend:
 npm run build
 ```
 
+Além da saída do Angular em `dist/`, esse comando gera `static/index.html`: um único arquivo HTML com o CSS e JavaScript incorporados. Ele pode ser copiado e aberto localmente no navegador, sem depender dos demais arquivos da pasta de build.
+
 ## Aplicativo desktop
 
 Os comandos abaixo geram o aplicativo instalável para o sistema operacional em que forem executados:
