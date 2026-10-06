@@ -29,11 +29,13 @@ test("o controle de tempo compacto antecede as situações", () => {
   assert.match(stylesheet, /\.playback-row \{[^}]*margin-top: 5px;/);
 });
 
-test("os filtros usam seletores múltiplos de situações e demandas", () => {
-  assert.match(template, /<section class="visibility-controls" aria-label="Filtros de visualização">[\s\S]*<select multiple size="4" \(change\)="setVisibleStatuses\(\$event\)"/);
+test("os filtros exibem os seletores múltiplos sob demanda", () => {
+  assert.match(template, /<button class="visibility-filter-trigger" type="button" \(click\)="toggleVisibilityFilter\('status'\)" \[attr\.aria-expanded\]="visibilityFilterExpanded\('status'\)"/);
+  assert.match(template, /@if \(visibilityFilterExpanded\('status'\)\) \{\s*<div class="visibility-combo" id="visible-status-options">\s*<select multiple size="4" \(change\)="setVisibleStatuses\(\$event\)"/);
   assert.match(template, /<select multiple size="4" \(change\)="setVisibleDemands\(\$event\)"/);
   assert.match(template, /<select multiple size="4" \(change\)="setVisibleDemandTypes\(\$event\)"/);
-  assert.match(stylesheet, /\.visibility-combo select \{[^}]*min-height: 82px;/);
+  assert.match(stylesheet, /\.visibility-filter-trigger \{[^}]*min-height: 34px;/);
+  assert.match(stylesheet, /\.visibility-combo \{[^}]*margin-top: 6px;/);
 });
 
 test("o número do card recebe a cor do tipo da demanda", () => {

@@ -25,7 +25,7 @@ Cada coluna de situação comporta duas demandas por linha. Os cards são compac
 
 O controle do tempo fica imediatamente acima das situações e reúne a navegação da linha do tempo, a reprodução e a velocidade em uma área compacta. A data exibida acompanha o marcador durante a navegação.
 
-Os filtros de visualização permitem selecionar múltiplas situações, demandas e tipos de demanda. Cada tipo recebe uma cor própria no número exibido no card. Para selecionar itens não contíguos na lista, use `Ctrl` no Windows/Linux ou `⌘` no macOS.
+Os filtros de visualização de situações, demandas e tipos de demanda ficam recolhidos em botões e exibem a lista correspondente ao serem clicados. Cada tipo recebe uma cor própria no número exibido no card. Para selecionar itens não contíguos na lista, use `Ctrl` no Windows/Linux ou `⌘` no macOS.
 
 ## Desenvolvimento
 

@@ -48,6 +48,7 @@ interface StatusMetrics {
 }
 
 type SpreadsheetRow = Record<string, unknown>;
+type VisibilityFilter = "status" | "demand" | "demandType";
 
 const SAMPLE_EVENTS: DemandEvent[] = [
   { demandNumber: "DEM-1042", demandTitle: "Portal de fornecedores", demandType: "Evolutiva", status: "Descoberta", startedAt: new Date(2026, 7, 3), endedAt: new Date(2026, 7, 7), row: 2 },
@@ -76,6 +77,7 @@ export class AppComponent {
   readonly hiddenStatuses = signal<Set<string>>(new Set());
   readonly hiddenDemands = signal<Set<string>>(new Set());
   readonly hiddenDemandTypes = signal<Set<string>>(new Set());
+  readonly expandedVisibilityFilters = signal<Set<VisibilityFilter>>(new Set());
   readonly activeHint = signal<ActiveHint | undefined>(undefined);
   readonly speed = signal(1);
   readonly playing = signal(false);
@@ -179,6 +181,14 @@ export class AppComponent {
 
   togglePlayback(): void { this.playing() ? this.pause() : this.play(); }
   toggleTheme(): void { this.theme.update((theme) => theme === "light" ? "dark" : "light"); }
+  visibilityFilterExpanded(filter: VisibilityFilter): boolean { return this.expandedVisibilityFilters().has(filter); }
+  toggleVisibilityFilter(filter: VisibilityFilter): void {
+    this.expandedVisibilityFilters.update((filters) => {
+      const next = new Set(filters);
+      next.has(filter) ? next.delete(filter) : next.add(filter);
+      return next;
+    });
+  }
   statusVisible(status: string): boolean { return !this.hiddenStatuses().has(status); }
   demandVisible(number: string): boolean { return !this.hiddenDemands().has(number); }
   demandTypeVisible(demandType: string): boolean { return !this.hiddenDemandTypes().has(demandType); }

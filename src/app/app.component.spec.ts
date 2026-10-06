@@ -85,6 +85,16 @@ test("formata as datas compactas do card em dd/mmm", () => {
   assert.equal(app.cardDateLabel(new Date(2026, 11, 19)), "19/dez");
 });
 
+test("cada botão de filtro alterna a exibição de sua lista", () => {
+  const app = new AppComponent();
+
+  assert.equal(app.visibilityFilterExpanded("status"), false);
+  app.toggleVisibilityFilter("status");
+  assert.equal(app.visibilityFilterExpanded("status"), true);
+  app.toggleVisibilityFilter("status");
+  assert.equal(app.visibilityFilterExpanded("status"), false);
+});
+
 test("oculta apenas a situação selecionada no filtro", () => {
   const app = new AppComponent();
   const status = app.statusOrder()[0];

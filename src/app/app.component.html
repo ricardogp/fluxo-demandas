@@ -22,33 +22,48 @@
   @if (error()) { <p class="error-message" role="alert">{{ error() }}</p> }
 
   <section class="visibility-controls" aria-label="Filtros de visualização">
-    <label class="visibility-combo">
-      <span>Situações visíveis</span>
-      <select multiple size="4" (change)="setVisibleStatuses($event)" aria-describedby="visible-status-summary">
-        @for (status of statusOrder(); track status) {
-          <option [value]="status" [selected]="statusVisible(status)">{{ status }}</option>
-        }
-      </select>
-      <small id="visible-status-summary">{{ visibleStatusSummary() }}</small>
-    </label>
-    <label class="visibility-combo">
-      <span>Demandas visíveis</span>
-      <select multiple size="4" (change)="setVisibleDemands($event)" aria-describedby="visible-demand-summary">
-        @for (history of histories(); track history.number) {
-          <option [value]="history.number" [selected]="demandVisible(history.number)">{{ history.number }} — {{ history.title }}</option>
-        }
-      </select>
-      <small id="visible-demand-summary">{{ visibleDemandSummary() }}</small>
-    </label>
-    <label class="visibility-combo">
-      <span>Tipos de demanda visíveis</span>
-      <select multiple size="4" (change)="setVisibleDemandTypes($event)" aria-describedby="visible-demand-type-summary">
-        @for (demandType of demandTypeOrder(); track demandType) {
-          <option [value]="demandType" [selected]="demandTypeVisible(demandType)">{{ demandType }}</option>
-        }
-      </select>
-      <small id="visible-demand-type-summary">{{ visibleDemandTypeSummary() }}</small>
-    </label>
+    <div class="visibility-filter">
+      <button class="visibility-filter-trigger" type="button" (click)="toggleVisibilityFilter('status')" [attr.aria-expanded]="visibilityFilterExpanded('status')" aria-controls="visible-status-options">
+        <span>Situações visíveis</span><small>{{ visibleStatusSummary() }}</small><span class="filter-symbol" aria-hidden="true">{{ visibilityFilterExpanded('status') ? '−' : '+' }}</span>
+      </button>
+      @if (visibilityFilterExpanded('status')) {
+        <div class="visibility-combo" id="visible-status-options">
+          <select multiple size="4" (change)="setVisibleStatuses($event)" aria-label="Situações visíveis">
+            @for (status of statusOrder(); track status) {
+              <option [value]="status" [selected]="statusVisible(status)">{{ status }}</option>
+            }
+          </select>
+        </div>
+      }
+    </div>
+    <div class="visibility-filter">
+      <button class="visibility-filter-trigger" type="button" (click)="toggleVisibilityFilter('demand')" [attr.aria-expanded]="visibilityFilterExpanded('demand')" aria-controls="visible-demand-options">
+        <span>Demandas visíveis</span><small>{{ visibleDemandSummary() }}</small><span class="filter-symbol" aria-hidden="true">{{ visibilityFilterExpanded('demand') ? '−' : '+' }}</span>
+      </button>
+      @if (visibilityFilterExpanded('demand')) {
+        <div class="visibility-combo" id="visible-demand-options">
+          <select multiple size="4" (change)="setVisibleDemands($event)" aria-label="Demandas visíveis">
+            @for (history of histories(); track history.number) {
+              <option [value]="history.number" [selected]="demandVisible(history.number)">{{ history.number }} — {{ history.title }}</option>
+            }
+          </select>
+        </div>
+      }
+    </div>
+    <div class="visibility-filter">
+      <button class="visibility-filter-trigger" type="button" (click)="toggleVisibilityFilter('demandType')" [attr.aria-expanded]="visibilityFilterExpanded('demandType')" aria-controls="visible-demand-type-options">
+        <span>Tipos de demanda visíveis</span><small>{{ visibleDemandTypeSummary() }}</small><span class="filter-symbol" aria-hidden="true">{{ visibilityFilterExpanded('demandType') ? '−' : '+' }}</span>
+      </button>
+      @if (visibilityFilterExpanded('demandType')) {
+        <div class="visibility-combo" id="visible-demand-type-options">
+          <select multiple size="4" (change)="setVisibleDemandTypes($event)" aria-label="Tipos de demanda visíveis">
+            @for (demandType of demandTypeOrder(); track demandType) {
+              <option [value]="demandType" [selected]="demandTypeVisible(demandType)">{{ demandType }}</option>
+            }
+          </select>
+        </div>
+      }
+    </div>
   </section>
 
   <section class="time-control" aria-labelledby="timeline-title">
