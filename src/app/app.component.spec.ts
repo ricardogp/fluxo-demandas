@@ -11,8 +11,6 @@ type TestableApp = AppComponent & {
   calculateStatusMetrics(events: Array<{ demand: string; status: string; startedAt: Date; endedAt: Date; row: number }>): Map<string, {
     maxConcurrent: number;
     averageMs: number;
-    fastest: { demand: string };
-    longest: { demand: string };
     p90Ms: number;
     p95Ms: number;
   }>;
@@ -66,8 +64,6 @@ test("calcula indicadores de tempo e pico por situação", () => {
   assert.ok(metrics);
   assert.equal(metrics.maxConcurrent, 3);
   assert.equal(metrics.averageMs, 3 * day);
-  assert.equal(metrics.fastest.demand, "Acesso");
-  assert.equal(metrics.longest.demand, "Portal");
   assert.equal(metrics.p90Ms, 5 * day);
   assert.equal(metrics.p95Ms, 5 * day);
 });

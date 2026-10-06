@@ -24,8 +24,6 @@ interface ActiveDemand {
 interface StatusMetrics {
   maxConcurrent: number;
   averageMs: number;
-  fastest: DemandEvent;
-  longest: DemandEvent;
   p90Ms: number;
   p95Ms: number;
 }
@@ -272,16 +270,10 @@ export class AppComponent {
 
     const metrics = new Map<string, StatusMetrics>();
     for (const [status, items] of eventsByStatus) {
-      const sortedByDuration = [...items].sort((first, second) => {
-        const difference = this.eventDurationMs(first) - this.eventDurationMs(second);
-        return difference || first.demand.localeCompare(second.demand, "pt-BR") || first.row - second.row;
-      });
-      const durations = sortedByDuration.map((item) => this.eventDurationMs(item));
+      const durations = items.map((item) => this.eventDurationMs(item)).sort((first, second) => first - second);
       metrics.set(status, {
         maxConcurrent: this.maxConcurrent(items),
         averageMs: durations.reduce((total, duration) => total + duration, 0) / durations.length,
-        fastest: sortedByDuration[0],
-        longest: sortedByDuration[sortedByDuration.length - 1],
         p90Ms: this.percentile(durations, 0.9),
         p95Ms: this.percentile(durations, 0.95),
       });
