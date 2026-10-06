@@ -25,6 +25,8 @@ Cada coluna de situação comporta duas demandas por linha. Os cards são compac
 
 O controle do tempo fica imediatamente acima das situações e reúne a navegação da linha do tempo, a reprodução e a velocidade em uma área compacta. A data exibida acompanha o marcador durante a navegação.
 
+Os filtros de visualização permitem selecionar múltiplas situações e demandas. Para selecionar itens não contíguos na lista, use `Ctrl` no Windows/Linux ou `⌘` no macOS.
+
 ## Desenvolvimento
 
 ```bash

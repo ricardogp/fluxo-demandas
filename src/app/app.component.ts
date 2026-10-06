@@ -70,8 +70,8 @@ export class AppComponent {
   readonly speedOptions = [0.5, 1, 2, 5, 10, 25];
   readonly events = signal<DemandEvent[]>(SAMPLE_EVENTS);
   readonly theme = signal<"light" | "dark">("light");
-  readonly statusFilterExpanded = signal(false);
   readonly hiddenStatuses = signal<Set<string>>(new Set());
+  readonly hiddenDemands = signal<Set<string>>(new Set());
   readonly activeHint = signal<ActiveHint | undefined>(undefined);
   readonly speed = signal(1);
   readonly playing = signal(false);
@@ -118,7 +118,15 @@ export class AppComponent {
     return lanes;
   });
 
-  readonly activeCount = computed(() => [...this.activeByStatus().entries()]
+  readonly visibleActiveByStatus = computed(() => {
+    const visibleLanes = new Map<string, ActiveDemand[]>();
+    for (const [status, items] of this.activeByStatus()) {
+      visibleLanes.set(status, items.filter((item) => this.demandVisible(item.number)));
+    }
+    return visibleLanes;
+  });
+
+  readonly activeCount = computed(() => [...this.visibleActiveByStatus().entries()]
     .filter(([status]) => this.statusVisible(status))
     .reduce((total, [, items]) => total + items.length, 0));
   readonly currentDate = computed(() => new Date(this.currentTime()));
@@ -164,8 +172,8 @@ export class AppComponent {
 
   togglePlayback(): void { this.playing() ? this.pause() : this.play(); }
   toggleTheme(): void { this.theme.update((theme) => theme === "light" ? "dark" : "light"); }
-  toggleStatusFilter(): void { this.statusFilterExpanded.update((expanded) => !expanded); }
   statusVisible(status: string): boolean { return !this.hiddenStatuses().has(status); }
+  demandVisible(number: string): boolean { return !this.hiddenDemands().has(number); }
   toggleStatusVisibility(status: string): void {
     this.hiddenStatuses.update((hidden) => {
       const next = new Set(hidden);
@@ -173,7 +181,16 @@ export class AppComponent {
       return next;
     });
   }
+  setVisibleStatuses(event: Event): void {
+    const selected = this.selectedValues(event);
+    this.hiddenStatuses.set(new Set(this.statusOrder().filter((status) => !selected.has(status))));
+  }
+  setVisibleDemands(event: Event): void {
+    const selected = this.selectedValues(event);
+    this.hiddenDemands.set(new Set(this.histories().map((history) => history.number).filter((number) => !selected.has(number))));
+  }
   visibleStatusSummary(): string { return `${this.visibleStatusOrder().length} de ${this.statusOrder().length} visíveis`; }
+  visibleDemandSummary(): string { return `${this.histories().filter((history) => this.demandVisible(history.number)).length} de ${this.histories().length} visíveis`; }
   setSpeed(speed: number): void { this.speed.set(speed); }
   timelineLabel(): string { return this.currentDate().toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" }); }
   rangeLabel(date: Date): string { return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }); }
@@ -267,6 +284,9 @@ export class AppComponent {
   }
 
   private findHeader(headers: string[], candidates: string[]): string | undefined { return headers.find((header) => candidates.includes(this.normalize(header))); }
+  private selectedValues(event: Event): Set<string> {
+    return new Set(Array.from((event.target as HTMLSelectElement).selectedOptions, (option) => option.value));
+  }
   private normalize(value: string): string { return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("pt-BR").trim().replace(/\s+/g, " "); }
 
   private parseDate(value: unknown): Date | undefined {

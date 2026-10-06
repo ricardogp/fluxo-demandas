@@ -82,6 +82,20 @@ test("oculta apenas a situação selecionada no filtro", () => {
   assert.equal(app.statusVisible(status), true);
 });
 
+test("o seletor de situações mantém apenas as opções escolhidas", () => {
+  const app = new AppComponent();
+  const hiddenStatus = app.statusOrder()[0];
+  assert.ok(hiddenStatus);
+
+  const selectedOptions = app.statusOrder()
+    .filter((status) => status !== hiddenStatus)
+    .map((value) => ({ value }));
+  app.setVisibleStatuses({ target: { selectedOptions } } as unknown as Event);
+
+  assert.equal(app.statusVisible(hiddenStatus), false);
+  assert.equal(app.visibleStatusOrder().includes(hiddenStatus), false);
+});
+
 test("o contador em andamento respeita as situações visíveis", () => {
   const app = new AppComponent();
   const [status, activeItems] = [...app.activeByStatus().entries()][0] ?? [];
@@ -92,6 +106,21 @@ test("o contador em andamento respeita as situações visíveis", () => {
   app.toggleStatusVisibility(status);
 
   assert.equal(app.activeCount(), initialCount - activeItems.length);
+});
+
+test("o seletor de demandas oculta os cards e atualiza o contador", () => {
+  const app = new AppComponent();
+  const activeDemand = [...app.activeByStatus().values()][0]?.[0];
+  assert.ok(activeDemand);
+  const initialCount = app.activeCount();
+
+  const selectedOptions = app.histories()
+    .filter((history) => history.number !== activeDemand.number)
+    .map((history) => ({ value: history.number }));
+  app.setVisibleDemands({ target: { selectedOptions } } as unknown as Event);
+
+  assert.equal(app.demandVisible(activeDemand.number), false);
+  assert.equal(app.activeCount(), initialCount - 1);
 });
 
 test("o painel da demanda mostra o tempo acumulado até o passo selecionado", () => {

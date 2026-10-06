@@ -21,23 +21,25 @@
 
   @if (error()) { <p class="error-message" role="alert">{{ error() }}</p> }
 
-  <section class="status-filter" aria-label="Filtrar situações visíveis">
-    <button class="status-filter-trigger" type="button" (click)="toggleStatusFilter()" [attr.aria-expanded]="statusFilterExpanded()" aria-controls="status-options">
-      <span class="filter-symbol" aria-hidden="true">{{ statusFilterExpanded() ? '−' : '+' }}</span>
+  <section class="visibility-controls" aria-label="Filtros de visualização">
+    <label class="visibility-combo">
       <span>Situações visíveis</span>
-      <small>{{ visibleStatusSummary() }}</small>
-    </button>
-    @if (statusFilterExpanded()) {
-      <div class="status-options" id="status-options">
+      <select multiple size="4" (change)="setVisibleStatuses($event)" aria-describedby="visible-status-summary">
         @for (status of statusOrder(); track status) {
-          <label>
-            <input type="checkbox" [checked]="statusVisible(status)" (change)="toggleStatusVisibility(status)" />
-            <span class="status-option-dot" [style.background]="laneColor(status)"></span>
-            {{ status }}
-          </label>
+          <option [value]="status" [selected]="statusVisible(status)">{{ status }}</option>
         }
-      </div>
-    }
+      </select>
+      <small id="visible-status-summary">{{ visibleStatusSummary() }}</small>
+    </label>
+    <label class="visibility-combo">
+      <span>Demandas visíveis</span>
+      <select multiple size="4" (change)="setVisibleDemands($event)" aria-describedby="visible-demand-summary">
+        @for (history of histories(); track history.number) {
+          <option [value]="history.number" [selected]="demandVisible(history.number)">{{ history.number }} — {{ history.title }}</option>
+        }
+      </select>
+      <small id="visible-demand-summary">{{ visibleDemandSummary() }}</small>
+    </label>
   </section>
 
   <section class="time-control" aria-labelledby="timeline-title">
@@ -67,7 +69,7 @@
     @for (status of visibleStatusOrder(); track status) {
       <article class="lane" [style.--lane-color]="laneColor(status)">
         <header class="lane-header">
-          <div class="lane-title"><span class="lane-dot"></span><h2>{{ status }}</h2><span class="lane-count">{{ activeByStatus().get(status)?.length ?? 0 }}</span></div>
+          <div class="lane-title"><span class="lane-dot"></span><h2>{{ status }}</h2><span class="lane-count">{{ visibleActiveByStatus().get(status)?.length ?? 0 }}</span></div>
           @if (statusMetrics().get(status); as metrics) {
             <dl class="lane-statistics" aria-label="Estatísticas de {{ status }}">
               <div><dt>Máximo </dt><dd>{{ metrics.maxConcurrent }}</dd></div>
@@ -80,7 +82,7 @@
           }
         </header>
         <div class="lane-content">
-          @for (item of activeByStatus().get(status) ?? []; track trackByNumber($index, item)) {
+          @for (item of visibleActiveByStatus().get(status) ?? []; track trackByNumber($index, item)) {
             <article class="demand-card" tabindex="0" (pointerenter)="showDemandHint($event, item)" (pointerleave)="hideDemandHint()" (focusin)="showDemandHint($event, item)" (focusout)="hideDemandHint()" [attr.aria-describedby]="'demand-hint-' + item.number">
               <div class="card-topline"><span>{{ item.progress | number:'1.0-0' }}%</span></div>
               <h3>{{ item.number }}</h3>
