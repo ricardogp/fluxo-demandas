@@ -8,7 +8,7 @@ import { AppComponent } from "./app.component";
 type TestableApp = AppComponent & {
   parseRows(rows: Array<Record<string, unknown>>): Array<{ demand: string; status: string; startedAt: Date; endedAt: Date }>;
   inferStatusOrder(histories: Array<{ name: string; events: Array<{ status: string }> }>): string[];
-  calculateStatusMetrics(events: Array<{ demand: string; status: string; startedAt: Date; endedAt: Date; row: number }>): Map<string, {
+  calculateStatusMetrics(events: Array<{ demand: string; status: string; startedAt: Date; endedAt: Date; row: number }>, asOf: number): Map<string, {
     maxConcurrent: number;
     averageMs: number;
     p90Ms: number;
@@ -59,11 +59,25 @@ test("calcula indicadores de tempo e pico por situação", () => {
     { demand: "Acesso", status: "Análise", startedAt: new Date(2026, 0, 1), endedAt: new Date(2026, 0, 1), row: 2 },
     { demand: "Relatório", status: "Análise", startedAt: new Date(2026, 0, 1), endedAt: new Date(2026, 0, 3), row: 3 },
     { demand: "Portal", status: "Análise", startedAt: new Date(2026, 0, 2), endedAt: new Date(2026, 0, 6), row: 4 },
-  ]).get("Análise");
+  ], new Date(2026, 0, 6).getTime()).get("Análise");
 
   assert.ok(metrics);
   assert.equal(metrics.maxConcurrent, 3);
   assert.equal(metrics.averageMs, 3 * day);
   assert.equal(metrics.p90Ms, 5 * day);
   assert.equal(metrics.p95Ms, 5 * day);
+});
+
+test("recalcula as métricas com a permanência parcial do passo atual", () => {
+  const day = 86_400_000;
+  const app = new AppComponent() as TestableApp;
+  const metrics = app.calculateStatusMetrics([{
+    demand: "Portal", status: "Desenvolvimento", startedAt: new Date(2026, 0, 1), endedAt: new Date(2026, 0, 10), row: 2,
+  }], new Date(2026, 0, 3).getTime()).get("Desenvolvimento");
+
+  assert.ok(metrics);
+  assert.equal(metrics.maxConcurrent, 1);
+  assert.equal(metrics.averageMs, 3 * day);
+  assert.equal(metrics.p90Ms, 3 * day);
+  assert.equal(metrics.p95Ms, 3 * day);
 });

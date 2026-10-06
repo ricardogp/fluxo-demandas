@@ -30,6 +30,8 @@
               <div><dt>Percentil 90</dt><dd>{{ durationLabel(metrics.p90Ms) }}</dd></div>
               <div><dt>Percentil 95</dt><dd>{{ durationLabel(metrics.p95Ms) }}</dd></div>
             </dl>
+          } @else {
+            <p class="statistics-empty">Sem dados até esta data.</p>
           }
         </header>
         <div class="lane-content">

@@ -78,7 +78,7 @@ export class AppComponent {
   });
 
   readonly statusOrder = computed(() => this.inferStatusOrder(this.histories()));
-  readonly statusMetrics = computed(() => this.calculateStatusMetrics(this.events()));
+  readonly statusMetrics = computed(() => this.calculateStatusMetrics(this.events(), this.currentTime()));
   readonly activeByStatus = computed(() => {
     const current = this.currentTime();
     const lanes = new Map<string, ActiveDemand[]>();
@@ -258,11 +258,11 @@ export class AppComponent {
     });
   }
 
-  // Datas sem horário representam dias inteiros; por isso o último dia também
-  // entra na duração e no cálculo do pico de demandas simultâneas.
-  private calculateStatusMetrics(events: DemandEvent[]): Map<string, StatusMetrics> {
+  // Cada passo considera apenas intervalos que já começaram. Para uma demanda
+  // ainda em andamento, o fim do intervalo é o instante selecionado na linha do tempo.
+  private calculateStatusMetrics(events: DemandEvent[], asOf: number): Map<string, StatusMetrics> {
     const eventsByStatus = new Map<string, DemandEvent[]>();
-    for (const event of events) {
+    for (const event of events.filter((item) => item.startedAt.getTime() <= asOf)) {
       const items = eventsByStatus.get(event.status) ?? [];
       items.push(event);
       eventsByStatus.set(event.status, items);
@@ -270,9 +270,9 @@ export class AppComponent {
 
     const metrics = new Map<string, StatusMetrics>();
     for (const [status, items] of eventsByStatus) {
-      const durations = items.map((item) => this.eventDurationMs(item)).sort((first, second) => first - second);
+      const durations = items.map((item) => this.eventDurationMs(item, asOf)).sort((first, second) => first - second);
       metrics.set(status, {
-        maxConcurrent: this.maxConcurrent(items),
+        maxConcurrent: this.maxConcurrent(items, asOf),
         averageMs: durations.reduce((total, duration) => total + duration, 0) / durations.length,
         p90Ms: this.percentile(durations, 0.9),
         p95Ms: this.percentile(durations, 0.95),
@@ -281,10 +281,10 @@ export class AppComponent {
     return metrics;
   }
 
-  private maxConcurrent(events: DemandEvent[]): number {
+  private maxConcurrent(events: DemandEvent[], asOf: number): number {
     const boundaries = events.flatMap((event) => [
       { time: event.startedAt.getTime(), change: 1 },
-      { time: event.endedAt.getTime() + 86_400_000, change: -1 },
+      { time: Math.min(event.endedAt.getTime(), asOf) + 86_400_000, change: -1 },
     ]).sort((first, second) => first.time - second.time || second.change - first.change);
     let current = 0;
     let maximum = 0;
@@ -300,7 +300,9 @@ export class AppComponent {
   }
 
   private contains(event: DemandEvent, time: number): boolean { return time >= event.startedAt.getTime() && time <= event.endedAt.getTime() + 86_399_999; }
-  private eventDurationMs(event: DemandEvent): number { return event.endedAt.getTime() - event.startedAt.getTime() + 86_400_000; }
+  private eventDurationMs(event: DemandEvent, asOf = Number.POSITIVE_INFINITY): number {
+    return Math.min(event.endedAt.getTime(), asOf) - event.startedAt.getTime() + 86_400_000;
+  }
   private eventProgress(event: DemandEvent, time: number): number {
     const length = Math.max(event.endedAt.getTime() - event.startedAt.getTime(), 1);
     return Math.min(100, Math.max(0, ((time - event.startedAt.getTime()) / length) * 100));

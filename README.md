@@ -13,7 +13,7 @@ Na primeira aba do arquivo `.xlsx` ou `.xls`, cada linha representa a permanênc
 
 A aplicação ordena as linhas de cada demanda por data e infere a sequência das situações a partir das transições encontradas. A linha do tempo aceita navegação nos dois sentidos; durante a reprodução, cada intervalo consome tempo proporcional à duração registrada na planilha.
 
-Cada situação também exibe métricas calculadas para todo o histórico importado: máximo de demandas simultâneas, tempo médio e os percentis 90 e 95 do tempo de permanência. Datas sem horário são tratadas como dias inteiros, incluindo a data final.
+Cada situação também exibe métricas calculadas até a data atualmente selecionada: máximo de demandas simultâneas, tempo médio e os percentis 90 e 95 do tempo de permanência. Uma demanda que ainda está na situação contribui com o tempo decorrido até aquele passo. Datas sem horário são tratadas como dias inteiros, incluindo a data final.
 
 ## Desenvolvimento
 
