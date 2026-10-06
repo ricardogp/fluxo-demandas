@@ -23,7 +23,7 @@ Ao passar o mouse ou navegar por teclado até um card de demanda, um painel cont
 
 Cada coluna de situação comporta duas demandas por linha. Os cards são compactos e apresentam o intervalo em três linhas: início em `dd/mmm`, a preposição “a” centralizada e fim em `dd/mmm`.
 
-O controle do tempo fica imediatamente acima das situações e reúne a data exibida, a navegação da linha do tempo, a reprodução e a velocidade em uma área compacta.
+O controle do tempo fica imediatamente acima das situações e reúne a navegação da linha do tempo, a reprodução e a velocidade em uma área compacta. A data exibida acompanha o marcador durante a navegação.
 
 ## Desenvolvimento
 

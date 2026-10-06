@@ -28,3 +28,9 @@ test("o controle de tempo compacto antecede as situações", () => {
   assert.match(stylesheet, /\.time-control \{ margin: 0 0 12px; padding: 10px 0;/);
   assert.match(stylesheet, /\.playback-row \{[^}]*margin-top: 5px;/);
 });
+
+test("a data exibida acompanha o marcador da linha do tempo", () => {
+  assert.match(template, /<div class="timeline-slider">\s*<input class="timeline"[^>]*\[attr\.aria-valuetext\]="timelineLabel\(\)"[^>]*\/>\s*<div class="selected-date" \[class\.at-start\]="sliderValue\(\) <= 1" \[class\.at-end\]="sliderValue\(\) >= 999" \[style\.left\.\%\]="sliderValue\(\) \/ 10">/);
+  assert.match(stylesheet, /\.selected-date \{[^}]*position: absolute;[^}]*transform: translateX\(-50%\);/);
+  assert.match(stylesheet, /\.selected-date\.at-start \{ transform: none; \}\.selected-date\.at-end \{ transform: translateX\(-100%\); \}/);
+});
