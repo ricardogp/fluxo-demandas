@@ -15,7 +15,7 @@ test("as colunas acomodam dois cards com dois terços da largura anterior", () =
   assert.match(stylesheet, /\.flow \{[^}]*grid-auto-columns: 187\.333px;/);
   assert.match(stylesheet, /\.lane \{[^}]*min-width: 187\.333px;/);
   assert.match(stylesheet, /\.lane-content \{[^}]*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\);/);
-  assert.match(stylesheet, /\.card-date-range \{[^}]*display: grid;[^}]*line-height: 1\.2;/);
+  assert.match(stylesheet, /\.card-date-range \{[^}]*display: grid;[^}]*width: 6ch;[^}]*line-height: 1\.2;/);
   assert.match(stylesheet, /\.card-date-range-separator \{ justify-self: center; \}/);
 });
 
