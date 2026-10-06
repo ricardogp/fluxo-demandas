@@ -22,3 +22,9 @@ test("as colunas acomodam dois cards com dois terços da largura anterior", () =
 test("o intervalo do card exibe a preposição em uma terceira linha", () => {
   assert.match(template, /<span>\{\{ cardDateLabel\(item\.event\.startedAt\) \}\}<\/span>\s*<span class="card-date-range-separator" aria-hidden="true">a<\/span>\s*<span>\{\{ cardDateLabel\(item\.event\.endedAt\) \}\}<\/span>/);
 });
+
+test("o controle de tempo compacto antecede as situações", () => {
+  assert.ok(template.indexOf('<section class="time-control"') < template.indexOf('<section class="flow"'));
+  assert.match(stylesheet, /\.time-control \{ margin: 0 0 12px; padding: 10px 0;/);
+  assert.match(stylesheet, /\.playback-row \{[^}]*margin-top: 5px;/);
+});
