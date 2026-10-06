@@ -58,9 +58,9 @@
         </header>
         <div class="lane-content">
           @for (item of activeByStatus().get(status) ?? []; track trackByNumber($index, item)) {
-            <article class="demand-card">
+            <article class="demand-card" tabindex="0" (pointerenter)="showDemandHint($event, item)" (pointerleave)="hideDemandHint()" (focusin)="showDemandHint($event, item)" (focusout)="hideDemandHint()" [attr.aria-describedby]="'demand-hint-' + item.number">
               <div class="card-topline"><span>{{ item.progress | number:'1.0-0' }}%</span></div>
-              <h3 title="{{ item.title }}">{{ item.number }}</h3>
+              <h3>{{ item.number }}</h3>
               <p>{{ rangeLabel(item.event.startedAt) }} — {{ rangeLabel(item.event.endedAt) }}</p>
               <div class="progress-track" aria-hidden="true"><span [style.width.%]="item.progress"></span></div>
             </article>
@@ -69,6 +69,18 @@
       </article>
     }
   </section>
+
+  @if (activeHint(); as hint) {
+    <aside class="demand-hint" [class.below]="hint.below" [id]="'demand-hint-' + hint.item.number" role="tooltip" [style.left.px]="hint.x" [style.top.px]="hint.y">
+      <p class="hint-title"><span>Título</span>{{ hint.item.title }}</p>
+      <p class="hint-subtitle">Tempo em cada situação</p>
+      <dl>
+        @for (duration of demandDurations(hint.item); track duration.status) {
+          <div><dt>{{ duration.status }}</dt><dd>{{ durationLabel(duration.durationMs) }}</dd></div>
+        }
+      </dl>
+    </aside>
+  }
 
   <section class="time-control" aria-label="Controles da simulação">
     <div class="date-row"><span>{{ rangeLabel(timelineStart()) }}</span><strong>{{ timelineLabel() }}</strong><span>{{ rangeLabel(timelineEnd()) }}</span></div>

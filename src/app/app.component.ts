@@ -21,7 +21,20 @@ interface ActiveDemand {
   number: string;
   title: string;
   event: DemandEvent;
+  events: DemandEvent[];
   progress: number;
+}
+
+interface StatusDuration {
+  status: string;
+  durationMs: number;
+}
+
+interface ActiveHint {
+  item: ActiveDemand;
+  x: number;
+  y: number;
+  below: boolean;
 }
 
 interface StatusMetrics {
@@ -57,6 +70,7 @@ export class AppComponent {
   readonly theme = signal<"light" | "dark">("light");
   readonly statusFilterExpanded = signal(false);
   readonly hiddenStatuses = signal<Set<string>>(new Set());
+  readonly activeHint = signal<ActiveHint | undefined>(undefined);
   readonly speed = signal(1);
   readonly playing = signal(false);
   readonly loading = signal(false);
@@ -96,7 +110,7 @@ export class AppComponent {
       if (!event) continue;
 
       const active = lanes.get(event.status) ?? [];
-      active.push({ number: history.number, title: history.title, event, progress: this.eventProgress(event, current) });
+      active.push({ number: history.number, title: history.title, event, progress: this.eventProgress(event, current), events: history.events });
       lanes.set(event.status, active);
     }
     return lanes;
@@ -172,6 +186,25 @@ export class AppComponent {
   }
 
   trackByNumber(_index: number, item: ActiveDemand): string { return item.number; }
+  demandDurations(item: ActiveDemand): StatusDuration[] {
+    const totals = new Map<string, number>();
+    for (const event of item.events.filter((event) => event.startedAt.getTime() <= this.currentTime())) {
+      totals.set(event.status, (totals.get(event.status) ?? 0) + this.eventDurationMs(event, this.currentTime()));
+    }
+    return [...totals.entries()].map(([status, durationMs]) => ({ status, durationMs }));
+  }
+  showDemandHint(event: Event, item: ActiveDemand): void {
+    const card = event.currentTarget as HTMLElement;
+    const rect = card.getBoundingClientRect();
+    const below = rect.top < 150;
+    this.activeHint.set({
+      item,
+      x: Math.max(8, Math.min(rect.left, window.innerWidth - 248)),
+      y: below ? rect.bottom + 8 : rect.top - 8,
+      below,
+    });
+  }
+  hideDemandHint(): void { this.activeHint.set(undefined); }
 
   private play(): void {
     if (this.currentTime() >= this.timelineEnd().getTime()) this.currentTime.set(this.timelineStart().getTime());

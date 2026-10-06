@@ -87,6 +87,14 @@ test("o contador em andamento respeita as situações visíveis", () => {
   assert.equal(app.activeCount(), initialCount - activeItems.length);
 });
 
+test("o painel da demanda mostra o tempo acumulado até o passo selecionado", () => {
+  const app = new AppComponent();
+  const activeDemand = [...app.activeByStatus().values()][0]?.[0];
+  assert.ok(activeDemand);
+
+  assert.deepEqual(app.demandDurations(activeDemand), [{ status: "Descoberta", durationMs: 86_400_000 }]);
+});
+
 test("calcula indicadores de tempo e pico por situação", () => {
   const day = 86_400_000;
   const app = new AppComponent() as TestableApp;
