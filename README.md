@@ -19,7 +19,7 @@ O tema claro é o padrão da aplicação. O botão na barra superior alterna par
 
 Use o botão `+ Situações visíveis` para expandir o filtro de etapas. Desmarcar uma situação a oculta da visualização e do contador de demandas em andamento; a simulação e os cálculos históricos permanecem baseados em todos os dados importados.
 
-Ao passar o mouse ou navegar por teclado até um card de demanda, um painel contextual apresenta o título e o tempo acumulado em cada situação até a data selecionada.
+Ao passar o mouse ou navegar por teclado até um card de demanda, um painel contextual apresenta o título, o tipo da demanda e o tempo acumulado em cada situação até a data selecionada.
 
 Cada coluna de situação comporta duas demandas por linha. Os cards são compactos e apresentam o intervalo em três linhas: início em `dd/mmm`, a preposição “a” centralizada e fim em `dd/mmm`.
 

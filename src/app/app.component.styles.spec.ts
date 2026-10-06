@@ -40,6 +40,8 @@ test("os filtros exibem os seletores múltiplos sob demanda", () => {
 
 test("o número do card recebe a cor do tipo da demanda", () => {
   assert.match(template, /<h3 \[style\.color\]="demandTypeColor\(item\.demandType\)">\{\{ item\.number \}\}<\/h3>/);
+  assert.match(template, /<p class="hint-type"><span>Tipo de demanda<\/span><strong \[style\.color\]="demandTypeColor\(hint\.item\.demandType\)">\{\{ hint\.item\.demandType \}\}<\/strong><\/p>/);
+  assert.match(stylesheet, /\.hint-title, \.hint-type \{[^}]*display: grid;/);
 });
 
 test("a data exibida acompanha o marcador da linha do tempo", () => {

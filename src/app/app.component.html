@@ -126,6 +126,7 @@
   @if (activeHint(); as hint) {
     <aside class="demand-hint" [class.below]="hint.below" [id]="'demand-hint-' + hint.item.number" role="tooltip" [style.left.px]="hint.x" [style.top.px]="hint.y">
       <p class="hint-title"><span>Título</span>{{ hint.item.title }}</p>
+      <p class="hint-type"><span>Tipo de demanda</span><strong [style.color]="demandTypeColor(hint.item.demandType)">{{ hint.item.demandType }}</strong></p>
       <p class="hint-subtitle">Tempo em cada situação</p>
       <dl>
         @for (duration of demandDurations(hint.item); track duration.status) {
