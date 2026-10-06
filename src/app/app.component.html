@@ -82,8 +82,16 @@
     </aside>
   }
 
-  <section class="time-control" aria-label="Controles da simulação">
-    <div class="date-row"><span>{{ rangeLabel(timelineStart()) }}</span><strong>{{ timelineLabel() }}</strong><span>{{ rangeLabel(timelineEnd()) }}</span></div>
+  <section class="time-control" aria-labelledby="timeline-title">
+    <div class="timeline-heading">
+      <div>
+        <p class="control-eyebrow">NAVEGAÇÃO DA SIMULAÇÃO</p>
+        <h2 id="timeline-title">Linha do tempo das demandas</h2>
+        <p class="timeline-instruction">Arraste o marcador para explorar o fluxo em outra data ou use Reproduzir para avançar automaticamente.</p>
+      </div>
+      <div class="selected-date"><span>DATA EXIBIDA</span><strong>{{ timelineLabel() }}</strong></div>
+    </div>
+    <div class="date-row"><span>{{ rangeLabel(timelineStart()) }}</span><span>{{ rangeLabel(timelineEnd()) }}</span></div>
     <input class="timeline" type="range" min="0" max="1000" [value]="sliderValue()" (input)="scrub($event)" aria-label="Navegar na linha do tempo" />
     <div class="playback-row">
       <button class="play-button" type="button" (click)="togglePlayback()" [attr.aria-label]="playing() ? 'Pausar simulação' : 'Reproduzir simulação'"><span aria-hidden="true">{{ playing() ? 'Ⅱ' : '▶' }}</span>{{ playing() ? 'Pausar' : 'Reproduzir' }}</button>
