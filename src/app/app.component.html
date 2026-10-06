@@ -47,7 +47,7 @@
           <div class="lane-title"><span class="lane-dot"></span><h2>{{ status }}</h2><span class="lane-count">{{ activeByStatus().get(status)?.length ?? 0 }}</span></div>
           @if (statusMetrics().get(status); as metrics) {
             <dl class="lane-statistics" aria-label="Estatísticas de {{ status }}">
-              <div><dt>Máximo de demandas</dt><dd>{{ metrics.maxConcurrent }}</dd></div>
+              <div><dt>Máximo </dt><dd>{{ metrics.maxConcurrent }}</dd></div>
               <div><dt>Tempo médio</dt><dd>{{ durationLabel(metrics.averageMs) }}</dd></div>
               <div><dt>Percentil 90</dt><dd>{{ durationLabel(metrics.p90Ms) }}</dd></div>
               <div><dt>Percentil 95</dt><dd>{{ durationLabel(metrics.p95Ms) }}</dd></div>
