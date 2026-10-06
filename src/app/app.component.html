@@ -21,8 +21,27 @@
 
   @if (error()) { <p class="error-message" role="alert">{{ error() }}</p> }
 
+  <section class="status-filter" aria-label="Filtrar situações visíveis">
+    <button class="status-filter-trigger" type="button" (click)="toggleStatusFilter()" [attr.aria-expanded]="statusFilterExpanded()" aria-controls="status-options">
+      <span class="filter-symbol" aria-hidden="true">{{ statusFilterExpanded() ? '−' : '+' }}</span>
+      <span>Situações visíveis</span>
+      <small>{{ visibleStatusSummary() }}</small>
+    </button>
+    @if (statusFilterExpanded()) {
+      <div class="status-options" id="status-options">
+        @for (status of statusOrder(); track status) {
+          <label>
+            <input type="checkbox" [checked]="statusVisible(status)" (change)="toggleStatusVisibility(status)" />
+            <span class="status-option-dot" [style.background]="laneColor(status)"></span>
+            {{ status }}
+          </label>
+        }
+      </div>
+    }
+  </section>
+
   <section class="flow" aria-label="Fluxo de demandas por situação">
-    @for (status of statusOrder(); track status) {
+    @for (status of visibleStatusOrder(); track status) {
       <article class="lane" [style.--lane-color]="laneColor(status)">
         <header class="lane-header">
           <div class="lane-title"><span class="lane-dot"></span><h2>{{ status }}</h2><span class="lane-count">{{ activeByStatus().get(status)?.length ?? 0 }}</span></div>

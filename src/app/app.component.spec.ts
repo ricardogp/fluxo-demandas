@@ -63,6 +63,18 @@ test("inicia no tema claro e alterna para o tema escuro", () => {
   assert.equal(app.theme(), "light");
 });
 
+test("oculta apenas a situação selecionada no filtro", () => {
+  const app = new AppComponent();
+  const status = app.statusOrder()[0];
+  assert.ok(status);
+  assert.equal(app.statusVisible(status), true);
+  app.toggleStatusVisibility(status);
+  assert.equal(app.statusVisible(status), false);
+  assert.equal(app.visibleStatusOrder().includes(status), false);
+  app.toggleStatusVisibility(status);
+  assert.equal(app.statusVisible(status), true);
+});
+
 test("calcula indicadores de tempo e pico por situação", () => {
   const day = 86_400_000;
   const app = new AppComponent() as TestableApp;
