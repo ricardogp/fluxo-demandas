@@ -3,7 +3,8 @@ import { Component, computed, signal } from "@angular/core";
 import * as XLSX from "xlsx";
 
 interface DemandEvent {
-  demand: string;
+  demandNumber: string;
+  demandTitle: string;
   status: string;
   startedAt: Date;
   endedAt: Date;
@@ -11,12 +12,14 @@ interface DemandEvent {
 }
 
 interface DemandHistory {
-  name: string;
+  number: string;
+  title: string;
   events: DemandEvent[];
 }
 
 interface ActiveDemand {
-  name: string;
+  number: string;
+  title: string;
   event: DemandEvent;
   progress: number;
 }
@@ -31,15 +34,15 @@ interface StatusMetrics {
 type SpreadsheetRow = Record<string, unknown>;
 
 const SAMPLE_EVENTS: DemandEvent[] = [
-  { demand: "Portal de fornecedores", status: "Descoberta", startedAt: new Date(2026, 7, 3), endedAt: new Date(2026, 7, 7), row: 2 },
-  { demand: "Portal de fornecedores", status: "Desenvolvimento", startedAt: new Date(2026, 7, 8), endedAt: new Date(2026, 7, 22), row: 3 },
-  { demand: "Portal de fornecedores", status: "Validação", startedAt: new Date(2026, 7, 23), endedAt: new Date(2026, 7, 27), row: 4 },
-  { demand: "Central de ajuda", status: "Descoberta", startedAt: new Date(2026, 7, 9), endedAt: new Date(2026, 7, 12), row: 5 },
-  { demand: "Central de ajuda", status: "Desenvolvimento", startedAt: new Date(2026, 7, 13), endedAt: new Date(2026, 8, 2), row: 6 },
-  { demand: "Relatório de SLA", status: "Descoberta", startedAt: new Date(2026, 7, 16), endedAt: new Date(2026, 7, 18), row: 7 },
-  { demand: "Relatório de SLA", status: "Desenvolvimento", startedAt: new Date(2026, 7, 19), endedAt: new Date(2026, 8, 4), row: 8 },
-  { demand: "Relatório de SLA", status: "Validação", startedAt: new Date(2026, 8, 5), endedAt: new Date(2026, 8, 10), row: 9 },
-  { demand: "Relatório de SLA", status: "Entregue", startedAt: new Date(2026, 8, 11), endedAt: new Date(2026, 8, 11), row: 10 },
+  { demandNumber: "DEM-1042", demandTitle: "Portal de fornecedores", status: "Descoberta", startedAt: new Date(2026, 7, 3), endedAt: new Date(2026, 7, 7), row: 2 },
+  { demandNumber: "DEM-1042", demandTitle: "Portal de fornecedores", status: "Desenvolvimento", startedAt: new Date(2026, 7, 8), endedAt: new Date(2026, 7, 22), row: 3 },
+  { demandNumber: "DEM-1042", demandTitle: "Portal de fornecedores", status: "Validação", startedAt: new Date(2026, 7, 23), endedAt: new Date(2026, 7, 27), row: 4 },
+  { demandNumber: "DEM-1057", demandTitle: "Central de ajuda", status: "Descoberta", startedAt: new Date(2026, 7, 9), endedAt: new Date(2026, 7, 12), row: 5 },
+  { demandNumber: "DEM-1057", demandTitle: "Central de ajuda", status: "Desenvolvimento", startedAt: new Date(2026, 7, 13), endedAt: new Date(2026, 8, 2), row: 6 },
+  { demandNumber: "DEM-1071", demandTitle: "Relatório de SLA", status: "Descoberta", startedAt: new Date(2026, 7, 16), endedAt: new Date(2026, 7, 18), row: 7 },
+  { demandNumber: "DEM-1071", demandTitle: "Relatório de SLA", status: "Desenvolvimento", startedAt: new Date(2026, 7, 19), endedAt: new Date(2026, 8, 4), row: 8 },
+  { demandNumber: "DEM-1071", demandTitle: "Relatório de SLA", status: "Validação", startedAt: new Date(2026, 8, 5), endedAt: new Date(2026, 8, 10), row: 9 },
+  { demandNumber: "DEM-1071", demandTitle: "Relatório de SLA", status: "Entregue", startedAt: new Date(2026, 8, 11), endedAt: new Date(2026, 8, 11), row: 10 },
 ];
 
 @Component({
@@ -64,17 +67,18 @@ export class AppComponent {
   readonly histories = computed<DemandHistory[]>(() => {
     const byDemand = new Map<string, DemandEvent[]>();
     for (const event of this.events()) {
-      const history = byDemand.get(event.demand) ?? [];
+      const history = byDemand.get(event.demandNumber) ?? [];
       history.push(event);
-      byDemand.set(event.demand, history);
+      byDemand.set(event.demandNumber, history);
     }
 
     return [...byDemand.entries()]
-      .map(([name, events]) => ({
-        name,
+      .map(([number, events]) => ({
+        number,
+        title: events[0].demandTitle,
         events: [...events].sort((first, second) => first.startedAt.getTime() - second.startedAt.getTime() || first.row - second.row),
       }))
-      .sort((first, second) => first.name.localeCompare(second.name, "pt-BR"));
+      .sort((first, second) => first.number.localeCompare(second.number, "pt-BR", { numeric: true }));
   });
 
   readonly statusOrder = computed(() => this.inferStatusOrder(this.histories()));
@@ -88,7 +92,7 @@ export class AppComponent {
       if (!event) continue;
 
       const active = lanes.get(event.status) ?? [];
-      active.push({ name: history.name, event, progress: this.eventProgress(event, current) });
+      active.push({ number: history.number, title: history.title, event, progress: this.eventProgress(event, current) });
       lanes.set(event.status, active);
     }
     return lanes;
@@ -150,7 +154,7 @@ export class AppComponent {
     return colors[this.statusOrder().indexOf(status) % colors.length] ?? colors[0];
   }
 
-  trackByName(_index: number, item: ActiveDemand): string { return item.name; }
+  trackByNumber(_index: number, item: ActiveDemand): string { return item.number; }
 
   private play(): void {
     if (this.currentTime() >= this.timelineEnd().getTime()) this.currentTime.set(this.timelineStart().getTime());
@@ -185,24 +189,26 @@ export class AppComponent {
   private parseRows(rows: SpreadsheetRow[]): DemandEvent[] {
     if (!rows.length) throw new Error("A primeira aba está vazia.");
     const headers = Object.keys(rows[0] ?? {});
-    const demandHeader = this.findHeader(headers, ["demanda", "nome da demanda", "titulo", "título"]);
+    const demandNumberHeader = this.findHeader(headers, ["numero da demanda", "número da demanda", "numero", "número", "id da demanda"]);
+    const demandTitleHeader = this.findHeader(headers, ["titulo da demanda", "título da demanda", "titulo", "título", "nome da demanda"]);
     const statusHeader = this.findHeader(headers, ["situacao", "situação", "status", "etapa"]);
     const startHeader = this.findHeader(headers, ["data inicio", "data de inicio", "início", "inicio", "inicio da etapa"]);
     const endHeader = this.findHeader(headers, ["data fim", "data de fim", "fim", "termino", "término", "fim da etapa"]);
-    if (!demandHeader || !statusHeader || !startHeader || !endHeader) {
-      throw new Error("Use as colunas Demanda, Situação, Data de início e Data de fim. Os nomes podem ter pequenas variações.");
+    if (!demandNumberHeader || !demandTitleHeader || !statusHeader || !startHeader || !endHeader) {
+      throw new Error("Use as colunas Número da demanda, Título da demanda, Situação, Data de início e Data de fim. Os nomes podem ter pequenas variações.");
     }
 
     const events: DemandEvent[] = [];
     rows.forEach((row, index) => {
-      const demand = String(row[demandHeader] ?? "").trim();
+      const demandNumber = String(row[demandNumberHeader] ?? "").trim();
+      const demandTitle = String(row[demandTitleHeader] ?? "").trim();
       const status = String(row[statusHeader] ?? "").trim();
       const startedAt = this.parseDate(row[startHeader]);
       const endedAt = this.parseDate(row[endHeader]);
-      if (!demand && !status && !startedAt && !endedAt) return;
-      if (!demand || !status || !startedAt || !endedAt) throw new Error(`A linha ${index + 2} está incompleta. Informe demanda, situação, início e fim.`);
+      if (!demandNumber && !demandTitle && !status && !startedAt && !endedAt) return;
+      if (!demandNumber || !demandTitle || !status || !startedAt || !endedAt) throw new Error(`A linha ${index + 2} está incompleta. Informe número, título, situação, início e fim.`);
       if (endedAt < startedAt) throw new Error(`A data final da linha ${index + 2} é anterior à data inicial.`);
-      events.push({ demand, status, startedAt, endedAt, row: index + 2 });
+      events.push({ demandNumber, demandTitle, status, startedAt, endedAt, row: index + 2 });
     });
     return events;
   }

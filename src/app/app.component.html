@@ -35,10 +35,10 @@
           }
         </header>
         <div class="lane-content">
-          @for (item of activeByStatus().get(status) ?? []; track trackByName($index, item)) {
+          @for (item of activeByStatus().get(status) ?? []; track trackByNumber($index, item)) {
             <article class="demand-card">
               <div class="card-topline"><span>{{ item.progress | number:'1.0-0' }}%</span></div>
-              <h3>{{ item.name }}</h3>
+              <h3 title="{{ item.title }}">{{ item.number }}</h3>
               <p>{{ rangeLabel(item.event.startedAt) }} — {{ rangeLabel(item.event.endedAt) }}</p>
               <div class="progress-track" aria-hidden="true"><span [style.width.%]="item.progress"></span></div>
             </article>

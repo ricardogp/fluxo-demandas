@@ -6,7 +6,7 @@ import "@angular/compiler";
 import { AppComponent } from "./app.component";
 
 type TestableApp = AppComponent & {
-  parseRows(rows: Array<Record<string, unknown>>): Array<{ demand: string; status: string; startedAt: Date; endedAt: Date }>;
+  parseRows(rows: Array<Record<string, unknown>>): Array<{ demandNumber: string; demandTitle: string; status: string; startedAt: Date; endedAt: Date }>;
   inferStatusOrder(histories: Array<{ name: string; events: Array<{ status: string }> }>): string[];
   calculateStatusMetrics(events: Array<{ demand: string; status: string; startedAt: Date; endedAt: Date; row: number }>, asOf: number): Map<string, {
     maxConcurrent: number;
@@ -19,14 +19,16 @@ type TestableApp = AppComponent & {
 test("lê cabeçalhos normalizados e datas brasileiras", () => {
   const app = new AppComponent() as TestableApp;
   const events = app.parseRows([{
-    "Nome da demanda": "Acesso por SSO",
+    "Número da demanda": "DEM-200",
+    "Título da demanda": "Acesso por SSO",
     "Situação": "Desenvolvimento",
     "Data de início": "02/09/2026",
     "Data de fim": "18/09/2026",
   }]);
 
   assert.equal(events.length, 1);
-  assert.equal(events[0].demand, "Acesso por SSO");
+  assert.equal(events[0].demandNumber, "DEM-200");
+  assert.equal(events[0].demandTitle, "Acesso por SSO");
   assert.equal(events[0].status, "Desenvolvimento");
   assert.equal(events[0].startedAt.toLocaleDateString("pt-BR"), "02/09/2026");
 });
