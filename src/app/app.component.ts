@@ -199,17 +199,19 @@ export class AppComponent {
       return next;
     });
   }
-  setVisibleStatuses(event: Event): void {
-    const selected = this.selectedValues(event);
-    this.hiddenStatuses.set(new Set(this.statusOrder().filter((status) => !selected.has(status))));
+  toggleDemandVisibility(number: string): void {
+    this.hiddenDemands.update((hidden) => {
+      const next = new Set(hidden);
+      next.has(number) ? next.delete(number) : next.add(number);
+      return next;
+    });
   }
-  setVisibleDemands(event: Event): void {
-    const selected = this.selectedValues(event);
-    this.hiddenDemands.set(new Set(this.histories().map((history) => history.number).filter((number) => !selected.has(number))));
-  }
-  setVisibleDemandTypes(event: Event): void {
-    const selected = this.selectedValues(event);
-    this.hiddenDemandTypes.set(new Set(this.demandTypeOrder().filter((demandType) => !selected.has(demandType))));
+  toggleDemandTypeVisibility(demandType: string): void {
+    this.hiddenDemandTypes.update((hidden) => {
+      const next = new Set(hidden);
+      next.has(demandType) ? next.delete(demandType) : next.add(demandType);
+      return next;
+    });
   }
   visibleStatusSummary(): string { return `${this.visibleStatusOrder().length} de ${this.statusOrder().length} visíveis`; }
   visibleDemandSummary(): string { return `${this.histories().filter((history) => this.demandVisible(history.number)).length} de ${this.histories().length} visíveis`; }
@@ -313,9 +315,6 @@ export class AppComponent {
   }
 
   private findHeader(headers: string[], candidates: string[]): string | undefined { return headers.find((header) => candidates.includes(this.normalize(header))); }
-  private selectedValues(event: Event): Set<string> {
-    return new Set(Array.from((event.target as HTMLSelectElement).selectedOptions, (option) => option.value));
-  }
   private normalize(value: string): string { return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("pt-BR").trim().replace(/\s+/g, " "); }
 
   private parseDate(value: unknown): Date | undefined {

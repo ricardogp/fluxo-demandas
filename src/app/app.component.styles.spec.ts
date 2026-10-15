@@ -29,13 +29,15 @@ test("o controle de tempo compacto antecede as situações", () => {
   assert.match(stylesheet, /\.playback-row \{[^}]*margin-top: 5px;/);
 });
 
-test("os filtros exibem os seletores múltiplos sob demanda", () => {
+test("os filtros exibem checkboxes em até três linhas sob demanda", () => {
   assert.match(template, /<button class="visibility-filter-trigger" type="button" \(click\)="toggleVisibilityFilter\('status'\)" \[attr\.aria-expanded\]="visibilityFilterExpanded\('status'\)"/);
-  assert.match(template, /@if \(visibilityFilterExpanded\('status'\)\) \{\s*<div class="visibility-combo" id="visible-status-options">\s*<select multiple size="4" \(change\)="setVisibleStatuses\(\$event\)"/);
-  assert.match(template, /<select multiple size="4" \(change\)="setVisibleDemands\(\$event\)"/);
-  assert.match(template, /<select multiple size="4" \(change\)="setVisibleDemandTypes\(\$event\)"/);
+  assert.match(template, /<input type="checkbox" \[checked\]="statusVisible\(status\)" \(change\)="toggleStatusVisibility\(status\)"/);
+  assert.match(template, /<input type="checkbox" \[checked\]="demandVisible\(history\.number\)" \(change\)="toggleDemandVisibility\(history\.number\)"/);
+  assert.match(template, /<input type="checkbox" \[checked\]="demandTypeVisible\(demandType\)" \(change\)="toggleDemandTypeVisibility\(demandType\)"/);
+  assert.match(template, /<span class="visibility-option-title" \[style\.color\]="laneColor\(status\)"/);
+  assert.match(template, /<span class="visibility-option-title" \[style\.color\]="demandTypeColor\(history\.demandType\)"/);
   assert.match(stylesheet, /\.visibility-filter-trigger \{[^}]*min-height: 34px;/);
-  assert.match(stylesheet, /\.visibility-combo \{[^}]*margin-top: 6px;/);
+  assert.match(stylesheet, /\.visibility-options \{[^}]*grid-template-rows: repeat\(3, minmax\(25px, auto\)\);[^}]*grid-auto-flow: column;[^}]*grid-auto-columns: minmax\(190px, max-content\);/);
 });
 
 test("o número do card recebe a cor do tipo da demanda", () => {

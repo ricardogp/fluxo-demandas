@@ -27,12 +27,14 @@
         <span>Situações visíveis</span><small>{{ visibleStatusSummary() }}</small><span class="filter-symbol" aria-hidden="true">{{ visibilityFilterExpanded('status') ? '−' : '+' }}</span>
       </button>
       @if (visibilityFilterExpanded('status')) {
-        <div class="visibility-combo" id="visible-status-options">
-          <select multiple size="4" (change)="setVisibleStatuses($event)" aria-label="Situações visíveis">
-            @for (status of statusOrder(); track status) {
-              <option [value]="status" [selected]="statusVisible(status)">{{ status }}</option>
-            }
-          </select>
+        <div class="visibility-options" id="visible-status-options">
+          @for (status of statusOrder(); track status) {
+            <label class="visibility-option">
+              <input type="checkbox" [checked]="statusVisible(status)" (change)="toggleStatusVisibility(status)" />
+              <span class="visibility-option-dot" [style.background]="laneColor(status)" aria-hidden="true"></span>
+              <span class="visibility-option-title" [style.color]="laneColor(status)" [title]="status">{{ status }}</span>
+            </label>
+          }
         </div>
       }
     </div>
@@ -41,12 +43,14 @@
         <span>Demandas visíveis</span><small>{{ visibleDemandSummary() }}</small><span class="filter-symbol" aria-hidden="true">{{ visibilityFilterExpanded('demand') ? '−' : '+' }}</span>
       </button>
       @if (visibilityFilterExpanded('demand')) {
-        <div class="visibility-combo" id="visible-demand-options">
-          <select multiple size="4" (change)="setVisibleDemands($event)" aria-label="Demandas visíveis">
-            @for (history of histories(); track history.number) {
-              <option [value]="history.number" [selected]="demandVisible(history.number)">{{ history.number }} — {{ history.title }}</option>
-            }
-          </select>
+        <div class="visibility-options" id="visible-demand-options">
+          @for (history of histories(); track history.number) {
+            <label class="visibility-option">
+              <input type="checkbox" [checked]="demandVisible(history.number)" (change)="toggleDemandVisibility(history.number)" />
+              <span class="visibility-option-dot" [style.background]="demandTypeColor(history.demandType)" aria-hidden="true"></span>
+              <span class="visibility-option-title" [style.color]="demandTypeColor(history.demandType)" [title]="history.number + ' — ' + history.title">{{ history.number }} — {{ history.title }}</span>
+            </label>
+          }
         </div>
       }
     </div>
@@ -55,12 +59,14 @@
         <span>Tipos de demanda visíveis</span><small>{{ visibleDemandTypeSummary() }}</small><span class="filter-symbol" aria-hidden="true">{{ visibilityFilterExpanded('demandType') ? '−' : '+' }}</span>
       </button>
       @if (visibilityFilterExpanded('demandType')) {
-        <div class="visibility-combo" id="visible-demand-type-options">
-          <select multiple size="4" (change)="setVisibleDemandTypes($event)" aria-label="Tipos de demanda visíveis">
-            @for (demandType of demandTypeOrder(); track demandType) {
-              <option [value]="demandType" [selected]="demandTypeVisible(demandType)">{{ demandType }}</option>
-            }
-          </select>
+        <div class="visibility-options" id="visible-demand-type-options">
+          @for (demandType of demandTypeOrder(); track demandType) {
+            <label class="visibility-option">
+              <input type="checkbox" [checked]="demandTypeVisible(demandType)" (change)="toggleDemandTypeVisibility(demandType)" />
+              <span class="visibility-option-dot" [style.background]="demandTypeColor(demandType)" aria-hidden="true"></span>
+              <span class="visibility-option-title" [style.color]="demandTypeColor(demandType)" [title]="demandType">{{ demandType }}</span>
+            </label>
+          }
         </div>
       }
     </div>

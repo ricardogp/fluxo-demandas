@@ -107,15 +107,12 @@ test("oculta apenas a situação selecionada no filtro", () => {
   assert.equal(app.statusVisible(status), true);
 });
 
-test("o seletor de situações mantém apenas as opções escolhidas", () => {
+test("a checkbox de situação alterna somente a situação escolhida", () => {
   const app = new AppComponent();
   const hiddenStatus = app.statusOrder()[0];
   assert.ok(hiddenStatus);
 
-  const selectedOptions = app.statusOrder()
-    .filter((status) => status !== hiddenStatus)
-    .map((value) => ({ value }));
-  app.setVisibleStatuses({ target: { selectedOptions } } as unknown as Event);
+  app.toggleStatusVisibility(hiddenStatus);
 
   assert.equal(app.statusVisible(hiddenStatus), false);
   assert.equal(app.visibleStatusOrder().includes(hiddenStatus), false);
@@ -133,31 +130,25 @@ test("o contador em andamento respeita as situações visíveis", () => {
   assert.equal(app.activeCount(), initialCount - activeItems.length);
 });
 
-test("o seletor de demandas oculta os cards e atualiza o contador", () => {
+test("a checkbox de demanda oculta os cards e atualiza o contador", () => {
   const app = new AppComponent();
   const activeDemand = [...app.activeByStatus().values()][0]?.[0];
   assert.ok(activeDemand);
   const initialCount = app.activeCount();
 
-  const selectedOptions = app.histories()
-    .filter((history) => history.number !== activeDemand.number)
-    .map((history) => ({ value: history.number }));
-  app.setVisibleDemands({ target: { selectedOptions } } as unknown as Event);
+  app.toggleDemandVisibility(activeDemand.number);
 
   assert.equal(app.demandVisible(activeDemand.number), false);
   assert.equal(app.activeCount(), initialCount - 1);
 });
 
-test("o seletor de tipos oculta os cards e atualiza o contador", () => {
+test("a checkbox de tipo oculta os cards e atualiza o contador", () => {
   const app = new AppComponent();
   const activeDemand = [...app.activeByStatus().values()][0]?.[0];
   assert.ok(activeDemand);
   const initialCount = app.activeCount();
 
-  const selectedOptions = app.demandTypeOrder()
-    .filter((demandType) => demandType !== activeDemand.demandType)
-    .map((value) => ({ value }));
-  app.setVisibleDemandTypes({ target: { selectedOptions } } as unknown as Event);
+  app.toggleDemandTypeVisibility(activeDemand.demandType);
 
   assert.equal(app.demandTypeVisible(activeDemand.demandType), false);
   assert.equal(app.activeCount(), initialCount - 1);
