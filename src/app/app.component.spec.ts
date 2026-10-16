@@ -69,6 +69,8 @@ test("infere as ligações do grafo e move a demanda pelo tempo da fase de orige
   assert.equal(movingDemandAtStart?.source, "Descoberta");
   assert.equal(movingDemandAtStart?.target, "Desenvolvimento");
   assert.equal(movingDemandAtStart?.progress, 0);
+  assert.equal(new Set(graphAtStart.phases.map((phase) => phase.y)).size, 1);
+  assert.ok(graphAtStart.phases.every((phase, index) => index === 0 || phase.x > graphAtStart.phases[index - 1].x));
 
   app.currentTime.set(new Date(2026, 7, 5).getTime());
   const movingDemandHalfway = app.graph().demands.find((demand) => demand.number === "DEM-1042");

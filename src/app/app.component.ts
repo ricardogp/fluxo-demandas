@@ -108,8 +108,9 @@ const SAMPLE_EVENTS: DemandEvent[] = [
 
 const MONTH_ABBREVIATIONS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 const GRAPH_WIDTH = 1000;
-const GRAPH_HEIGHT = 520;
+const GRAPH_HEIGHT = 360;
 const GRAPH_PHASE_RADIUS = 44;
+const GRAPH_FLOW_PADDING = 76;
 
 @Component({
   selector: "app-root",
@@ -185,12 +186,11 @@ export class AppComponent {
 
   readonly graph = computed<GraphView>(() => {
     const phases = this.visibleStatusOrder();
-    const centerX = GRAPH_WIDTH / 2;
     const centerY = GRAPH_HEIGHT / 2;
-    const phaseRadius = phases.length === 1 ? 0 : phases.length === 2 ? 220 : 184;
+    const phaseSpacing = phases.length < 2 ? 0 : (GRAPH_WIDTH - (GRAPH_FLOW_PADDING * 2)) / (phases.length - 1);
     const graphPhases = phases.map((status, index) => {
-      const angle = phases.length === 1 ? 0 : (-Math.PI / 2) + (index * Math.PI * 2) / phases.length;
-      return { status, color: this.laneColor(status), x: centerX + Math.cos(angle) * phaseRadius, y: centerY + Math.sin(angle) * phaseRadius };
+      const x = phases.length === 1 ? GRAPH_WIDTH / 2 : GRAPH_FLOW_PADDING + phaseSpacing * index;
+      return { status, color: this.laneColor(status), x, y: centerY };
     });
     const phaseByStatus = new Map(graphPhases.map((phase) => [phase.status, phase]));
     const transitionCounts = new Map<string, number>();
