@@ -118,6 +118,25 @@ test("separa simetricamente chegada e saída que usam o topo de uma fase", () =>
   assert.match(transitions[1].path, /^M 102.5 89 L 102.5 60 L 100 60/);
 });
 
+test("separa entradas que chegam pelo mesmo lado de uma fase", () => {
+  const app = new AppComponent() as TestableApp;
+  const phase = (status: string, x: number, y: number) => ({ status, labelLines: [status], color: "#889", activeCount: 0, x, y });
+  const phases = [phase("Origem A", 30, 30), phase("Em análise", 100, 100), phase("Origem B", 170, 30)];
+  const transitions = [
+    { source: "Origem A", target: "Em análise", color: "#789", count: 1, strokeWidth: 1, path: "", points: [{ x: 30, y: 30 }, { x: 100, y: 60 }, { x: 100, y: 89 }] },
+    { source: "Origem B", target: "Em análise", color: "#789", count: 1, strokeWidth: 1, path: "", points: [{ x: 170, y: 30 }, { x: 100, y: 60 }, { x: 100, y: 89 }] },
+  ];
+
+  app.separateGraphPorts(transitions, phases);
+
+  assert.deepEqual(transitions.map((transition) => transition.points.at(-1)!.x), [97.5, 102.5]);
+  assert.deepEqual(transitions.map((transition) => transition.points.slice(-2)), [
+    [{ x: 97.5, y: 60 }, { x: 97.5, y: 89 }],
+    [{ x: 102.5, y: 60 }, { x: 102.5, y: 89 }],
+  ]);
+  assert.equal(transitions.flatMap((transition) => transition.points).some((point) => point.x === 100 && point.y === 89), false);
+});
+
 test("escurece os nós do grafo conforme a carga visível da fase", () => {
   const app = new AppComponent();
   app.events.set([

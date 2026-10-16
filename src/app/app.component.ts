@@ -748,11 +748,11 @@ export class AppComponent {
     }
 
     for (const portsAtSide of portsBySide.values()) {
-      const incoming = portsAtSide.filter((port) => port.kind === "incoming");
-      const outgoing = portsAtSide.filter((port) => port.kind === "outgoing");
-      if (!incoming.length || !outgoing.length) continue;
-      incoming.forEach((port, index) => this.positionGraphPort(port, -(index + .5) * GRAPH_PHASE_PORT_SEPARATION));
-      outgoing.forEach((port, index) => this.positionGraphPort(port, (index + .5) * GRAPH_PHASE_PORT_SEPARATION));
+      if (portsAtSide.length < 2) continue;
+      this.graphPortOrder(portsAtSide).forEach((port, index) => {
+        const distance = (Math.floor(index / 2) + .5) * GRAPH_PHASE_PORT_SEPARATION;
+        this.positionGraphPort(port, index % 2 === 0 ? -distance : distance);
+      });
     }
 
     // A mudança lateral acontece antes da borda do nó. Assim, entradas e
@@ -777,6 +777,20 @@ export class AppComponent {
     const verticalDistance = point.y - phase.y;
     if (Math.abs(horizontalDistance) > Math.abs(verticalDistance)) return horizontalDistance < 0 ? "left" : "right";
     return verticalDistance < 0 ? "top" : "bottom";
+  }
+  private graphPortOrder(ports: GraphPhasePort[]): GraphPhasePort[] {
+    const byRoute = (first: GraphPhasePort, second: GraphPhasePort) =>
+      first.transition.source.localeCompare(second.transition.source) || first.transition.target.localeCompare(second.transition.target);
+    const incoming = ports.filter((port) => port.kind === "incoming").sort(byRoute);
+    const outgoing = ports.filter((port) => port.kind === "outgoing").sort(byRoute);
+    const ordered: GraphPhasePort[] = [];
+    while (incoming.length || outgoing.length) {
+      const nextIncoming = incoming.shift();
+      const nextOutgoing = outgoing.shift();
+      if (nextIncoming) ordered.push(nextIncoming);
+      if (nextOutgoing) ordered.push(nextOutgoing);
+    }
+    return ordered;
   }
   private positionGraphPort(port: GraphPhasePort, offset: number): void {
     const point = port.transition.points[port.pointIndex];
