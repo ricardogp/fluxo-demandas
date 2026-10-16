@@ -111,15 +111,15 @@ const SAMPLE_EVENTS: DemandEvent[] = [
 
 const MONTH_ABBREVIATIONS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 const GRAPH_WIDTH = 1000;
-const GRAPH_MIN_HEIGHT = 300;
-const GRAPH_PHASE_RADIUS = 44;
-const GRAPH_FLOW_PADDING = 76;
-const GRAPH_PHASE_MIN_WIDTH = 160;
-const GRAPH_LEVEL_GAP = 150;
-const GRAPH_TOP_PADDING = 84;
-const GRAPH_BOTTOM_PADDING = 100;
-const GRAPH_TRANSITION_MIN_STROKE_WIDTH = 1.5;
-const GRAPH_TRANSITION_MAX_STROKE_WIDTH = 3.5;
+const GRAPH_MIN_HEIGHT = 150;
+const GRAPH_PHASE_RADIUS = 22;
+const GRAPH_FLOW_PADDING = 38;
+const GRAPH_PHASE_MIN_WIDTH = 80;
+const GRAPH_LEVEL_GAP = 75;
+const GRAPH_TOP_PADDING = 42;
+const GRAPH_BOTTOM_PADDING = 50;
+const GRAPH_TRANSITION_MIN_STROKE_WIDTH = 0.75;
+const GRAPH_TRANSITION_MAX_STROKE_WIDTH = 1.75;
 
 @Component({
   selector: "app-root",
@@ -574,7 +574,7 @@ export class AppComponent {
   // A escala logarítmica preserva a diferença entre fluxos sem permitir que
   // uma transição muito frequente domine o desenho.
   private graphTransitionWidth(count: number): number {
-    return Math.min(GRAPH_TRANSITION_MAX_STROKE_WIDTH, GRAPH_TRANSITION_MIN_STROKE_WIDTH + Math.log2(Math.max(1, count)) * 0.4);
+    return Math.min(GRAPH_TRANSITION_MAX_STROKE_WIDTH, GRAPH_TRANSITION_MIN_STROKE_WIDTH + Math.log2(Math.max(1, count)) * 0.2);
   }
   private phaseVisits(events: DemandEvent[]): PhaseVisit[] {
     const visits: PhaseVisit[] = [];

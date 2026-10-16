@@ -66,8 +66,8 @@ test("infere as ligações do grafo e move a demanda pelo tempo da fase de orige
   const movingDemandAtStart = graphAtStart.demands.find((demand) => demand.number === "DEM-1042");
 
   assert.equal(discoveryToDevelopment?.count, 3);
-  assert.ok((discoveryToDevelopment?.strokeWidth ?? 0) > 1.5);
-  assert.ok((discoveryToDevelopment?.strokeWidth ?? Number.POSITIVE_INFINITY) < 3.5);
+  assert.ok((discoveryToDevelopment?.strokeWidth ?? 0) > 0.75);
+  assert.ok((discoveryToDevelopment?.strokeWidth ?? Number.POSITIVE_INFINITY) < 1.75);
   assert.equal(movingDemandAtStart?.source, "Descoberta");
   assert.equal(movingDemandAtStart?.target, "Desenvolvimento");
   assert.equal(movingDemandAtStart?.progress, 0);
@@ -107,12 +107,12 @@ test("limita a espessura de transições muito frequentes", () => {
   const transition = app.graph().transitions.find((item) => item.source === "Origem" && item.target === "Destino");
 
   assert.equal(transition?.count, 100);
-  assert.equal(transition?.strokeWidth, 3.5);
+  assert.equal(transition?.strokeWidth, 1.75);
 });
 
 test("distribui fases em novos níveis antes que os nós se sobreponham", () => {
   const app = new AppComponent();
-  app.events.set(Array.from({ length: 6 }, (_, index) => ({
+  app.events.set(Array.from({ length: 12 }, (_, index) => ({
     demandNumber: `DEM-${index + 1}`,
     demandTitle: `Demanda ${index + 1}`,
     demandType: "Evolutiva",
@@ -125,9 +125,10 @@ test("distribui fases em novos níveis antes que os nós se sobreponham", () => 
   const graph = app.graph();
   const positions = new Set(graph.phases.map((phase) => `${phase.x}:${phase.y}`));
 
-  assert.equal(positions.size, 6);
+  assert.equal(positions.size, 12);
+  assert.equal(new Set(graph.phases.slice(0, 11).map((phase) => phase.y)).size, 1);
   assert.equal(new Set(graph.phases.map((phase) => phase.y)).size, 2);
-  assert.ok(graph.height > 300);
+  assert.ok(graph.height > 150);
 });
 
 test("alterna entre os formatos de tabela e grafo", () => {

@@ -34,12 +34,14 @@ test("o fluxo oferece abas para os formatos de tabela e grafo", () => {
   assert.match(template, /<button class="visualization-tab" \[class\.active\]="activeVisualization\(\) === 'graph'"[^>]*\(click\)="setVisualization\('graph'\)">Formato de grafo<\/button>/);
   assert.match(template, /<div class="visualization-panel graph-panel" id="graph-format-panel" role="tabpanel" aria-labelledby="graph-format-tab">/);
   assert.match(template, /<svg class="graph-canvas" \[attr\.viewBox\]="'0 0 1000 ' \+ graph\(\)\.height" role="img" aria-label="Fluxo das demandas por fase, distribuído em níveis">/);
-  assert.match(template, /<marker id="graph-arrow" markerWidth="9" markerHeight="9" refX="8" refY="4\.5" orient="auto" markerUnits="userSpaceOnUse">/);
+  assert.match(template, /<marker id="graph-arrow" markerWidth="4\.5" markerHeight="4\.5" refX="4" refY="2\.25" orient="auto" markerUnits="userSpaceOnUse">/);
   assert.match(template, /<line class="graph-transition"[^>]*\[attr\.stroke-width\]="transition\.strokeWidth"[^>]*marker-end="url\(#graph-arrow\)">/);
-  assert.match(template, /<circle class="graph-demand" \[class\.terminal\]="demand\.terminal"/);
-  assert.match(template, /<tspan \[attr\.x\]="phase\.x" \[attr\.dy\]="\$index === 0 \? 0 : 14">\{\{ line \}\}<\/tspan>/);
+  assert.match(template, /<circle class="graph-phase-node"[^>]*r="22"><\/circle>/);
+  assert.match(template, /<circle class="graph-demand" \[class\.terminal\]="demand\.terminal"[^>]*r="3\.5">/);
+  assert.match(template, /<tspan \[attr\.x\]="phase\.x" \[attr\.dy\]="\$index === 0 \? 0 : 7">\{\{ line \}\}<\/tspan>/);
   assert.match(stylesheet, /\.visualization-tab\.active \{[^}]*border-bottom-color: #e5bb65;[^}]*color: #f1c970;/);
-  assert.match(stylesheet, /\.graph-canvas {[^}]*min-height: 300px;[^}]*background: linear-gradient/);
+  assert.match(stylesheet, /\.graph-canvas {[^}]*min-height: 150px;[^}]*background: linear-gradient/);
+  assert.match(stylesheet, /\.graph-phase-node { r: 22px; fill-opacity: \.16; stroke-width: 1\.5px; \}\.graph-phase-label { fill: #e7e9f2; font-size: 6\.5px;/);
 });
 
 test("os filtros exibem checkboxes em até três linhas sob demanda", () => {
