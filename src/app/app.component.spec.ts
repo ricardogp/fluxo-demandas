@@ -24,6 +24,7 @@ type TestableApp = AppComponent & {
     x: number;
     y: number;
   }>): void;
+  graphDemandLaneOffsets(count: number): number[];
   calculateStatusMetrics(events: Array<{ demand: string; status: string; startedAt: Date; endedAt: Date; row: number }>, asOf: number): Map<string, {
     maxConcurrent: number;
     averageMs: number;
@@ -135,6 +136,15 @@ test("separa entradas que chegam pelo mesmo lado de uma fase", () => {
     [{ x: 102.5, y: 60 }, { x: 102.5, y: 89 }],
   ]);
   assert.equal(transitions.flatMap((transition) => transition.points).some((point) => point.x === 100 && point.y === 89), false);
+});
+
+test("distribui demandas na mesma ligação em faixas laterais", () => {
+  const app = new AppComponent() as TestableApp;
+
+  assert.deepEqual(app.graphDemandLaneOffsets(1), [0]);
+  assert.deepEqual(app.graphDemandLaneOffsets(2), [-4.5, 4.5]);
+  assert.deepEqual(app.graphDemandLaneOffsets(3), [0, -9, 9]);
+  assert.deepEqual(app.graphDemandLaneOffsets(4), [-4.5, 4.5, -13.5, 13.5]);
 });
 
 test("escurece os nós do grafo conforme a carga visível da fase", () => {

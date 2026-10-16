@@ -150,6 +150,7 @@ const GRAPH_ROUTE_SEPARATION = 6;
 const GRAPH_ROUTE_OVERLAP_PENALTY = 10_000;
 const GRAPH_ROUTE_SPACING_COST = 0.35;
 const GRAPH_PHASE_PORT_SEPARATION = 5;
+const GRAPH_DEMAND_LANE_SEPARATION = 9;
 const GRAPH_TRANSITION_COLOR = "#7d8793";
 const DAY_IN_MS = 86_400_000;
 const TIMELINE_SLIDER_MAXIMUM = 10_000;
@@ -306,7 +307,6 @@ export class AppComponent {
       const progress = this.periodProgress(source.startedAt, source.endedAt, current);
 
       if (target && targetPhase && transition) {
-        const position = this.graphRoutePosition(transition.points, progress);
         demands.push({
           number: history.number,
           title: history.title,
@@ -315,10 +315,27 @@ export class AppComponent {
           source: source.status,
           target: target.status,
           progress,
-          x: position.x,
-          y: position.y,
+          x: 0,
+          y: 0,
         });
       }
+    }
+
+    const demandsByRoute = new Map<string, GraphDemandNode[]>();
+    for (const demand of demands) {
+      const route = `${demand.source}\u0000${demand.target}`;
+      const atRoute = demandsByRoute.get(route) ?? [];
+      atRoute.push(demand);
+      demandsByRoute.set(route, atRoute);
+    }
+    for (const [route, demandsAtRoute] of demandsByRoute) {
+      const transition = transitionByRoute.get(route)!;
+      const offsets = this.graphDemandLaneOffsets(demandsAtRoute.length);
+      demandsAtRoute.sort((first, second) => first.number.localeCompare(second.number)).forEach((demand, index) => {
+        const { point, normal } = this.graphRoutePosition(transition.points, demand.progress);
+        demand.x = point.x + normal.x * offsets[index];
+        demand.y = point.y + normal.y * offsets[index];
+      });
     }
 
     return { height: graphHeight, phases: graphPhases, transitions, demands };
@@ -884,7 +901,7 @@ export class AppComponent {
   private graphPath(points: GraphPoint[]): string {
     return points.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`).join(" ");
   }
-  private graphRoutePosition(points: GraphPoint[], progress: number): GraphPoint {
+  private graphRoutePosition(points: GraphPoint[], progress: number): { point: GraphPoint; normal: GraphPoint } {
     const routeLength = this.graphRouteLength(points);
     let remaining = routeLength * (progress / 100);
     for (let index = 0; index < points.length - 1; index += 1) {
@@ -893,11 +910,22 @@ export class AppComponent {
       const segmentLength = Math.hypot(end.x - start.x, end.y - start.y);
       if (remaining <= segmentLength || index === points.length - 2) {
         const ratio = segmentLength === 0 ? 0 : remaining / segmentLength;
-        return { x: start.x + (end.x - start.x) * ratio, y: start.y + (end.y - start.y) * ratio };
+        return {
+          point: { x: start.x + (end.x - start.x) * ratio, y: start.y + (end.y - start.y) * ratio },
+          normal: segmentLength === 0 ? { x: 0, y: 0 } : { x: -(end.y - start.y) / segmentLength, y: (end.x - start.x) / segmentLength },
+        };
       }
       remaining -= segmentLength;
     }
-    return points.at(-1)!;
+    return { point: points.at(-1)!, normal: { x: 0, y: 0 } };
+  }
+  private graphDemandLaneOffsets(count: number): number[] {
+    const offsets = count % 2 === 0 ? [] : [0];
+    for (let distance = count % 2 === 0 ? .5 : 1; offsets.length < count; distance += 1) {
+      offsets.push(-distance * GRAPH_DEMAND_LANE_SEPARATION);
+      if (offsets.length < count) offsets.push(distance * GRAPH_DEMAND_LANE_SEPARATION);
+    }
+    return offsets;
   }
   private phaseVisits(events: TimelineEvent[]): PhaseVisit[] {
     const visits: PhaseVisit[] = [];
