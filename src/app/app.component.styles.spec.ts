@@ -29,6 +29,12 @@ test("o controle de tempo compacto antecede as situações", () => {
   assert.match(stylesheet, /\.playback-row \{[^}]*margin-top: 5px;/);
 });
 
+test("o fluxo está na aba Formato de tabela", () => {
+  assert.match(template, /<div class="visualization-tabs" role="tablist" aria-label="Formato da visualização">\s*<button class="visualization-tab active" type="button" id="table-format-tab" role="tab" aria-selected="true" aria-controls="table-format-panel">Formato de tabela<\/button>/);
+  assert.match(template, /<div class="visualization-panel" id="table-format-panel" role="tabpanel" aria-labelledby="table-format-tab">\s*<section class="flow"/);
+  assert.match(stylesheet, /\.visualization-tab\.active \{[^}]*border-bottom-color: #e5bb65;[^}]*color: #f1c970;/);
+});
+
 test("os filtros exibem checkboxes em até três linhas sob demanda", () => {
   assert.match(template, /<button class="visibility-filter-trigger" type="button" \(click\)="toggleVisibilityFilter\('status'\)" \[attr\.aria-expanded\]="visibilityFilterExpanded\('status'\)"/);
   assert.match(template, /<input type="checkbox" \[checked\]="statusVisible\(status\)" \(change\)="toggleStatusVisibility\(status\)"/);
