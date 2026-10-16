@@ -67,6 +67,7 @@ interface GraphPhaseNode {
   status: string;
   labelLines: string[];
   color: string;
+  activeCount: number;
   x: number;
   y: number;
 }
@@ -218,6 +219,8 @@ export class AppComponent {
 
   readonly graph = computed<GraphView>(() => {
     const phases = this.visibleStatusOrder();
+    const activeCounts = new Map(phases.map((status) => [status, this.visibleActiveByStatus().get(status)?.length ?? 0]));
+    const maximumActiveCount = Math.max(1, ...activeCounts.values());
     const maximumColumns = Math.max(1, Math.floor((GRAPH_WIDTH - (GRAPH_FLOW_PADDING * 2)) / GRAPH_PHASE_MIN_WIDTH));
     const levels = Math.ceil(phases.length / maximumColumns);
     const graphHeight = Math.max(GRAPH_MIN_HEIGHT, GRAPH_TOP_PADDING + GRAPH_BOTTOM_PADDING + Math.max(0, levels - 1) * GRAPH_LEVEL_GAP);
@@ -228,7 +231,8 @@ export class AppComponent {
       const spacing = phasesInLevel < 2 ? 0 : (GRAPH_WIDTH - (GRAPH_FLOW_PADDING * 2)) / (phasesInLevel - 1);
       const column = level % 2 === 0 ? positionInLevel : phasesInLevel - 1 - positionInLevel;
       const x = phasesInLevel === 1 ? GRAPH_WIDTH / 2 : GRAPH_FLOW_PADDING + spacing * column;
-      return { status, labelLines: this.graphLabelLines(status), color: this.laneColor(status), x, y: GRAPH_TOP_PADDING + level * GRAPH_LEVEL_GAP };
+      const activeCount = activeCounts.get(status) ?? 0;
+      return { status, labelLines: this.graphLabelLines(status), color: this.graphPhaseLoadColor(activeCount, maximumActiveCount), activeCount, x, y: GRAPH_TOP_PADDING + level * GRAPH_LEVEL_GAP };
     });
     const phaseByStatus = new Map(graphPhases.map((phase) => [phase.status, phase]));
     const transitionCounts = new Map<string, number>();
@@ -254,7 +258,7 @@ export class AppComponent {
       return {
         source: sourceStatus,
         target: targetStatus,
-        color: source.color,
+        color: this.laneColor(sourceStatus),
         count,
         strokeWidth: this.graphTransitionWidth(count),
         path: this.graphPath(points),
@@ -416,6 +420,11 @@ export class AppComponent {
   demandTypeColor(demandType: string): string {
     const colors = ["#4f7fd8", "#bd7a18", "#178668", "#ba4d5c", "#6d54b1", "#0d7f95"];
     return colors[this.demandTypeOrder().indexOf(demandType) % colors.length] ?? colors[0];
+  }
+  graphPhaseLoadColor(activeCount: number, maximumActiveCount: number): string {
+    const intensity = activeCount === 0 ? 0 : Math.sqrt(activeCount / Math.max(1, maximumActiveCount));
+    const lightness = 96 - intensity * 45;
+    return `hsl(215 10% ${lightness.toFixed(1)}%)`;
   }
 
   trackByNumber(_index: number, item: ActiveDemand): string { return item.number; }

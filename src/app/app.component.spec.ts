@@ -82,6 +82,30 @@ test("infere as ligações do grafo e move a demanda pelo tempo da fase de orige
   assert.equal(movingDemandHalfway?.terminal, false);
 });
 
+test("escurece os nós do grafo conforme a carga visível da fase", () => {
+  const app = new AppComponent();
+  app.events.set([
+    { demandNumber: "DEM-1", demandTitle: "Primeira triagem", demandType: "Evolutiva", status: "Triagem", startedAt: new Date(2026, 0, 1), endedAt: new Date(2026, 0, 1), row: 2 },
+    { demandNumber: "DEM-1", demandTitle: "Primeira triagem", demandType: "Evolutiva", status: "Atendimento", startedAt: new Date(2026, 0, 2), endedAt: new Date(2026, 0, 2), row: 3 },
+    { demandNumber: "DEM-2", demandTitle: "Segunda triagem", demandType: "Evolutiva", status: "Triagem", startedAt: new Date(2026, 0, 1), endedAt: new Date(2026, 0, 1), row: 4 },
+    { demandNumber: "DEM-2", demandTitle: "Segunda triagem", demandType: "Evolutiva", status: "Atendimento", startedAt: new Date(2026, 0, 2), endedAt: new Date(2026, 0, 2), row: 5 },
+    { demandNumber: "DEM-3", demandTitle: "Entrega isolada", demandType: "Corretiva", status: "Entrega", startedAt: new Date(2026, 0, 1), endedAt: new Date(2026, 0, 1), row: 6 },
+  ]);
+  app.currentTime.set(new Date(2026, 0, 1).getTime());
+
+  const phases = app.graph().phases;
+  const triagem = phases.find((phase) => phase.status === "Triagem");
+  const entrega = phases.find((phase) => phase.status === "Entrega");
+  const atendimento = phases.find((phase) => phase.status === "Atendimento");
+  const lightness = (color: string) => Number(color.match(/(\d+\.\d+)%\)$/)?.[1]);
+
+  assert.equal(triagem?.activeCount, 2);
+  assert.equal(entrega?.activeCount, 1);
+  assert.equal(atendimento?.activeCount, 0);
+  assert.ok(lightness(triagem?.color ?? "") < lightness(entrega?.color ?? ""));
+  assert.ok(lightness(entrega?.color ?? "") < lightness(atendimento?.color ?? ""));
+});
+
 test("percorre etapas da mesma data em subpassos na tabela e no grafo", () => {
   const app = new AppComponent();
   const sameDay = new Date(2026, 8, 15).getTime();

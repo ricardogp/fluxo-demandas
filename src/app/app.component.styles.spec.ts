@@ -41,7 +41,8 @@ test("o fluxo oferece abas para os formatos de tabela e grafo", () => {
   assert.match(template, /<tspan \[attr\.x\]="phase\.x" \[attr\.dy\]="\$index === 0 \? 0 : 7">\{\{ line \}\}<\/tspan>/);
   assert.match(stylesheet, /\.visualization-tab\.active \{[^}]*border-bottom-color: #e5bb65;[^}]*color: #f1c970;/);
   assert.match(stylesheet, /\.graph-canvas {[^}]*min-height: 150px;[^}]*background: linear-gradient/);
-  assert.match(stylesheet, /\.graph-phase-node { r: 22px; fill-opacity: \.16; stroke-width: 1\.5px; \}\.graph-phase-label { fill: #e7e9f2; font-size: 6\.5px;/);
+  assert.match(template, /<title>\{\{ phase\.status \}\} · \{\{ phase\.activeCount \}\} demanda\(s\) em andamento<\/title>/);
+  assert.match(stylesheet, /\.graph-phase-node { r: 22px; fill-opacity: \.92; stroke-width: 1\.5px; \}\.graph-phase-label { fill: #e7e9f2; font-size: 6\.5px;/);
   assert.match(stylesheet, /\.graph-transition \{ fill: none; stroke-linecap: round; stroke-linejoin: round; stroke-opacity: \.62; \}/);
 });
 
