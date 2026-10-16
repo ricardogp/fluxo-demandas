@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 const stylesheet = readFileSync(new URL("./app.component.css", import.meta.url), "utf8");
+const globalStylesheet = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
 const template = readFileSync(new URL("./app.component.html", import.meta.url), "utf8");
 
 test("as colunas acomodam dois cards com dois terços da largura anterior", () => {
@@ -34,6 +35,8 @@ test("o fluxo oferece abas para os formatos de tabela e grafo", () => {
   assert.match(template, /<button class="visualization-tab" \[class\.active\]="activeVisualization\(\) === 'graph'"[^>]*\(click\)="setVisualization\('graph'\)">Formato de grafo<\/button>/);
   assert.match(template, /<div class="visualization-panel graph-panel" id="graph-format-panel" role="tabpanel" aria-labelledby="graph-format-tab">/);
   assert.match(template, /<svg class="graph-canvas" \[attr\.viewBox\]="'0 0 1000 ' \+ graph\(\)\.height" role="img" aria-label="Fluxo das demandas por fase, distribuído em níveis">/);
+  assert.match(template, /<aside class="graph-legend" aria-label="Legenda das cores dos tipos de demanda">\s*<span class="graph-legend-title">Cores das demandas<\/span>\s*@for \(demandType of demandTypeOrder\(\); track demandType\)/);
+  assert.match(template, /<i class="graph-legend-dot" \[style\.background\]="demandTypeColor\(demandType\)" aria-hidden="true"><\/i>\{\{ demandType \}\}/);
   assert.match(template, /<marker id="graph-arrow" markerWidth="4\.5" markerHeight="4\.5" refX="4" refY="2\.25" orient="auto" markerUnits="userSpaceOnUse">/);
   assert.match(template, /<path class="graph-transition" \[attr\.d\]="transition\.path"[^>]*\[attr\.stroke-width\]="transition\.strokeWidth"[^>]*marker-end="url\(#graph-arrow\)">/);
   assert.match(template, /<circle class="graph-phase-node"[^>]*r="11"><\/circle>/);
@@ -45,6 +48,7 @@ test("o fluxo oferece abas para os formatos de tabela e grafo", () => {
   assert.match(stylesheet, /\.graph-canvas {[^}]*min-height: 150px;[^}]*background: linear-gradient/);
   assert.match(template, /<title>\{\{ phase\.status \}\} · \{\{ phase\.activeCount \}\} demanda\(s\) em andamento<\/title>/);
   assert.match(stylesheet, /\.graph-phase-count { font-size: 7px; font-weight: 800; text-anchor: middle; dominant-baseline: central; \}/);
+  assert.match(globalStylesheet, /\.graph-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin-top: 8px;/);
   assert.match(stylesheet, /\.graph-demand { cursor: pointer; \}/);
   assert.match(stylesheet, /\.graph-phase-node { r: 11px; fill-opacity: \.92; stroke-width: 1\.5px;/);
   assert.match(stylesheet, /\.graph-transition \{ fill: none; stroke-linecap: round; stroke-linejoin: round; stroke-opacity: \.62; \}/);

@@ -27,6 +27,8 @@ O controle do tempo fica imediatamente acima das situações e reúne a navegaç
 
 O contador no centro de cada nó substitui a distribuição das demandas estacionadas ao seu redor. Os pequenos marcadores coloridos ficam reservados às demandas que percorrem uma ligação entre fases. Ao passar o mouse ou navegar por teclado até um marcador, o mesmo painel contextual dos cards é exibido. Quando várias demandas percorrem a mesma ligação, elas ocupam faixas laterais: uma permanece sobre a linha se o total for ímpar, e as demais se distribuem simetricamente de cada lado. Todas as ligações que chegam ou saem pelo mesmo lado de uma fase recebem portas e segmentos finais próprios, para permanecerem distinguíveis.
 
+Abaixo do grafo, uma legenda associa a cor de cada marcador ao respectivo tipo de demanda visível.
+
 Os filtros de visualização de situações, demandas e tipos de demanda ficam recolhidos em botões e exibem checkboxes ao serem clicados. As opções recebem as cores correspondentes à situação ou ao tipo de demanda e são distribuídas em tantas colunas quanto necessário, com no máximo três linhas por filtro.
 
 ## Desenvolvimento

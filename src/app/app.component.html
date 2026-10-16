@@ -168,6 +168,14 @@
             </circle>
           }
         </svg>
+        <aside class="graph-legend" aria-label="Legenda das cores dos tipos de demanda">
+          <span class="graph-legend-title">Cores das demandas</span>
+          @for (demandType of demandTypeOrder(); track demandType) {
+            @if (demandTypeVisible(demandType)) {
+              <span class="graph-legend-item"><i class="graph-legend-dot" [style.background]="demandTypeColor(demandType)" aria-hidden="true"></i>{{ demandType }}</span>
+            }
+          }
+        </aside>
       </div>
     }
   </section>
