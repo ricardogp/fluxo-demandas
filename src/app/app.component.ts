@@ -755,13 +755,19 @@ export class AppComponent {
       outgoing.forEach((port, index) => this.positionGraphPort(port, (index + .5) * GRAPH_PHASE_PORT_SEPARATION));
     }
 
-    // O cotovelo preserva a direção original até a borda central do nó e só
-    // então desloca a porta, evitando diagonais entre conexões vizinhas.
-    for (const port of ports) {
-      if (port.offset === undefined) continue;
-      const center = this.graphPhasePortCenter(port.phase, port.side);
-      if (port.kind === "outgoing") port.transition.points.splice(1, 0, center);
-      else port.transition.points.splice(-1, 0, center);
+    // A mudança lateral acontece antes da borda do nó. Assim, entradas e
+    // saídas vizinhas usam segmentos finais paralelos, sem sobrepor o centro.
+    const elbows = ports
+      .filter((port) => port.offset !== undefined)
+      .map((port) => ({
+        port,
+        point: this.graphPortElbow(port, port.kind === "outgoing" ? port.transition.points[1] : port.transition.points.at(-2)!),
+      }));
+    for (const { port, point } of elbows.filter(({ port }) => port.kind === "outgoing")) {
+      port.transition.points.splice(1, 0, point);
+    }
+    for (const { port, point } of elbows.filter(({ port }) => port.kind === "incoming")) {
+      port.transition.points.splice(-1, 0, point);
     }
 
     transitions.forEach((transition) => transition.path = this.graphPath(transition.points));
@@ -774,20 +780,19 @@ export class AppComponent {
   }
   private positionGraphPort(port: GraphPhasePort, offset: number): void {
     const point = port.transition.points[port.pointIndex];
-    const center = this.graphPhasePortCenter(port.phase, port.side);
     port.offset = offset;
     if (port.side === "top" || port.side === "bottom") {
       point.x = port.phase.x + offset;
-      point.y = center.y;
+      point.y = port.phase.y + (port.side === "top" ? -GRAPH_PHASE_RADIUS : GRAPH_PHASE_RADIUS);
       return;
     }
-    point.x = center.x;
+    point.x = port.phase.x + (port.side === "left" ? -GRAPH_PHASE_RADIUS : GRAPH_PHASE_RADIUS);
     point.y = port.phase.y + offset;
   }
-  private graphPhasePortCenter(phase: GraphPhaseNode, side: GraphPortSide): GraphPoint {
-    if (side === "top") return { x: phase.x, y: phase.y - GRAPH_PHASE_RADIUS };
-    if (side === "bottom") return { x: phase.x, y: phase.y + GRAPH_PHASE_RADIUS };
-    return { x: phase.x + (side === "left" ? -GRAPH_PHASE_RADIUS : GRAPH_PHASE_RADIUS), y: phase.y };
+  private graphPortElbow(port: GraphPhasePort, adjacent: GraphPoint): GraphPoint {
+    const point = port.transition.points[port.pointIndex];
+    if (port.side === "top" || port.side === "bottom") return { x: point.x, y: adjacent.y };
+    return { x: adjacent.x, y: point.y };
   }
   private graphSimplifyPoints(points: GraphPoint[]): GraphPoint[] {
     const simplified: GraphPoint[] = [];

@@ -110,11 +110,12 @@ test("separa simetricamente chegada e saída que usam o topo de uma fase", () =>
 
   app.separateGraphPorts(transitions, phases);
 
-  assert.deepEqual(transitions[0].points.slice(-3), [{ x: 100, y: 60 }, { x: 100, y: 89 }, { x: 97.5, y: 89 }]);
-  assert.deepEqual(transitions[1].points.slice(0, 3), [{ x: 102.5, y: 89 }, { x: 100, y: 89 }, { x: 100, y: 60 }]);
+  assert.deepEqual(transitions[0].points.slice(-3), [{ x: 100, y: 60 }, { x: 97.5, y: 60 }, { x: 97.5, y: 89 }]);
+  assert.deepEqual(transitions[1].points.slice(0, 3), [{ x: 102.5, y: 89 }, { x: 102.5, y: 60 }, { x: 100, y: 60 }]);
   assert.equal((transitions[0].points.at(-1)!.x + transitions[1].points[0].x) / 2, 100);
-  assert.match(transitions[0].path, /L 100 89 L 97.5 89$/);
-  assert.match(transitions[1].path, /^M 102.5 89 L 100 89/);
+  assert.equal(transitions.flatMap((transition) => transition.points).some((point) => point.x === 100 && point.y === 89), false);
+  assert.match(transitions[0].path, /L 100 60 L 97.5 60 L 97.5 89$/);
+  assert.match(transitions[1].path, /^M 102.5 89 L 102.5 60 L 100 60/);
 });
 
 test("escurece os nós do grafo conforme a carga visível da fase", () => {
