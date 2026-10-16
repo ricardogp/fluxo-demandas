@@ -96,7 +96,7 @@ test("infere as ligações do grafo e move a demanda pelo tempo da fase de orige
   const movingDemandHalfway = app.graph().demands.find((demand) => demand.number === "DEM-1042");
 
   assert.equal(movingDemandHalfway?.progress, 50);
-  assert.equal(movingDemandHalfway?.terminal, false);
+  assert.ok(movingDemandHalfway);
 });
 
 test("separa simetricamente chegada e saída que usam o topo de uma fase", () => {
@@ -138,6 +138,8 @@ test("escurece os nós do grafo conforme a carga visível da fase", () => {
   assert.equal(triagem?.activeCount, 2);
   assert.equal(entrega?.activeCount, 1);
   assert.equal(atendimento?.activeCount, 0);
+  assert.equal(triagem?.countColor, "#f7f9fc");
+  assert.equal(atendimento?.countColor, "#354254");
   assert.equal(atendimento?.color, "hsl(215 10% 88.0%)");
   assert.ok(lightness(triagem?.color ?? "") < lightness(entrega?.color ?? ""));
   assert.ok(lightness(entrega?.color ?? "") < lightness(atendimento?.color ?? ""));
@@ -166,9 +168,10 @@ test("percorre etapas da mesma data em subpassos na tabela e no grafo", () => {
 
   app.currentTime.set(sameDay + 12 * 60 * 60 * 1000 + 1);
   const deliveredDemand = app.graph().demands.find((demand) => demand.number === "DEM-MESMO-DIA");
+  const deliveredPhase = app.graph().phases.find((phase) => phase.status === "Entregue");
   assert.equal(app.activeByStatus().get("Entregue")?.[0].number, "DEM-MESMO-DIA");
-  assert.equal(deliveredDemand?.source, "Entregue");
-  assert.equal(deliveredDemand?.terminal, true);
+  assert.equal(deliveredDemand, undefined);
+  assert.equal(deliveredPhase?.activeCount, 1);
   assert.equal(app.events()[0].startedAt.getTime(), sameDay);
   assert.equal(app.events()[0].endedAt.getTime(), sameDay);
 });

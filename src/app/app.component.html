@@ -153,6 +153,7 @@
           @for (phase of graph().phases; track phase.status) {
             <g class="graph-phase">
               <circle class="graph-phase-node" [attr.cx]="phase.x" [attr.cy]="phase.y" [attr.fill]="phase.color" [attr.stroke]="phase.color" r="11"></circle>
+              <text class="graph-phase-count" [attr.x]="phase.x" [attr.y]="phase.y" [attr.fill]="phase.countColor">{{ phase.activeCount }}</text>
               <title>{{ phase.status }} · {{ phase.activeCount }} demanda(s) em andamento</title>
               <text class="graph-phase-label" [attr.x]="phase.x" [attr.y]="phase.y + 22">
                 @for (line of phase.labelLines; track $index) {
@@ -162,7 +163,7 @@
             </g>
           }
           @for (demand of graph().demands; track demand.number) {
-            <circle class="graph-demand" [class.terminal]="demand.terminal" [attr.cx]="demand.x" [attr.cy]="demand.y" [attr.fill]="demand.color" r="3.5">
+            <circle class="graph-demand" [attr.cx]="demand.x" [attr.cy]="demand.y" [attr.fill]="demand.color" r="3.5">
               <title>{{ demand.number }} · {{ demand.title }} · {{ demand.source }}{{ demand.target ? ' → ' + demand.target : '' }} · {{ demand.progress | number:'1.0-0' }}%</title>
             </circle>
           }

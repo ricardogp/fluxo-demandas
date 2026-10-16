@@ -67,6 +67,7 @@ interface GraphPhaseNode {
   status: string;
   labelLines: string[];
   color: string;
+  countColor: string;
   activeCount: number;
   x: number;
   y: number;
@@ -106,7 +107,6 @@ interface GraphDemandNode {
   source: string;
   target?: string;
   progress: number;
-  terminal: boolean;
   x: number;
   y: number;
 }
@@ -245,7 +245,15 @@ export class AppComponent {
       const column = level % 2 === 0 ? positionInLevel : phasesInLevel - 1 - positionInLevel;
       const x = phasesInLevel === 1 ? GRAPH_WIDTH / 2 : GRAPH_FLOW_PADDING + spacing * column;
       const activeCount = activeCounts.get(status) ?? 0;
-      return { status, labelLines: this.graphLabelLines(status), color: this.graphPhaseLoadColor(activeCount, maximumActiveCount), activeCount, x, y: GRAPH_TOP_PADDING + level * GRAPH_LEVEL_GAP };
+      return {
+        status,
+        labelLines: this.graphLabelLines(status),
+        color: this.graphPhaseLoadColor(activeCount, maximumActiveCount),
+        countColor: this.graphPhaseCountColor(activeCount, maximumActiveCount),
+        activeCount,
+        x,
+        y: GRAPH_TOP_PADDING + level * GRAPH_LEVEL_GAP,
+      };
     });
     const phaseByStatus = new Map(graphPhases.map((phase) => [phase.status, phase]));
     const transitionCounts = new Map<string, number>();
@@ -281,7 +289,6 @@ export class AppComponent {
     this.separateGraphPorts(transitions, graphPhases);
     const transitionByRoute = new Map(transitions.map((transition) => [`${transition.source}\u0000${transition.target}`, transition]));
     const demands: GraphDemandNode[] = [];
-    const terminalDemands: Array<Omit<GraphDemandNode, "x" | "y"> & { phase: GraphPhaseNode }> = [];
     const current = this.currentTime();
 
     for (const history of this.histories()) {
@@ -308,22 +315,11 @@ export class AppComponent {
           source: source.status,
           target: target.status,
           progress,
-          terminal: false,
           x: position.x,
           y: position.y,
         });
-      } else {
-        terminalDemands.push({ number: history.number, title: history.title, demandType: history.demandType, color, source: source.status, progress, terminal: true, phase: sourcePhase });
       }
     }
-
-    terminalDemands.forEach((demand, index) => {
-      const countAtPhase = terminalDemands.filter((item) => item.source === demand.source).length;
-      const indexAtPhase = terminalDemands.filter((item, itemIndex) => item.source === demand.source && itemIndex < index).length;
-      const angle = countAtPhase === 1 ? 0 : (indexAtPhase * Math.PI * 2) / countAtPhase;
-      const distance = countAtPhase === 1 ? 0 : 20;
-      demands.push({ ...demand, x: demand.phase.x + Math.cos(angle) * distance, y: demand.phase.y + Math.sin(angle) * distance });
-    });
 
     return { height: graphHeight, phases: graphPhases, transitions, demands };
   });
@@ -439,6 +435,10 @@ export class AppComponent {
     const intensity = activeCount === 0 ? 0 : Math.sqrt(activeCount / Math.max(1, maximumActiveCount));
     const lightness = 88 - intensity * 37;
     return `hsl(215 10% ${lightness.toFixed(1)}%)`;
+  }
+  graphPhaseCountColor(activeCount: number, maximumActiveCount: number): string {
+    const intensity = activeCount === 0 ? 0 : Math.sqrt(activeCount / Math.max(1, maximumActiveCount));
+    return intensity > .55 ? "#f7f9fc" : "#354254";
   }
 
   trackByNumber(_index: number, item: ActiveDemand): string { return item.number; }
