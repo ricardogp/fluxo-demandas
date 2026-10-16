@@ -113,6 +113,29 @@ test("desvia uma ligação quando outra fase ocupa seu trajeto", () => {
   assert.match(skippedTransition.path, /^M .* L /);
 });
 
+test("separa em faixas vizinhas os desvios que usariam o mesmo corredor", () => {
+  const app = new AppComponent();
+  app.events.set([
+    { demandNumber: "DEM-AC", demandTitle: "Primeiro salto", demandType: "Evolutiva", status: "A", startedAt: new Date(2026, 0, 1), endedAt: new Date(2026, 0, 1), row: 2 },
+    { demandNumber: "DEM-AC", demandTitle: "Primeiro salto", demandType: "Evolutiva", status: "C", startedAt: new Date(2026, 0, 2), endedAt: new Date(2026, 0, 2), row: 3 },
+    { demandNumber: "DEM-BD", demandTitle: "Segundo salto", demandType: "Evolutiva", status: "B", startedAt: new Date(2026, 0, 1), endedAt: new Date(2026, 0, 1), row: 4 },
+    { demandNumber: "DEM-BD", demandTitle: "Segundo salto", demandType: "Evolutiva", status: "D", startedAt: new Date(2026, 0, 2), endedAt: new Date(2026, 0, 2), row: 5 },
+  ]);
+
+  const transitions = app.graph().transitions;
+  const firstJump = transitions.find((transition) => transition.source === "A" && transition.target === "C");
+  const secondJump = transitions.find((transition) => transition.source === "B" && transition.target === "D");
+  const horizontalLane = (points: Array<{ x: number; y: number }>) => points.slice(1).find((point, index) => point.y === points[index].y && Math.abs(point.x - points[index].x) > 100)?.y;
+
+  assert.ok(firstJump);
+  assert.ok(secondJump);
+  const firstLane = horizontalLane(firstJump.points);
+  const secondLane = horizontalLane(secondJump.points);
+
+  assert.notEqual(firstLane, secondLane);
+  assert.equal(Math.abs(firstLane! - secondLane!), 6);
+});
+
 test("limita a espessura de transições muito frequentes", () => {
   const app = new AppComponent();
   app.events.set(Array.from({ length: 100 }, (_, index) => [

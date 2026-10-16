@@ -124,6 +124,9 @@ const GRAPH_BOTTOM_PADDING = 50;
 const GRAPH_TRANSITION_MIN_STROKE_WIDTH = 0.75;
 const GRAPH_TRANSITION_MAX_STROKE_WIDTH = 1.75;
 const GRAPH_ROUTE_CLEARANCE = 8;
+const GRAPH_ROUTE_SEPARATION = 6;
+const GRAPH_ROUTE_OVERLAP_PENALTY = 10_000;
+const GRAPH_ROUTE_SPACING_COST = 0.35;
 
 @Component({
   selector: "app-root",
@@ -225,11 +228,13 @@ export class AppComponent {
       }
     }
 
+    const occupiedRoutes: GraphPoint[][] = [];
     const transitions = [...transitionCounts.entries()].map(([key, count]) => {
       const [sourceStatus, targetStatus] = key.split("\u0000");
       const source = phaseByStatus.get(sourceStatus)!;
       const target = phaseByStatus.get(targetStatus)!;
-      const points = this.graphTransitionPoints(source, target, graphPhases);
+      const points = this.graphTransitionPoints(source, target, graphPhases, occupiedRoutes);
+      occupiedRoutes.push(points);
       return {
         source: sourceStatus,
         target: targetStatus,
@@ -578,8 +583,9 @@ export class AppComponent {
     return Math.min(GRAPH_TRANSITION_MAX_STROKE_WIDTH, GRAPH_TRANSITION_MIN_STROKE_WIDTH + Math.log2(Math.max(1, count)) * 0.2);
   }
   // Rotas diretas são preferidas. Quando uma fase ocupa esse segmento, os corredores
-  // ao redor das fases são avaliados; a rota externa é a garantia para casos densos.
-  private graphTransitionPoints(source: GraphPhaseNode, target: GraphPhaseNode, phases: GraphPhaseNode[]): GraphPoint[] {
+  // ao redor das fases são avaliados; faixas vizinhas separam rotas paralelas e a
+  // rota externa é a garantia para casos densos.
+  private graphTransitionPoints(source: GraphPhaseNode, target: GraphPhaseNode, phases: GraphPhaseNode[], occupiedRoutes: GraphPoint[][]): GraphPoint[] {
     const sourceCenter = { x: source.x, y: source.y };
     const targetCenter = { x: target.x, y: target.y };
     const clearance = GRAPH_PHASE_RADIUS + GRAPH_ROUTE_CLEARANCE;
@@ -617,7 +623,7 @@ export class AppComponent {
     const routes = candidates
       .map((candidate) => this.graphRouteEndpoints(candidate, source, target))
       .filter((points) => this.graphRouteClearsPhases(points, phases, new Set([source.status, target.status])))
-      .sort((first, second) => this.graphRouteLength(first) - this.graphRouteLength(second));
+      .sort((first, second) => this.graphRouteScore(first, occupiedRoutes) - this.graphRouteScore(second, occupiedRoutes));
 
     return routes[0] ?? this.graphRouteEndpoints([sourceCenter, targetCenter], source, target);
   }
@@ -626,7 +632,7 @@ export class AppComponent {
     const channels = [sorted[0] - clearance, sorted.at(-1)! + clearance];
     for (const coordinate of sorted) channels.push(coordinate - clearance, coordinate + clearance);
     for (let index = 0; index < sorted.length - 1; index += 1) channels.push((sorted[index] + sorted[index + 1]) / 2);
-    return [...new Set(channels)];
+    return [...new Set(channels.flatMap((channel) => [channel, channel - GRAPH_ROUTE_SEPARATION, channel + GRAPH_ROUTE_SEPARATION]))];
   }
   private graphRouteEndpoints(candidate: GraphPoint[], source: GraphPhaseNode, target: GraphPhaseNode): GraphPoint[] {
     const centers = this.graphSimplifyPoints(candidate);
@@ -674,6 +680,40 @@ export class AppComponent {
   }
   private graphRouteLength(points: GraphPoint[]): number {
     return points.slice(1).reduce((length, point, index) => length + Math.hypot(point.x - points[index].x, point.y - points[index].y), 0);
+  }
+  private graphRouteScore(points: GraphPoint[], occupiedRoutes: GraphPoint[][]): number {
+    return this.graphRouteLength(points) + this.graphRouteLanePenalty(points, occupiedRoutes);
+  }
+  private graphRouteLanePenalty(points: GraphPoint[], occupiedRoutes: GraphPoint[][]): number {
+    let penalty = 0;
+    for (let index = 0; index < points.length - 1; index += 1) {
+      for (const occupied of occupiedRoutes) {
+        for (let occupiedIndex = 0; occupiedIndex < occupied.length - 1; occupiedIndex += 1) {
+          const lane = this.graphSharedLane(points[index], points[index + 1], occupied[occupiedIndex], occupied[occupiedIndex + 1]);
+          if (!lane) continue;
+          penalty += lane.separation < GRAPH_ROUTE_SEPARATION
+            ? GRAPH_ROUTE_OVERLAP_PENALTY + lane.overlap
+            : lane.separation * GRAPH_ROUTE_SPACING_COST;
+        }
+      }
+    }
+    return penalty;
+  }
+  private graphSharedLane(start: GraphPoint, end: GraphPoint, occupiedStart: GraphPoint, occupiedEnd: GraphPoint): { separation: number; overlap: number } | undefined {
+    const horizontal = start.y === end.y && occupiedStart.y === occupiedEnd.y;
+    const vertical = start.x === end.x && occupiedStart.x === occupiedEnd.x;
+    if (!horizontal && !vertical) return undefined;
+    const firstLength = horizontal ? Math.abs(end.x - start.x) : Math.abs(end.y - start.y);
+    const occupiedLength = horizontal ? Math.abs(occupiedEnd.x - occupiedStart.x) : Math.abs(occupiedEnd.y - occupiedStart.y);
+    if (firstLength < GRAPH_ROUTE_SEPARATION * 3 || occupiedLength < GRAPH_ROUTE_SEPARATION * 3) return undefined;
+    const overlap = horizontal
+      ? this.graphIntervalOverlap(start.x, end.x, occupiedStart.x, occupiedEnd.x)
+      : this.graphIntervalOverlap(start.y, end.y, occupiedStart.y, occupiedEnd.y);
+    if (overlap === 0) return undefined;
+    return { separation: horizontal ? Math.abs(start.y - occupiedStart.y) : Math.abs(start.x - occupiedStart.x), overlap };
+  }
+  private graphIntervalOverlap(firstStart: number, firstEnd: number, secondStart: number, secondEnd: number): number {
+    return Math.max(0, Math.min(Math.max(firstStart, firstEnd), Math.max(secondStart, secondEnd)) - Math.max(Math.min(firstStart, firstEnd), Math.min(secondStart, secondEnd)));
   }
   private graphPath(points: GraphPoint[]): string {
     return points.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`).join(" ");
