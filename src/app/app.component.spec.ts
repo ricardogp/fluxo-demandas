@@ -66,6 +66,7 @@ test("infere as ligações do grafo e move a demanda pelo tempo da fase de orige
   const movingDemandAtStart = graphAtStart.demands.find((demand) => demand.number === "DEM-1042");
 
   assert.equal(discoveryToDevelopment?.count, 3);
+  assert.equal(discoveryToDevelopment?.points.length, 2);
   assert.ok((discoveryToDevelopment?.strokeWidth ?? 0) > 0.75);
   assert.ok((discoveryToDevelopment?.strokeWidth ?? Number.POSITIVE_INFINITY) < 1.75);
   assert.equal(movingDemandAtStart?.source, "Descoberta");
@@ -79,6 +80,37 @@ test("infere as ligações do grafo e move a demanda pelo tempo da fase de orige
 
   assert.equal(movingDemandHalfway?.progress, 50);
   assert.equal(movingDemandHalfway?.terminal, false);
+});
+
+test("desvia uma ligação quando outra fase ocupa seu trajeto", () => {
+  const app = new AppComponent();
+  app.events.set([
+    { demandNumber: "DEM-SALTO", demandTitle: "Salto de fase", demandType: "Evolutiva", status: "Origem", startedAt: new Date(2026, 0, 1), endedAt: new Date(2026, 0, 3), row: 2 },
+    { demandNumber: "DEM-SALTO", demandTitle: "Salto de fase", demandType: "Evolutiva", status: "Destino", startedAt: new Date(2026, 0, 4), endedAt: new Date(2026, 0, 5), row: 3 },
+    { demandNumber: "DEM-COMPLETA", demandTitle: "Caminho completo", demandType: "Evolutiva", status: "Origem", startedAt: new Date(2026, 0, 1), endedAt: new Date(2026, 0, 1), row: 4 },
+    { demandNumber: "DEM-COMPLETA", demandTitle: "Caminho completo", demandType: "Evolutiva", status: "Intermediária", startedAt: new Date(2026, 0, 2), endedAt: new Date(2026, 0, 2), row: 5 },
+    { demandNumber: "DEM-COMPLETA", demandTitle: "Caminho completo", demandType: "Evolutiva", status: "Destino", startedAt: new Date(2026, 0, 3), endedAt: new Date(2026, 0, 3), row: 6 },
+  ]);
+
+  const graph = app.graph();
+  const skippedTransition = graph.transitions.find((transition) => transition.source === "Origem" && transition.target === "Destino");
+  const intermediatePhase = graph.phases.find((phase) => phase.status === "Intermediária");
+
+  assert.ok(skippedTransition);
+  assert.ok(intermediatePhase);
+  const shortestDistanceToIntermediate = skippedTransition.points.slice(1).reduce((shortest, end, index) => {
+    const start = skippedTransition.points[index];
+    const horizontal = end.x - start.x;
+    const vertical = end.y - start.y;
+    const squaredLength = horizontal ** 2 + vertical ** 2;
+    const ratio = squaredLength === 0 ? 0 : Math.min(1, Math.max(0, ((intermediatePhase.x - start.x) * horizontal + (intermediatePhase.y - start.y) * vertical) / squaredLength));
+    return Math.min(shortest, Math.hypot(intermediatePhase.x - (start.x + horizontal * ratio), intermediatePhase.y - (start.y + vertical * ratio)));
+  }, Number.POSITIVE_INFINITY);
+
+  assert.ok(skippedTransition.points.length > 2);
+  assert.ok(skippedTransition.points.some((point) => Math.abs(point.y - intermediatePhase.y) >= 30));
+  assert.ok(shortestDistanceToIntermediate >= 30);
+  assert.match(skippedTransition.path, /^M .* L /);
 });
 
 test("limita a espessura de transições muito frequentes", () => {

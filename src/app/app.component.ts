@@ -61,16 +61,19 @@ interface GraphPhaseNode {
   y: number;
 }
 
+interface GraphPoint {
+  x: number;
+  y: number;
+}
+
 interface GraphTransition {
   source: string;
   target: string;
   color: string;
   count: number;
   strokeWidth: number;
-  x1: number;
-  y1: number;
-  x2: number;
-  y2: number;
+  path: string;
+  points: GraphPoint[];
 }
 
 interface GraphDemandNode {
@@ -120,6 +123,7 @@ const GRAPH_TOP_PADDING = 42;
 const GRAPH_BOTTOM_PADDING = 50;
 const GRAPH_TRANSITION_MIN_STROKE_WIDTH = 0.75;
 const GRAPH_TRANSITION_MAX_STROKE_WIDTH = 1.75;
+const GRAPH_ROUTE_CLEARANCE = 8;
 
 @Component({
   selector: "app-root",
@@ -225,19 +229,15 @@ export class AppComponent {
       const [sourceStatus, targetStatus] = key.split("\u0000");
       const source = phaseByStatus.get(sourceStatus)!;
       const target = phaseByStatus.get(targetStatus)!;
-      const distance = Math.hypot(target.x - source.x, target.y - source.y) || 1;
-      const offsetX = ((target.x - source.x) / distance) * GRAPH_PHASE_RADIUS;
-      const offsetY = ((target.y - source.y) / distance) * GRAPH_PHASE_RADIUS;
+      const points = this.graphTransitionPoints(source, target, graphPhases);
       return {
         source: sourceStatus,
         target: targetStatus,
         color: source.color,
         count,
         strokeWidth: this.graphTransitionWidth(count),
-        x1: source.x + offsetX,
-        y1: source.y + offsetY,
-        x2: target.x - offsetX,
-        y2: target.y - offsetY,
+        path: this.graphPath(points),
+        points,
       };
     });
     const transitionByRoute = new Map(transitions.map((transition) => [`${transition.source}\u0000${transition.target}`, transition]));
@@ -260,6 +260,7 @@ export class AppComponent {
       const progress = this.periodProgress(source.startedAt, source.endedAt, current);
 
       if (target && targetPhase && transition) {
+        const position = this.graphRoutePosition(transition.points, progress);
         demands.push({
           number: history.number,
           title: history.title,
@@ -269,8 +270,8 @@ export class AppComponent {
           target: target.status,
           progress,
           terminal: false,
-          x: transition.x1 + ((transition.x2 - transition.x1) * progress) / 100,
-          y: transition.y1 + ((transition.y2 - transition.y1) * progress) / 100,
+          x: position.x,
+          y: position.y,
         });
       } else {
         terminalDemands.push({ number: history.number, title: history.title, demandType: history.demandType, color, source: source.status, progress, terminal: true, phase: sourcePhase });
@@ -575,6 +576,122 @@ export class AppComponent {
   // uma transição muito frequente domine o desenho.
   private graphTransitionWidth(count: number): number {
     return Math.min(GRAPH_TRANSITION_MAX_STROKE_WIDTH, GRAPH_TRANSITION_MIN_STROKE_WIDTH + Math.log2(Math.max(1, count)) * 0.2);
+  }
+  // Rotas diretas são preferidas. Quando uma fase ocupa esse segmento, os corredores
+  // ao redor das fases são avaliados; a rota externa é a garantia para casos densos.
+  private graphTransitionPoints(source: GraphPhaseNode, target: GraphPhaseNode, phases: GraphPhaseNode[]): GraphPoint[] {
+    const sourceCenter = { x: source.x, y: source.y };
+    const targetCenter = { x: target.x, y: target.y };
+    const clearance = GRAPH_PHASE_RADIUS + GRAPH_ROUTE_CLEARANCE;
+    const phaseXs = phases.map((phase) => phase.x);
+    const phaseYs = phases.map((phase) => phase.y);
+    const yChannels = this.graphRouteChannels(phaseYs, clearance);
+    const xChannels = this.graphRouteChannels(phaseXs, clearance);
+    const candidates: GraphPoint[][] = [
+      [sourceCenter, targetCenter],
+      [sourceCenter, { x: source.x, y: target.y }, targetCenter],
+      [sourceCenter, { x: target.x, y: source.y }, targetCenter],
+    ];
+
+    for (const y of yChannels) candidates.push([sourceCenter, { x: source.x, y }, { x: target.x, y }, targetCenter]);
+    for (const x of xChannels) candidates.push([sourceCenter, { x, y: source.y }, { x, y: target.y }, targetCenter]);
+
+    const outerXs = [Math.min(...phaseXs) - clearance, Math.max(...phaseXs) + clearance];
+    for (const outerX of outerXs) {
+      for (const sourceDirection of [-1, 1]) {
+        for (const targetDirection of [-1, 1]) {
+          const sourceY = source.y + clearance * sourceDirection;
+          const targetY = target.y + clearance * targetDirection;
+          candidates.push([
+            sourceCenter,
+            { x: source.x, y: sourceY },
+            { x: outerX, y: sourceY },
+            { x: outerX, y: targetY },
+            { x: target.x, y: targetY },
+            targetCenter,
+          ]);
+        }
+      }
+    }
+
+    const routes = candidates
+      .map((candidate) => this.graphRouteEndpoints(candidate, source, target))
+      .filter((points) => this.graphRouteClearsPhases(points, phases, new Set([source.status, target.status])))
+      .sort((first, second) => this.graphRouteLength(first) - this.graphRouteLength(second));
+
+    return routes[0] ?? this.graphRouteEndpoints([sourceCenter, targetCenter], source, target);
+  }
+  private graphRouteChannels(coordinates: number[], clearance: number): number[] {
+    const sorted = [...new Set(coordinates)].sort((first, second) => first - second);
+    const channels = [sorted[0] - clearance, sorted.at(-1)! + clearance];
+    for (const coordinate of sorted) channels.push(coordinate - clearance, coordinate + clearance);
+    for (let index = 0; index < sorted.length - 1; index += 1) channels.push((sorted[index] + sorted[index + 1]) / 2);
+    return [...new Set(channels)];
+  }
+  private graphRouteEndpoints(candidate: GraphPoint[], source: GraphPhaseNode, target: GraphPhaseNode): GraphPoint[] {
+    const centers = this.graphSimplifyPoints(candidate);
+    const firstDirection = this.graphDirection(centers[0], centers[1]);
+    const lastDirection = this.graphDirection(centers.at(-1)!, centers.at(-2)!);
+    return this.graphSimplifyPoints([
+      { x: source.x + firstDirection.x * GRAPH_PHASE_RADIUS, y: source.y + firstDirection.y * GRAPH_PHASE_RADIUS },
+      ...centers.slice(1, -1),
+      { x: target.x + lastDirection.x * GRAPH_PHASE_RADIUS, y: target.y + lastDirection.y * GRAPH_PHASE_RADIUS },
+    ]);
+  }
+  private graphSimplifyPoints(points: GraphPoint[]): GraphPoint[] {
+    const simplified: GraphPoint[] = [];
+    for (const point of points) {
+      const previous = simplified.at(-1);
+      if (previous && previous.x === point.x && previous.y === point.y) continue;
+      const beforePrevious = simplified.at(-2);
+      if (beforePrevious && previous && ((beforePrevious.x === previous.x && previous.x === point.x) || (beforePrevious.y === previous.y && previous.y === point.y))) {
+        simplified[simplified.length - 1] = point;
+      } else {
+        simplified.push(point);
+      }
+    }
+    return simplified;
+  }
+  private graphDirection(from: GraphPoint, to: GraphPoint): GraphPoint {
+    const distance = Math.hypot(to.x - from.x, to.y - from.y) || 1;
+    return { x: (to.x - from.x) / distance, y: (to.y - from.y) / distance };
+  }
+  private graphRouteClearsPhases(points: GraphPoint[], phases: GraphPhaseNode[], excludedStatuses: Set<string>): boolean {
+    for (let index = 0; index < points.length - 1; index += 1) {
+      for (const phase of phases) {
+        if (excludedStatuses.has(phase.status)) continue;
+        if (this.graphDistanceToSegment({ x: phase.x, y: phase.y }, points[index], points[index + 1]) < GRAPH_PHASE_RADIUS + GRAPH_ROUTE_CLEARANCE) return false;
+      }
+    }
+    return true;
+  }
+  private graphDistanceToSegment(point: GraphPoint, start: GraphPoint, end: GraphPoint): number {
+    const horizontal = end.x - start.x;
+    const vertical = end.y - start.y;
+    const squaredLength = horizontal ** 2 + vertical ** 2;
+    const ratio = squaredLength === 0 ? 0 : Math.min(1, Math.max(0, ((point.x - start.x) * horizontal + (point.y - start.y) * vertical) / squaredLength));
+    return Math.hypot(point.x - (start.x + horizontal * ratio), point.y - (start.y + vertical * ratio));
+  }
+  private graphRouteLength(points: GraphPoint[]): number {
+    return points.slice(1).reduce((length, point, index) => length + Math.hypot(point.x - points[index].x, point.y - points[index].y), 0);
+  }
+  private graphPath(points: GraphPoint[]): string {
+    return points.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`).join(" ");
+  }
+  private graphRoutePosition(points: GraphPoint[], progress: number): GraphPoint {
+    const routeLength = this.graphRouteLength(points);
+    let remaining = routeLength * (progress / 100);
+    for (let index = 0; index < points.length - 1; index += 1) {
+      const start = points[index];
+      const end = points[index + 1];
+      const segmentLength = Math.hypot(end.x - start.x, end.y - start.y);
+      if (remaining <= segmentLength || index === points.length - 2) {
+        const ratio = segmentLength === 0 ? 0 : remaining / segmentLength;
+        return { x: start.x + (end.x - start.x) * ratio, y: start.y + (end.y - start.y) * ratio };
+      }
+      remaining -= segmentLength;
+    }
+    return points.at(-1)!;
   }
   private phaseVisits(events: DemandEvent[]): PhaseVisit[] {
     const visits: PhaseVisit[] = [];

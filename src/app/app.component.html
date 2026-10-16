@@ -146,9 +146,9 @@
             </marker>
           </defs>
           @for (transition of graph().transitions; track transition.source + transition.target) {
-            <line class="graph-transition" [attr.x1]="transition.x1" [attr.y1]="transition.y1" [attr.x2]="transition.x2" [attr.y2]="transition.y2" [attr.stroke]="transition.color" [attr.stroke-width]="transition.strokeWidth" marker-end="url(#graph-arrow)">
+            <path class="graph-transition" [attr.d]="transition.path" [attr.stroke]="transition.color" [attr.stroke-width]="transition.strokeWidth" marker-end="url(#graph-arrow)">
               <title>{{ transition.source }} para {{ transition.target }} · {{ transition.count }} transição(ões)</title>
-            </line>
+            </path>
           }
           @for (phase of graph().phases; track phase.status) {
             <g class="graph-phase">
