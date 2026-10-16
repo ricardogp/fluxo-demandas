@@ -95,6 +95,7 @@ interface GraphPhasePort {
   phase: GraphPhaseNode;
   kind: "incoming" | "outgoing";
   side: GraphPortSide;
+  offset?: number;
 }
 
 interface GraphDemandNode {
@@ -149,6 +150,7 @@ const GRAPH_ROUTE_SEPARATION = 6;
 const GRAPH_ROUTE_OVERLAP_PENALTY = 10_000;
 const GRAPH_ROUTE_SPACING_COST = 0.35;
 const GRAPH_PHASE_PORT_SEPARATION = 5;
+const GRAPH_TRANSITION_COLOR = "#7d8793";
 const DAY_IN_MS = 86_400_000;
 const TIMELINE_SLIDER_MAXIMUM = 10_000;
 
@@ -269,7 +271,7 @@ export class AppComponent {
       return {
         source: sourceStatus,
         target: targetStatus,
-        color: this.laneColor(sourceStatus),
+        color: GRAPH_TRANSITION_COLOR,
         count,
         strokeWidth: this.graphTransitionWidth(count),
         path: this.graphPath(points),
@@ -425,13 +427,13 @@ export class AppComponent {
     return `${days.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} d`;
   }
 
-  laneColor(status: string): string {
-    const colors = ["#6f77dc", "#d79b42", "#3aa888", "#d76370", "#4e91c7", "#8a6ec5"];
-    return colors[this.statusOrder().indexOf(status) % colors.length] ?? colors[0];
-  }
   demandTypeColor(demandType: string): string {
     const colors = ["#4f7fd8", "#bd7a18", "#178668", "#ba4d5c", "#6d54b1", "#0d7f95"];
     return colors[this.demandTypeOrder().indexOf(demandType) % colors.length] ?? colors[0];
+  }
+  laneColor(status: string): string {
+    const colors = ["#6f77dc", "#d79b42", "#3aa888", "#d76370", "#4e91c7", "#8a6ec5"];
+    return colors[this.statusOrder().indexOf(status) % colors.length] ?? colors[0];
   }
   graphPhaseLoadColor(activeCount: number, maximumActiveCount: number): string {
     const intensity = activeCount === 0 ? 0 : Math.sqrt(activeCount / Math.max(1, maximumActiveCount));
@@ -753,6 +755,15 @@ export class AppComponent {
       outgoing.forEach((port, index) => this.positionGraphPort(port, (index + .5) * GRAPH_PHASE_PORT_SEPARATION));
     }
 
+    // O cotovelo preserva a direção original até a borda central do nó e só
+    // então desloca a porta, evitando diagonais entre conexões vizinhas.
+    for (const port of ports) {
+      if (port.offset === undefined) continue;
+      const center = this.graphPhasePortCenter(port.phase, port.side);
+      if (port.kind === "outgoing") port.transition.points.splice(1, 0, center);
+      else port.transition.points.splice(-1, 0, center);
+    }
+
     transitions.forEach((transition) => transition.path = this.graphPath(transition.points));
   }
   private graphPortSide(point: GraphPoint, phase: GraphPhaseNode): GraphPortSide {
@@ -763,13 +774,20 @@ export class AppComponent {
   }
   private positionGraphPort(port: GraphPhasePort, offset: number): void {
     const point = port.transition.points[port.pointIndex];
+    const center = this.graphPhasePortCenter(port.phase, port.side);
+    port.offset = offset;
     if (port.side === "top" || port.side === "bottom") {
       point.x = port.phase.x + offset;
-      point.y = port.phase.y + (port.side === "top" ? -GRAPH_PHASE_RADIUS : GRAPH_PHASE_RADIUS);
+      point.y = center.y;
       return;
     }
-    point.x = port.phase.x + (port.side === "left" ? -GRAPH_PHASE_RADIUS : GRAPH_PHASE_RADIUS);
+    point.x = center.x;
     point.y = port.phase.y + offset;
+  }
+  private graphPhasePortCenter(phase: GraphPhaseNode, side: GraphPortSide): GraphPoint {
+    if (side === "top") return { x: phase.x, y: phase.y - GRAPH_PHASE_RADIUS };
+    if (side === "bottom") return { x: phase.x, y: phase.y + GRAPH_PHASE_RADIUS };
+    return { x: phase.x + (side === "left" ? -GRAPH_PHASE_RADIUS : GRAPH_PHASE_RADIUS), y: phase.y };
   }
   private graphSimplifyPoints(points: GraphPoint[]): GraphPoint[] {
     const simplified: GraphPoint[] = [];
