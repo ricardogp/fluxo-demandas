@@ -423,7 +423,7 @@ export class AppComponent {
   }
   graphPhaseLoadColor(activeCount: number, maximumActiveCount: number): string {
     const intensity = activeCount === 0 ? 0 : Math.sqrt(activeCount / Math.max(1, maximumActiveCount));
-    const lightness = 96 - intensity * 45;
+    const lightness = 88 - intensity * 37;
     return `hsl(215 10% ${lightness.toFixed(1)}%)`;
   }
 

@@ -102,6 +102,7 @@ test("escurece os nós do grafo conforme a carga visível da fase", () => {
   assert.equal(triagem?.activeCount, 2);
   assert.equal(entrega?.activeCount, 1);
   assert.equal(atendimento?.activeCount, 0);
+  assert.equal(atendimento?.color, "hsl(215 10% 88.0%)");
   assert.ok(lightness(triagem?.color ?? "") < lightness(entrega?.color ?? ""));
   assert.ok(lightness(entrega?.color ?? "") < lightness(atendimento?.color ?? ""));
 });
