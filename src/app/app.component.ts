@@ -126,7 +126,7 @@ const SAMPLE_EVENTS: DemandEvent[] = [
 const MONTH_ABBREVIATIONS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 const GRAPH_WIDTH = 1000;
 const GRAPH_MIN_HEIGHT = 150;
-const GRAPH_PHASE_RADIUS = 22;
+const GRAPH_PHASE_RADIUS = 11;
 const GRAPH_FLOW_PADDING = 38;
 const GRAPH_PHASE_MIN_WIDTH = 80;
 const GRAPH_LEVEL_GAP = 75;
@@ -134,7 +134,7 @@ const GRAPH_TOP_PADDING = 42;
 const GRAPH_BOTTOM_PADDING = 50;
 const GRAPH_TRANSITION_MIN_STROKE_WIDTH = 0.75;
 const GRAPH_TRANSITION_MAX_STROKE_WIDTH = 1.75;
-const GRAPH_ROUTE_CLEARANCE = 8;
+const GRAPH_ROUTE_CLEARANCE = 19;
 const GRAPH_ROUTE_SEPARATION = 6;
 const GRAPH_ROUTE_OVERLAP_PENALTY = 10_000;
 const GRAPH_ROUTE_SPACING_COST = 0.35;
@@ -772,7 +772,9 @@ export class AppComponent {
     if (!horizontal && !vertical) return undefined;
     const firstLength = horizontal ? Math.abs(end.x - start.x) : Math.abs(end.y - start.y);
     const occupiedLength = horizontal ? Math.abs(occupiedEnd.x - occupiedStart.x) : Math.abs(occupiedEnd.y - occupiedStart.y);
-    if (firstLength < GRAPH_ROUTE_SEPARATION * 3 || occupiedLength < GRAPH_ROUTE_SEPARATION * 3) return undefined;
+    // Com os nós menores, os segmentos de entrada e saída ficam mais longos.
+    // Eles não representam corredores compartilhados e não devem decidir a faixa.
+    if (firstLength < GRAPH_ROUTE_SEPARATION * 5 || occupiedLength < GRAPH_ROUTE_SEPARATION * 5) return undefined;
     const overlap = horizontal
       ? this.graphIntervalOverlap(start.x, end.x, occupiedStart.x, occupiedEnd.x)
       : this.graphIntervalOverlap(start.y, end.y, occupiedStart.y, occupiedEnd.y);

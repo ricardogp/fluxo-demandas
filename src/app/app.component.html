@@ -152,9 +152,9 @@
           }
           @for (phase of graph().phases; track phase.status) {
             <g class="graph-phase">
-              <circle class="graph-phase-node" [attr.cx]="phase.x" [attr.cy]="phase.y" [attr.fill]="phase.color" [attr.stroke]="phase.color" r="22"></circle>
+              <circle class="graph-phase-node" [attr.cx]="phase.x" [attr.cy]="phase.y" [attr.fill]="phase.color" [attr.stroke]="phase.color" r="11"></circle>
               <title>{{ phase.status }} · {{ phase.activeCount }} demanda(s) em andamento</title>
-              <text class="graph-phase-label" [attr.x]="phase.x" [attr.y]="phase.y + 33">
+              <text class="graph-phase-label" [attr.x]="phase.x" [attr.y]="phase.y + 22">
                 @for (line of phase.labelLines; track $index) {
                   <tspan [attr.x]="phase.x" [attr.dy]="$index === 0 ? 0 : 7">{{ line }}</tspan>
                 }
