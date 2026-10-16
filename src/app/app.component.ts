@@ -66,6 +66,7 @@ interface GraphTransition {
   target: string;
   color: string;
   count: number;
+  strokeWidth: number;
   x1: number;
   y1: number;
   x2: number;
@@ -117,6 +118,8 @@ const GRAPH_PHASE_MIN_WIDTH = 160;
 const GRAPH_LEVEL_GAP = 150;
 const GRAPH_TOP_PADDING = 84;
 const GRAPH_BOTTOM_PADDING = 100;
+const GRAPH_TRANSITION_MIN_STROKE_WIDTH = 1.5;
+const GRAPH_TRANSITION_MAX_STROKE_WIDTH = 3.5;
 
 @Component({
   selector: "app-root",
@@ -230,6 +233,7 @@ export class AppComponent {
         target: targetStatus,
         color: source.color,
         count,
+        strokeWidth: this.graphTransitionWidth(count),
         x1: source.x + offsetX,
         y1: source.y + offsetY,
         x2: target.x - offsetX,
@@ -566,6 +570,11 @@ export class AppComponent {
   private periodProgress(startedAt: Date, endedAt: Date, time: number): number {
     const length = Math.max(endedAt.getTime() - startedAt.getTime(), 1);
     return Math.min(100, Math.max(0, ((time - startedAt.getTime()) / length) * 100));
+  }
+  // A escala logarítmica preserva a diferença entre fluxos sem permitir que
+  // uma transição muito frequente domine o desenho.
+  private graphTransitionWidth(count: number): number {
+    return Math.min(GRAPH_TRANSITION_MAX_STROKE_WIDTH, GRAPH_TRANSITION_MIN_STROKE_WIDTH + Math.log2(Math.max(1, count)) * 0.4);
   }
   private phaseVisits(events: DemandEvent[]): PhaseVisit[] {
     const visits: PhaseVisit[] = [];
