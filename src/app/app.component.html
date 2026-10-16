@@ -138,8 +138,8 @@
       </div>
     } @else {
       <div class="visualization-panel graph-panel" id="graph-format-panel" role="tabpanel" aria-labelledby="graph-format-tab">
-        <p class="graph-description">As fases são ordenadas da esquerda para a direita. As ligações representam as transições inferidas da planilha e os pontos coloridos percorrem cada ligação durante a permanência na fase de origem.</p>
-        <svg class="graph-canvas" viewBox="0 0 1000 360" role="img" aria-label="Fluxo linear das demandas por fase">
+        <p class="graph-description">As fases são ordenadas da esquerda para a direita e passam ao próximo nível somente quando não cabem sem sobreposição. As ligações representam as transições inferidas da planilha e os pontos coloridos percorrem cada ligação durante a permanência na fase de origem.</p>
+        <svg class="graph-canvas" [attr.viewBox]="'0 0 1000 ' + graph().height" role="img" aria-label="Fluxo das demandas por fase, distribuído em níveis">
           <defs>
             <marker id="graph-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="strokeWidth">
               <path d="M 0 0 L 8 4 L 0 8 z" class="graph-arrow"></path>
@@ -154,7 +154,11 @@
             <g class="graph-phase">
               <circle class="graph-phase-node" [attr.cx]="phase.x" [attr.cy]="phase.y" [attr.fill]="phase.color" [attr.stroke]="phase.color" r="44"></circle>
               <title>{{ phase.status }}</title>
-              <text class="graph-phase-label" [attr.x]="phase.x" [attr.y]="phase.y + 66">{{ phase.status }}</text>
+              <text class="graph-phase-label" [attr.x]="phase.x" [attr.y]="phase.y + 66">
+                @for (line of phase.labelLines; track $index) {
+                  <tspan [attr.x]="phase.x" [attr.dy]="$index === 0 ? 0 : 14">{{ line }}</tspan>
+                }
+              </text>
             </g>
           }
           @for (demand of graph().demands; track demand.number) {

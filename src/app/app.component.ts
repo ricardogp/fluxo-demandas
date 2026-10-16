@@ -55,6 +55,7 @@ interface PhaseVisit {
 
 interface GraphPhaseNode {
   status: string;
+  labelLines: string[];
   color: string;
   x: number;
   y: number;
@@ -85,6 +86,7 @@ interface GraphDemandNode {
 }
 
 interface GraphView {
+  height: number;
   phases: GraphPhaseNode[];
   transitions: GraphTransition[];
   demands: GraphDemandNode[];
@@ -108,9 +110,13 @@ const SAMPLE_EVENTS: DemandEvent[] = [
 
 const MONTH_ABBREVIATIONS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 const GRAPH_WIDTH = 1000;
-const GRAPH_HEIGHT = 360;
+const GRAPH_MIN_HEIGHT = 300;
 const GRAPH_PHASE_RADIUS = 44;
 const GRAPH_FLOW_PADDING = 76;
+const GRAPH_PHASE_MIN_WIDTH = 160;
+const GRAPH_LEVEL_GAP = 150;
+const GRAPH_TOP_PADDING = 84;
+const GRAPH_BOTTOM_PADDING = 100;
 
 @Component({
   selector: "app-root",
@@ -186,11 +192,17 @@ export class AppComponent {
 
   readonly graph = computed<GraphView>(() => {
     const phases = this.visibleStatusOrder();
-    const centerY = GRAPH_HEIGHT / 2;
-    const phaseSpacing = phases.length < 2 ? 0 : (GRAPH_WIDTH - (GRAPH_FLOW_PADDING * 2)) / (phases.length - 1);
+    const maximumColumns = Math.max(1, Math.floor((GRAPH_WIDTH - (GRAPH_FLOW_PADDING * 2)) / GRAPH_PHASE_MIN_WIDTH));
+    const levels = Math.ceil(phases.length / maximumColumns);
+    const graphHeight = Math.max(GRAPH_MIN_HEIGHT, GRAPH_TOP_PADDING + GRAPH_BOTTOM_PADDING + Math.max(0, levels - 1) * GRAPH_LEVEL_GAP);
     const graphPhases = phases.map((status, index) => {
-      const x = phases.length === 1 ? GRAPH_WIDTH / 2 : GRAPH_FLOW_PADDING + phaseSpacing * index;
-      return { status, color: this.laneColor(status), x, y: centerY };
+      const level = Math.floor(index / maximumColumns);
+      const positionInLevel = index % maximumColumns;
+      const phasesInLevel = Math.min(maximumColumns, phases.length - level * maximumColumns);
+      const spacing = phasesInLevel < 2 ? 0 : (GRAPH_WIDTH - (GRAPH_FLOW_PADDING * 2)) / (phasesInLevel - 1);
+      const column = level % 2 === 0 ? positionInLevel : phasesInLevel - 1 - positionInLevel;
+      const x = phasesInLevel === 1 ? GRAPH_WIDTH / 2 : GRAPH_FLOW_PADDING + spacing * column;
+      return { status, labelLines: this.graphLabelLines(status), color: this.laneColor(status), x, y: GRAPH_TOP_PADDING + level * GRAPH_LEVEL_GAP };
     });
     const phaseByStatus = new Map(graphPhases.map((phase) => [phase.status, phase]));
     const transitionCounts = new Map<string, number>();
@@ -269,7 +281,7 @@ export class AppComponent {
       demands.push({ ...demand, x: demand.phase.x + Math.cos(angle) * distance, y: demand.phase.y + Math.sin(angle) * distance });
     });
 
-    return { phases: graphPhases, transitions, demands };
+    return { height: graphHeight, phases: graphPhases, transitions, demands };
   });
 
   readonly activeCount = computed(() => [...this.visibleActiveByStatus().entries()]
@@ -566,5 +578,17 @@ export class AppComponent {
       }
     }
     return visits;
+  }
+  private graphLabelLines(status: string): string[] {
+    const maximumLineLength = 18;
+    const words = status.split(/\s+/).flatMap((word) => word.length > maximumLineLength ? [word.slice(0, maximumLineLength - 1) + "…"] : [word]);
+    const lines: string[] = [];
+    for (const word of words) {
+      const current = lines.at(-1);
+      if (current && `${current} ${word}`.length <= maximumLineLength) lines[lines.length - 1] = `${current} ${word}`;
+      else lines.push(word);
+    }
+    if (lines.length <= 2) return lines;
+    return [lines[0], `${lines.slice(1).join(" ").slice(0, maximumLineLength - 1)}…`];
   }
 }

@@ -33,9 +33,10 @@ test("o fluxo oferece abas para os formatos de tabela e grafo", () => {
   assert.match(template, /<button class="visualization-tab" \[class\.active\]="activeVisualization\(\) === 'table'"[^>]*\(click\)="setVisualization\('table'\)">Formato de tabela<\/button>/);
   assert.match(template, /<button class="visualization-tab" \[class\.active\]="activeVisualization\(\) === 'graph'"[^>]*\(click\)="setVisualization\('graph'\)">Formato de grafo<\/button>/);
   assert.match(template, /<div class="visualization-panel graph-panel" id="graph-format-panel" role="tabpanel" aria-labelledby="graph-format-tab">/);
-  assert.match(template, /<svg class="graph-canvas" viewBox="0 0 1000 360" role="img" aria-label="Fluxo linear das demandas por fase">/);
+  assert.match(template, /<svg class="graph-canvas" \[attr\.viewBox\]="'0 0 1000 ' \+ graph\(\)\.height" role="img" aria-label="Fluxo das demandas por fase, distribuído em níveis">/);
   assert.match(template, /<line class="graph-transition"[^>]*marker-end="url\(#graph-arrow\)">/);
   assert.match(template, /<circle class="graph-demand" \[class\.terminal\]="demand\.terminal"/);
+  assert.match(template, /<tspan \[attr\.x\]="phase\.x" \[attr\.dy\]="\$index === 0 \? 0 : 14">\{\{ line \}\}<\/tspan>/);
   assert.match(stylesheet, /\.visualization-tab\.active \{[^}]*border-bottom-color: #e5bb65;[^}]*color: #f1c970;/);
   assert.match(stylesheet, /\.graph-canvas {[^}]*min-height: 300px;[^}]*background: linear-gradient/);
 });

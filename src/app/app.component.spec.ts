@@ -79,6 +79,26 @@ test("infere as ligações do grafo e move a demanda pelo tempo da fase de orige
   assert.equal(movingDemandHalfway?.terminal, false);
 });
 
+test("distribui fases em novos níveis antes que os nós se sobreponham", () => {
+  const app = new AppComponent();
+  app.events.set(Array.from({ length: 6 }, (_, index) => ({
+    demandNumber: `DEM-${index + 1}`,
+    demandTitle: `Demanda ${index + 1}`,
+    demandType: "Evolutiva",
+    status: `Fase ${index + 1}`,
+    startedAt: new Date(2026, 0, index + 1),
+    endedAt: new Date(2026, 0, index + 1),
+    row: index + 2,
+  })));
+
+  const graph = app.graph();
+  const positions = new Set(graph.phases.map((phase) => `${phase.x}:${phase.y}`));
+
+  assert.equal(positions.size, 6);
+  assert.equal(new Set(graph.phases.map((phase) => phase.y)).size, 2);
+  assert.ok(graph.height > 300);
+});
+
 test("alterna entre os formatos de tabela e grafo", () => {
   const app = new AppComponent();
 
