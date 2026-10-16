@@ -8,6 +8,22 @@ import { AppComponent } from "./app.component";
 type TestableApp = AppComponent & {
   parseRows(rows: Array<Record<string, unknown>>): Array<{ demandNumber: string; demandTitle: string; demandType: string; status: string; startedAt: Date; endedAt: Date }>;
   inferStatusOrder(histories: Array<{ name: string; events: Array<{ status: string }> }>): string[];
+  separateGraphPorts(transitions: Array<{
+    source: string;
+    target: string;
+    color: string;
+    count: number;
+    strokeWidth: number;
+    path: string;
+    points: Array<{ x: number; y: number }>;
+  }>, phases: Array<{
+    status: string;
+    labelLines: string[];
+    color: string;
+    activeCount: number;
+    x: number;
+    y: number;
+  }>): void;
   calculateStatusMetrics(events: Array<{ demand: string; status: string; startedAt: Date; endedAt: Date; row: number }>, asOf: number): Map<string, {
     maxConcurrent: number;
     averageMs: number;
@@ -80,6 +96,24 @@ test("infere as ligações do grafo e move a demanda pelo tempo da fase de orige
 
   assert.equal(movingDemandHalfway?.progress, 50);
   assert.equal(movingDemandHalfway?.terminal, false);
+});
+
+test("separa simetricamente chegada e saída que usam o topo de uma fase", () => {
+  const app = new AppComponent() as TestableApp;
+  const phase = (status: string, x: number, y: number) => ({ status, labelLines: [status], color: "#889", activeCount: 0, x, y });
+  const phases = [phase("Origem", 30, 30), phase("Em análise", 100, 100), phase("Destino", 170, 30)];
+  const transitions = [
+    { source: "Origem", target: "Em análise", color: "#789", count: 1, strokeWidth: 1, path: "", points: [{ x: 30, y: 30 }, { x: 100, y: 89 }] },
+    { source: "Em análise", target: "Destino", color: "#789", count: 1, strokeWidth: 1, path: "", points: [{ x: 100, y: 89 }, { x: 170, y: 30 }] },
+  ];
+
+  app.separateGraphPorts(transitions, phases);
+
+  assert.deepEqual(transitions[0].points.at(-1), { x: 97.5, y: 89 });
+  assert.deepEqual(transitions[1].points[0], { x: 102.5, y: 89 });
+  assert.equal((transitions[0].points.at(-1)!.x + transitions[1].points[0].x) / 2, 100);
+  assert.match(transitions[0].path, /L 97.5 89$/);
+  assert.match(transitions[1].path, /^M 102.5 89/);
 });
 
 test("escurece os nós do grafo conforme a carga visível da fase", () => {

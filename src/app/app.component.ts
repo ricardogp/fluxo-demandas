@@ -87,6 +87,16 @@ interface GraphTransition {
   points: GraphPoint[];
 }
 
+type GraphPortSide = "top" | "right" | "bottom" | "left";
+
+interface GraphPhasePort {
+  transition: GraphTransition;
+  pointIndex: number;
+  phase: GraphPhaseNode;
+  kind: "incoming" | "outgoing";
+  side: GraphPortSide;
+}
+
 interface GraphDemandNode {
   number: string;
   title: string;
@@ -138,6 +148,7 @@ const GRAPH_ROUTE_CLEARANCE = 19;
 const GRAPH_ROUTE_SEPARATION = 6;
 const GRAPH_ROUTE_OVERLAP_PENALTY = 10_000;
 const GRAPH_ROUTE_SPACING_COST = 0.35;
+const GRAPH_PHASE_PORT_SEPARATION = 5;
 const DAY_IN_MS = 86_400_000;
 const TIMELINE_SLIDER_MAXIMUM = 10_000;
 
@@ -265,6 +276,7 @@ export class AppComponent {
         points,
       };
     });
+    this.separateGraphPorts(transitions, graphPhases);
     const transitionByRoute = new Map(transitions.map((transition) => [`${transition.source}\u0000${transition.target}`, transition]));
     const demands: GraphDemandNode[] = [];
     const terminalDemands: Array<Omit<GraphDemandNode, "x" | "y"> & { phase: GraphPhaseNode }> = [];
@@ -710,6 +722,54 @@ export class AppComponent {
       ...centers.slice(1, -1),
       { x: target.x + lastDirection.x * GRAPH_PHASE_RADIUS, y: target.y + lastDirection.y * GRAPH_PHASE_RADIUS },
     ]);
+  }
+  private separateGraphPorts(transitions: GraphTransition[], phases: GraphPhaseNode[]): void {
+    const phaseByStatus = new Map(phases.map((phase) => [phase.status, phase]));
+    const ports: GraphPhasePort[] = [];
+
+    for (const transition of transitions) {
+      const source = phaseByStatus.get(transition.source);
+      const target = phaseByStatus.get(transition.target);
+      if (source) ports.push({ transition, pointIndex: 0, phase: source, kind: "outgoing", side: this.graphPortSide(transition.points[0], source) });
+      if (target) {
+        const pointIndex = transition.points.length - 1;
+        ports.push({ transition, pointIndex, phase: target, kind: "incoming", side: this.graphPortSide(transition.points[pointIndex], target) });
+      }
+    }
+
+    const portsBySide = new Map<string, GraphPhasePort[]>();
+    for (const port of ports) {
+      const key = `${port.phase.status}\u0000${port.side}`;
+      const atSide = portsBySide.get(key) ?? [];
+      atSide.push(port);
+      portsBySide.set(key, atSide);
+    }
+
+    for (const portsAtSide of portsBySide.values()) {
+      const incoming = portsAtSide.filter((port) => port.kind === "incoming");
+      const outgoing = portsAtSide.filter((port) => port.kind === "outgoing");
+      if (!incoming.length || !outgoing.length) continue;
+      incoming.forEach((port, index) => this.positionGraphPort(port, -(index + .5) * GRAPH_PHASE_PORT_SEPARATION));
+      outgoing.forEach((port, index) => this.positionGraphPort(port, (index + .5) * GRAPH_PHASE_PORT_SEPARATION));
+    }
+
+    transitions.forEach((transition) => transition.path = this.graphPath(transition.points));
+  }
+  private graphPortSide(point: GraphPoint, phase: GraphPhaseNode): GraphPortSide {
+    const horizontalDistance = point.x - phase.x;
+    const verticalDistance = point.y - phase.y;
+    if (Math.abs(horizontalDistance) > Math.abs(verticalDistance)) return horizontalDistance < 0 ? "left" : "right";
+    return verticalDistance < 0 ? "top" : "bottom";
+  }
+  private positionGraphPort(port: GraphPhasePort, offset: number): void {
+    const point = port.transition.points[port.pointIndex];
+    if (port.side === "top" || port.side === "bottom") {
+      point.x = port.phase.x + offset;
+      point.y = port.phase.y + (port.side === "top" ? -GRAPH_PHASE_RADIUS : GRAPH_PHASE_RADIUS);
+      return;
+    }
+    point.x = port.phase.x + (port.side === "left" ? -GRAPH_PHASE_RADIUS : GRAPH_PHASE_RADIUS);
+    point.y = port.phase.y + offset;
   }
   private graphSimplifyPoints(points: GraphPoint[]): GraphPoint[] {
     const simplified: GraphPoint[] = [];
