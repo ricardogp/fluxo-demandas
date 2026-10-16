@@ -97,43 +97,74 @@
 
   <section class="visualization" aria-label="Formato da visualização">
     <div class="visualization-tabs" role="tablist" aria-label="Formato da visualização">
-      <button class="visualization-tab active" type="button" id="table-format-tab" role="tab" aria-selected="true" aria-controls="table-format-panel">Formato de tabela</button>
+      <button class="visualization-tab" [class.active]="activeVisualization() === 'table'" type="button" id="table-format-tab" role="tab" [attr.aria-selected]="activeVisualization() === 'table'" aria-controls="table-format-panel" (click)="setVisualization('table')">Formato de tabela</button>
+      <button class="visualization-tab" [class.active]="activeVisualization() === 'graph'" type="button" id="graph-format-tab" role="tab" [attr.aria-selected]="activeVisualization() === 'graph'" aria-controls="graph-format-panel" (click)="setVisualization('graph')">Formato de grafo</button>
     </div>
-    <div class="visualization-panel" id="table-format-panel" role="tabpanel" aria-labelledby="table-format-tab">
-      <section class="flow" aria-label="Fluxo de demandas por situação">
-        @for (status of visibleStatusOrder(); track status) {
-          <article class="lane" [style.--lane-color]="laneColor(status)">
-            <header class="lane-header">
-              <div class="lane-title"><span class="lane-dot"></span><h2>{{ status }}</h2><span class="lane-count">{{ visibleActiveByStatus().get(status)?.length ?? 0 }}</span></div>
-              @if (statusMetrics().get(status); as metrics) {
-                <dl class="lane-statistics" aria-label="Estatísticas de {{ status }}">
-                  <div><dt>Máximo </dt><dd>{{ metrics.maxConcurrent }}</dd></div>
-                  <div><dt>Tempo médio</dt><dd>{{ durationLabel(metrics.averageMs) }}</dd></div>
-                  <div><dt>Percentil 90</dt><dd>{{ durationLabel(metrics.p90Ms) }}</dd></div>
-                  <div><dt>Percentil 95</dt><dd>{{ durationLabel(metrics.p95Ms) }}</dd></div>
-                </dl>
-              } @else {
-                <p class="statistics-empty">Sem dados até esta data.</p>
-              }
-            </header>
-            <div class="lane-content">
-              @for (item of visibleActiveByStatus().get(status) ?? []; track trackByNumber($index, item)) {
-                <article class="demand-card" tabindex="0" (pointerenter)="showDemandHint($event, item)" (pointerleave)="hideDemandHint()" (focusin)="showDemandHint($event, item)" (focusout)="hideDemandHint()" [attr.aria-describedby]="'demand-hint-' + item.number">
-                  <div class="card-topline"><span>{{ item.progress | number:'1.0-0' }}%</span></div>
-                  <h3 [style.color]="demandTypeColor(item.demandType)">{{ item.number }}</h3>
-                  <p class="card-date-range" [attr.aria-label]="'Período de ' + rangeLabel(item.event.startedAt) + ' até ' + rangeLabel(item.event.endedAt)">
-                    <span>{{ cardDateLabel(item.event.startedAt) }}</span>
-                    <span class="card-date-range-separator" aria-hidden="true">a</span>
-                    <span>{{ cardDateLabel(item.event.endedAt) }}</span>
-                  </p>
-                  <div class="progress-track" aria-hidden="true"><span [style.width.%]="item.progress"></span></div>
-                </article>
-              } @empty { <p class="empty-lane">Nenhuma demanda nesta etapa.</p> }
-            </div>
-          </article>
-        }
-      </section>
-    </div>
+    @if (activeVisualization() === 'table') {
+      <div class="visualization-panel" id="table-format-panel" role="tabpanel" aria-labelledby="table-format-tab">
+        <section class="flow" aria-label="Fluxo de demandas por situação">
+          @for (status of visibleStatusOrder(); track status) {
+            <article class="lane" [style.--lane-color]="laneColor(status)">
+              <header class="lane-header">
+                <div class="lane-title"><span class="lane-dot"></span><h2>{{ status }}</h2><span class="lane-count">{{ visibleActiveByStatus().get(status)?.length ?? 0 }}</span></div>
+                @if (statusMetrics().get(status); as metrics) {
+                  <dl class="lane-statistics" aria-label="Estatísticas de {{ status }}">
+                    <div><dt>Máximo </dt><dd>{{ metrics.maxConcurrent }}</dd></div>
+                    <div><dt>Tempo médio</dt><dd>{{ durationLabel(metrics.averageMs) }}</dd></div>
+                    <div><dt>Percentil 90</dt><dd>{{ durationLabel(metrics.p90Ms) }}</dd></div>
+                    <div><dt>Percentil 95</dt><dd>{{ durationLabel(metrics.p95Ms) }}</dd></div>
+                  </dl>
+                } @else {
+                  <p class="statistics-empty">Sem dados até esta data.</p>
+                }
+              </header>
+              <div class="lane-content">
+                @for (item of visibleActiveByStatus().get(status) ?? []; track trackByNumber($index, item)) {
+                  <article class="demand-card" tabindex="0" (pointerenter)="showDemandHint($event, item)" (pointerleave)="hideDemandHint()" (focusin)="showDemandHint($event, item)" (focusout)="hideDemandHint()" [attr.aria-describedby]="'demand-hint-' + item.number">
+                    <div class="card-topline"><span>{{ item.progress | number:'1.0-0' }}%</span></div>
+                    <h3 [style.color]="demandTypeColor(item.demandType)">{{ item.number }}</h3>
+                    <p class="card-date-range" [attr.aria-label]="'Período de ' + rangeLabel(item.event.startedAt) + ' até ' + rangeLabel(item.event.endedAt)">
+                      <span>{{ cardDateLabel(item.event.startedAt) }}</span>
+                      <span class="card-date-range-separator" aria-hidden="true">a</span>
+                      <span>{{ cardDateLabel(item.event.endedAt) }}</span>
+                    </p>
+                    <div class="progress-track" aria-hidden="true"><span [style.width.%]="item.progress"></span></div>
+                  </article>
+                } @empty { <p class="empty-lane">Nenhuma demanda nesta etapa.</p> }
+              </div>
+            </article>
+          }
+        </section>
+      </div>
+    } @else {
+      <div class="visualization-panel graph-panel" id="graph-format-panel" role="tabpanel" aria-labelledby="graph-format-tab">
+        <p class="graph-description">As ligações representam as transições inferidas da planilha. Os pontos coloridos percorrem cada ligação durante a permanência na fase de origem.</p>
+        <svg class="graph-canvas" viewBox="0 0 1000 520" role="img" aria-label="Grafo de evolução das demandas por fase">
+          <defs>
+            <marker id="graph-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="strokeWidth">
+              <path d="M 0 0 L 8 4 L 0 8 z" class="graph-arrow"></path>
+            </marker>
+          </defs>
+          @for (transition of graph().transitions; track transition.source + transition.target) {
+            <line class="graph-transition" [attr.x1]="transition.x1" [attr.y1]="transition.y1" [attr.x2]="transition.x2" [attr.y2]="transition.y2" [attr.stroke]="transition.color" [attr.stroke-width]="1 + transition.count" marker-end="url(#graph-arrow)">
+              <title>{{ transition.source }} para {{ transition.target }} · {{ transition.count }} transição(ões)</title>
+            </line>
+          }
+          @for (phase of graph().phases; track phase.status) {
+            <g class="graph-phase">
+              <circle class="graph-phase-node" [attr.cx]="phase.x" [attr.cy]="phase.y" [attr.fill]="phase.color" [attr.stroke]="phase.color" r="44"></circle>
+              <title>{{ phase.status }}</title>
+              <text class="graph-phase-label" [attr.x]="phase.x" [attr.y]="phase.y + 66">{{ phase.status }}</text>
+            </g>
+          }
+          @for (demand of graph().demands; track demand.number) {
+            <circle class="graph-demand" [class.terminal]="demand.terminal" [attr.cx]="demand.x" [attr.cy]="demand.y" [attr.fill]="demand.color" r="7">
+              <title>{{ demand.number }} · {{ demand.title }} · {{ demand.source }}{{ demand.target ? ' → ' + demand.target : '' }} · {{ demand.progress | number:'1.0-0' }}%</title>
+            </circle>
+          }
+        </svg>
+      </div>
+    }
   </section>
 
   @if (activeHint(); as hint) {

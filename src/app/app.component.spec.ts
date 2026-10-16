@@ -59,6 +59,34 @@ test("infere uma sequência a partir das transições históricas", () => {
   assert.deepEqual(sequence, ["Análise", "Desenvolvimento", "Testes"]);
 });
 
+test("infere as ligações do grafo e move a demanda pelo tempo da fase de origem", () => {
+  const app = new AppComponent();
+  const graphAtStart = app.graph();
+  const discoveryToDevelopment = graphAtStart.transitions.find((transition) => transition.source === "Descoberta" && transition.target === "Desenvolvimento");
+  const movingDemandAtStart = graphAtStart.demands.find((demand) => demand.number === "DEM-1042");
+
+  assert.equal(discoveryToDevelopment?.count, 3);
+  assert.equal(movingDemandAtStart?.source, "Descoberta");
+  assert.equal(movingDemandAtStart?.target, "Desenvolvimento");
+  assert.equal(movingDemandAtStart?.progress, 0);
+
+  app.currentTime.set(new Date(2026, 7, 5).getTime());
+  const movingDemandHalfway = app.graph().demands.find((demand) => demand.number === "DEM-1042");
+
+  assert.equal(movingDemandHalfway?.progress, 50);
+  assert.equal(movingDemandHalfway?.terminal, false);
+});
+
+test("alterna entre os formatos de tabela e grafo", () => {
+  const app = new AppComponent();
+
+  assert.equal(app.activeVisualization(), "table");
+  app.setVisualization("graph");
+  assert.equal(app.activeVisualization(), "graph");
+  app.setVisualization("table");
+  assert.equal(app.activeVisualization(), "table");
+});
+
 test("o cursor pode retornar ao início ao ser arrastado", () => {
   const app = new AppComponent();
   app.scrub({ target: { value: "1000" } } as unknown as Event);

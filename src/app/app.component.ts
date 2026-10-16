@@ -47,8 +47,52 @@ interface StatusMetrics {
   p95Ms: number;
 }
 
+interface PhaseVisit {
+  status: string;
+  startedAt: Date;
+  endedAt: Date;
+}
+
+interface GraphPhaseNode {
+  status: string;
+  color: string;
+  x: number;
+  y: number;
+}
+
+interface GraphTransition {
+  source: string;
+  target: string;
+  color: string;
+  count: number;
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+}
+
+interface GraphDemandNode {
+  number: string;
+  title: string;
+  demandType: string;
+  color: string;
+  source: string;
+  target?: string;
+  progress: number;
+  terminal: boolean;
+  x: number;
+  y: number;
+}
+
+interface GraphView {
+  phases: GraphPhaseNode[];
+  transitions: GraphTransition[];
+  demands: GraphDemandNode[];
+}
+
 type SpreadsheetRow = Record<string, unknown>;
 type VisibilityFilter = "status" | "demand" | "demandType";
+type VisualizationFormat = "table" | "graph";
 
 const SAMPLE_EVENTS: DemandEvent[] = [
   { demandNumber: "DEM-1042", demandTitle: "Portal de fornecedores", demandType: "Evolutiva", status: "Descoberta", startedAt: new Date(2026, 7, 3), endedAt: new Date(2026, 7, 7), row: 2 },
@@ -63,6 +107,9 @@ const SAMPLE_EVENTS: DemandEvent[] = [
 ];
 
 const MONTH_ABBREVIATIONS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+const GRAPH_WIDTH = 1000;
+const GRAPH_HEIGHT = 520;
+const GRAPH_PHASE_RADIUS = 44;
 
 @Component({
   selector: "app-root",
@@ -85,6 +132,7 @@ export class AppComponent {
   readonly error = signal("");
   readonly sourceName = signal("Exemplo de simulação");
   readonly currentTime = signal(this.timelineStart().getTime());
+  readonly activeVisualization = signal<VisualizationFormat>("table");
 
   private animationFrame?: number;
   private lastFrame?: number;
@@ -135,6 +183,95 @@ export class AppComponent {
     return visibleLanes;
   });
 
+  readonly graph = computed<GraphView>(() => {
+    const phases = this.visibleStatusOrder();
+    const centerX = GRAPH_WIDTH / 2;
+    const centerY = GRAPH_HEIGHT / 2;
+    const phaseRadius = phases.length === 1 ? 0 : phases.length === 2 ? 220 : 184;
+    const graphPhases = phases.map((status, index) => {
+      const angle = phases.length === 1 ? 0 : (-Math.PI / 2) + (index * Math.PI * 2) / phases.length;
+      return { status, color: this.laneColor(status), x: centerX + Math.cos(angle) * phaseRadius, y: centerY + Math.sin(angle) * phaseRadius };
+    });
+    const phaseByStatus = new Map(graphPhases.map((phase) => [phase.status, phase]));
+    const transitionCounts = new Map<string, number>();
+
+    for (const history of this.histories()) {
+      const visits = this.phaseVisits(history.events);
+      for (let index = 0; index < visits.length - 1; index += 1) {
+        const source = visits[index];
+        const target = visits[index + 1];
+        if (!phaseByStatus.has(source.status) || !phaseByStatus.has(target.status)) continue;
+        const key = `${source.status}\u0000${target.status}`;
+        transitionCounts.set(key, (transitionCounts.get(key) ?? 0) + 1);
+      }
+    }
+
+    const transitions = [...transitionCounts.entries()].map(([key, count]) => {
+      const [sourceStatus, targetStatus] = key.split("\u0000");
+      const source = phaseByStatus.get(sourceStatus)!;
+      const target = phaseByStatus.get(targetStatus)!;
+      const distance = Math.hypot(target.x - source.x, target.y - source.y) || 1;
+      const offsetX = ((target.x - source.x) / distance) * GRAPH_PHASE_RADIUS;
+      const offsetY = ((target.y - source.y) / distance) * GRAPH_PHASE_RADIUS;
+      return {
+        source: sourceStatus,
+        target: targetStatus,
+        color: source.color,
+        count,
+        x1: source.x + offsetX,
+        y1: source.y + offsetY,
+        x2: target.x - offsetX,
+        y2: target.y - offsetY,
+      };
+    });
+    const transitionByRoute = new Map(transitions.map((transition) => [`${transition.source}\u0000${transition.target}`, transition]));
+    const demands: GraphDemandNode[] = [];
+    const terminalDemands: Array<Omit<GraphDemandNode, "x" | "y"> & { phase: GraphPhaseNode }> = [];
+    const current = this.currentTime();
+
+    for (const history of this.histories()) {
+      if (!this.demandVisible(history.number) || !this.demandTypeVisible(history.demandType)) continue;
+      const visits = this.phaseVisits(history.events);
+      const visitIndex = visits.findIndex((visit) => this.contains(visit, current));
+      if (visitIndex < 0) continue;
+      const source = visits[visitIndex];
+      const target = visits[visitIndex + 1];
+      const sourcePhase = phaseByStatus.get(source.status);
+      const targetPhase = target ? phaseByStatus.get(target.status) : undefined;
+      if (!sourcePhase) continue;
+      const color = this.demandTypeColor(history.demandType);
+      const transition = target ? transitionByRoute.get(`${source.status}\u0000${target.status}`) : undefined;
+      const progress = this.periodProgress(source.startedAt, source.endedAt, current);
+
+      if (target && targetPhase && transition) {
+        demands.push({
+          number: history.number,
+          title: history.title,
+          demandType: history.demandType,
+          color,
+          source: source.status,
+          target: target.status,
+          progress,
+          terminal: false,
+          x: transition.x1 + ((transition.x2 - transition.x1) * progress) / 100,
+          y: transition.y1 + ((transition.y2 - transition.y1) * progress) / 100,
+        });
+      } else {
+        terminalDemands.push({ number: history.number, title: history.title, demandType: history.demandType, color, source: source.status, progress, terminal: true, phase: sourcePhase });
+      }
+    }
+
+    terminalDemands.forEach((demand, index) => {
+      const countAtPhase = terminalDemands.filter((item) => item.source === demand.source).length;
+      const indexAtPhase = terminalDemands.filter((item, itemIndex) => item.source === demand.source && itemIndex < index).length;
+      const angle = countAtPhase === 1 ? 0 : (indexAtPhase * Math.PI * 2) / countAtPhase;
+      const distance = countAtPhase === 1 ? 0 : 20;
+      demands.push({ ...demand, x: demand.phase.x + Math.cos(angle) * distance, y: demand.phase.y + Math.sin(angle) * distance });
+    });
+
+    return { phases: graphPhases, transitions, demands };
+  });
+
   readonly activeCount = computed(() => [...this.visibleActiveByStatus().entries()]
     .filter(([status]) => this.statusVisible(status))
     .reduce((total, [, items]) => total + items.length, 0));
@@ -181,6 +318,7 @@ export class AppComponent {
 
   togglePlayback(): void { this.playing() ? this.pause() : this.play(); }
   toggleTheme(): void { this.theme.update((theme) => theme === "light" ? "dark" : "light"); }
+  setVisualization(format: VisualizationFormat): void { this.activeVisualization.set(format); }
   visibilityFilterExpanded(filter: VisibilityFilter): boolean { return this.expandedVisibilityFilters().has(filter); }
   toggleVisibilityFilter(filter: VisibilityFilter): void {
     this.expandedVisibilityFilters.update((filters) => {
@@ -406,12 +544,27 @@ export class AppComponent {
     return sortedValues[Math.max(0, Math.ceil(sortedValues.length * fraction) - 1)] ?? 0;
   }
 
-  private contains(event: DemandEvent, time: number): boolean { return time >= event.startedAt.getTime() && time <= event.endedAt.getTime() + 86_399_999; }
   private eventDurationMs(event: DemandEvent, asOf = Number.POSITIVE_INFINITY): number {
     return Math.min(event.endedAt.getTime(), asOf) - event.startedAt.getTime() + 86_400_000;
   }
   private eventProgress(event: DemandEvent, time: number): number {
-    const length = Math.max(event.endedAt.getTime() - event.startedAt.getTime(), 1);
-    return Math.min(100, Math.max(0, ((time - event.startedAt.getTime()) / length) * 100));
+    return this.periodProgress(event.startedAt, event.endedAt, time);
+  }
+  private contains(visit: Pick<PhaseVisit, "startedAt" | "endedAt">, time: number): boolean { return time >= visit.startedAt.getTime() && time <= visit.endedAt.getTime() + 86_399_999; }
+  private periodProgress(startedAt: Date, endedAt: Date, time: number): number {
+    const length = Math.max(endedAt.getTime() - startedAt.getTime(), 1);
+    return Math.min(100, Math.max(0, ((time - startedAt.getTime()) / length) * 100));
+  }
+  private phaseVisits(events: DemandEvent[]): PhaseVisit[] {
+    const visits: PhaseVisit[] = [];
+    for (const event of events) {
+      const previous = visits.at(-1);
+      if (previous?.status === event.status) {
+        if (event.endedAt > previous.endedAt) previous.endedAt = event.endedAt;
+      } else {
+        visits.push({ status: event.status, startedAt: event.startedAt, endedAt: event.endedAt });
+      }
+    }
+    return visits;
   }
 }
