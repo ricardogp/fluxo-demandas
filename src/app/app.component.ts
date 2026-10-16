@@ -103,6 +103,7 @@ interface GraphDemandNode {
   number: string;
   title: string;
   demandType: string;
+  item: ActiveDemand;
   color: string;
   source: string;
   target?: string;
@@ -302,6 +303,16 @@ export class AppComponent {
       const sourcePhase = phaseByStatus.get(source.status);
       const targetPhase = target ? phaseByStatus.get(target.status) : undefined;
       if (!sourcePhase) continue;
+      const event = history.events.find((item) => this.containsTimeline(item, current));
+      if (!event) continue;
+      const item: ActiveDemand = {
+        number: history.number,
+        title: history.title,
+        demandType: history.demandType,
+        event,
+        progress: this.eventProgress(event, current),
+        events: history.events,
+      };
       const color = this.demandTypeColor(history.demandType);
       const transition = target ? transitionByRoute.get(`${source.status}\u0000${target.status}`) : undefined;
       const progress = this.periodProgress(source.startedAt, source.endedAt, current);
@@ -311,6 +322,7 @@ export class AppComponent {
           number: history.number,
           title: history.title,
           demandType: history.demandType,
+          item,
           color,
           source: source.status,
           target: target.status,

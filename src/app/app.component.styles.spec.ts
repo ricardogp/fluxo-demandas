@@ -38,13 +38,14 @@ test("o fluxo oferece abas para os formatos de tabela e grafo", () => {
   assert.match(template, /<path class="graph-transition" \[attr\.d\]="transition\.path"[^>]*\[attr\.stroke-width\]="transition\.strokeWidth"[^>]*marker-end="url\(#graph-arrow\)">/);
   assert.match(template, /<circle class="graph-phase-node"[^>]*r="11"><\/circle>/);
   assert.match(template, /<text class="graph-phase-count" \[attr\.x\]="phase\.x" \[attr\.y\]="phase\.y" \[attr\.fill\]="phase\.countColor">\{\{ phase\.activeCount \}\}<\/text>/);
-  assert.match(template, /<circle class="graph-demand"[^>]*r="3\.5">/);
+  assert.match(template, /<circle class="graph-demand"[^>]*r="3\.5" tabindex="0"[^>]*\(pointerenter\)="showDemandHint\(\$event, demand\.item\)"[^>]*\(focusin\)="showDemandHint\(\$event, demand\.item\)"[^>]*\[attr\.aria-describedby\]="'demand-hint-' \+ demand\.number"/);
   assert.match(template, /<text class="graph-phase-label" \[attr\.x\]="phase\.x" \[attr\.y\]="phase\.y \+ 22">/);
   assert.match(template, /<tspan \[attr\.x\]="phase\.x" \[attr\.dy\]="\$index === 0 \? 0 : 7">\{\{ line \}\}<\/tspan>/);
   assert.match(stylesheet, /\.visualization-tab\.active \{[^}]*border-bottom-color: #e5bb65;[^}]*color: #f1c970;/);
   assert.match(stylesheet, /\.graph-canvas {[^}]*min-height: 150px;[^}]*background: linear-gradient/);
   assert.match(template, /<title>\{\{ phase\.status \}\} · \{\{ phase\.activeCount \}\} demanda\(s\) em andamento<\/title>/);
   assert.match(stylesheet, /\.graph-phase-count { font-size: 7px; font-weight: 800; text-anchor: middle; dominant-baseline: central; \}/);
+  assert.match(stylesheet, /\.graph-demand { cursor: pointer; \}/);
   assert.match(stylesheet, /\.graph-phase-node { r: 11px; fill-opacity: \.92; stroke-width: 1\.5px;/);
   assert.match(stylesheet, /\.graph-transition \{ fill: none; stroke-linecap: round; stroke-linejoin: round; stroke-opacity: \.62; \}/);
 });

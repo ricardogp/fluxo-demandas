@@ -163,7 +163,7 @@
             </g>
           }
           @for (demand of graph().demands; track demand.number) {
-            <circle class="graph-demand" [attr.cx]="demand.x" [attr.cy]="demand.y" [attr.fill]="demand.color" r="3.5">
+            <circle class="graph-demand" [attr.cx]="demand.x" [attr.cy]="demand.y" [attr.fill]="demand.color" r="3.5" tabindex="0" (pointerenter)="showDemandHint($event, demand.item)" (pointerleave)="hideDemandHint()" (focusin)="showDemandHint($event, demand.item)" (focusout)="hideDemandHint()" [attr.aria-describedby]="'demand-hint-' + demand.number" [attr.aria-label]="'Demanda ' + demand.number + ': ' + demand.title">
               <title>{{ demand.number }} · {{ demand.title }} · {{ demand.source }}{{ demand.target ? ' → ' + demand.target : '' }} · {{ demand.progress | number:'1.0-0' }}%</title>
             </circle>
           }
