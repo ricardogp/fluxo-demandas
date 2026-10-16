@@ -12,19 +12,28 @@ interface DemandEvent {
   row: number;
 }
 
+// Mantém o período original para métricas e cria uma escala independente para
+// percorrer, em ordem, etapas que a planilha registrou na mesma data.
+interface TimelineEvent extends DemandEvent {
+  timelineStartedAt: Date;
+  timelineEndedAt: Date;
+  hasSameDaySequence: boolean;
+  usesLogicalTime: boolean;
+}
+
 interface DemandHistory {
   number: string;
   title: string;
   demandType: string;
-  events: DemandEvent[];
+  events: TimelineEvent[];
 }
 
 interface ActiveDemand {
   number: string;
   title: string;
   demandType: string;
-  event: DemandEvent;
-  events: DemandEvent[];
+  event: TimelineEvent;
+  events: TimelineEvent[];
   progress: number;
 }
 
@@ -51,6 +60,7 @@ interface PhaseVisit {
   status: string;
   startedAt: Date;
   endedAt: Date;
+  usesLogicalTime: boolean;
 }
 
 interface GraphPhaseNode {
@@ -127,6 +137,8 @@ const GRAPH_ROUTE_CLEARANCE = 8;
 const GRAPH_ROUTE_SEPARATION = 6;
 const GRAPH_ROUTE_OVERLAP_PENALTY = 10_000;
 const GRAPH_ROUTE_SPACING_COST = 0.35;
+const DAY_IN_MS = 86_400_000;
+const TIMELINE_SLIDER_MAXIMUM = 10_000;
 
 @Component({
   selector: "app-root",
@@ -150,6 +162,7 @@ export class AppComponent {
   readonly sourceName = signal("Exemplo de simulação");
   readonly currentTime = signal(this.timelineStart().getTime());
   readonly activeVisualization = signal<VisualizationFormat>("table");
+  readonly timelineSliderMaximum = TIMELINE_SLIDER_MAXIMUM;
 
   private animationFrame?: number;
   private lastFrame?: number;
@@ -163,12 +176,15 @@ export class AppComponent {
     }
 
     return [...byDemand.entries()]
-      .map(([number, events]) => ({
-        number,
-        title: events[0].demandTitle,
-        demandType: events[0].demandType,
-        events: [...events].sort((first, second) => first.startedAt.getTime() - second.startedAt.getTime() || first.row - second.row),
-      }))
+      .map(([number, events]) => {
+        const chronologicalEvents = [...events].sort((first, second) => first.startedAt.getTime() - second.startedAt.getTime() || first.row - second.row);
+        return {
+          number,
+          title: chronologicalEvents[0].demandTitle,
+          demandType: chronologicalEvents[0].demandType,
+          events: this.createTimelineEvents(chronologicalEvents),
+        };
+      })
       .sort((first, second) => first.number.localeCompare(second.number, "pt-BR", { numeric: true }));
   });
 
@@ -182,7 +198,7 @@ export class AppComponent {
     const lanes = new Map<string, ActiveDemand[]>();
 
     for (const history of this.histories()) {
-      const event = history.events.find((item) => this.contains(item, current));
+      const event = history.events.find((item) => this.containsTimeline(item, current));
       if (!event) continue;
 
       const active = lanes.get(event.status) ?? [];
@@ -253,7 +269,7 @@ export class AppComponent {
     for (const history of this.histories()) {
       if (!this.demandVisible(history.number) || !this.demandTypeVisible(history.demandType)) continue;
       const visits = this.phaseVisits(history.events);
-      const visitIndex = visits.findIndex((visit) => this.contains(visit, current));
+      const visitIndex = visits.findIndex((visit) => this.containsTimeline(visit, current));
       if (visitIndex < 0) continue;
       const source = visits[visitIndex];
       const target = visits[visitIndex + 1];
@@ -302,6 +318,11 @@ export class AppComponent {
     const range = this.timelineEnd().getTime() - this.timelineStart().getTime();
     return range === 0 ? 0 : ((this.currentTime() - this.timelineStart().getTime()) / range) * 1000;
   });
+  readonly sliderInputValue = computed(() => this.sliderValue() * (TIMELINE_SLIDER_MAXIMUM / 1000));
+  readonly hasSameDaySequenceAtCurrent = computed(() => {
+    const current = this.currentTime();
+    return this.histories().some((history) => history.events.some((event) => event.hasSameDaySequence && this.containsTimeline(event, current)));
+  });
 
   async importSpreadsheet(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;
@@ -335,7 +356,7 @@ export class AppComponent {
     const start = this.timelineStart().getTime();
     const end = this.timelineEnd().getTime();
     this.pause();
-    this.currentTime.set(start + ((end - start) * value) / 1000);
+    this.currentTime.set(start + ((end - start) * value) / TIMELINE_SLIDER_MAXIMUM);
   }
 
   togglePlayback(): void { this.playing() ? this.pause() : this.play(); }
@@ -377,7 +398,10 @@ export class AppComponent {
   visibleDemandSummary(): string { return `${this.histories().filter((history) => this.demandVisible(history.number)).length} de ${this.histories().length} visíveis`; }
   visibleDemandTypeSummary(): string { return `${this.demandTypeOrder().filter((demandType) => this.demandTypeVisible(demandType)).length} de ${this.demandTypeOrder().length} visíveis`; }
   setSpeed(speed: number): void { this.speed.set(speed); }
-  timelineLabel(): string { return this.currentDate().toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" }); }
+  timelineLabel(): string {
+    const date = this.currentDate().toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
+    return this.hasSameDaySequenceAtCurrent() ? `${date} · sequência do dia` : date;
+  }
   rangeLabel(date: Date): string { return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }); }
   cardDateLabel(date: Date): string { return `${date.getDate().toString().padStart(2, "0")}/${MONTH_ABBREVIATIONS[date.getMonth()]}`; }
   durationLabel(durationMs: number): string {
@@ -492,7 +516,36 @@ export class AppComponent {
 
   private dateOnly(date: Date): Date { return new Date(date.getFullYear(), date.getMonth(), date.getDate()); }
   timelineStart(): Date { return this.dateOnly(this.events().reduce((earliest, item) => item.startedAt < earliest ? item.startedAt : earliest, this.events()[0]?.startedAt ?? new Date())); }
-  timelineEnd(): Date { return this.dateOnly(this.events().reduce((latest, item) => item.endedAt > latest ? item.endedAt : latest, this.events()[0]?.endedAt ?? new Date())); }
+  timelineEnd(): Date { return this.endOfDay(this.events().reduce((latest, item) => item.endedAt > latest ? item.endedAt : latest, this.events()[0]?.endedAt ?? new Date())); }
+
+  private endOfDay(date: Date): Date { return new Date(this.dateOnly(date).getTime() + DAY_IN_MS - 1); }
+
+  private createTimelineEvents(events: DemandEvent[]): TimelineEvent[] {
+    const eventsByStart = new Map<number, DemandEvent[]>();
+    for (const event of events) {
+      const sameDay = eventsByStart.get(event.startedAt.getTime()) ?? [];
+      sameDay.push(event);
+      eventsByStart.set(event.startedAt.getTime(), sameDay);
+    }
+
+    const timelineStarts = new Map<DemandEvent, Date>();
+    for (const [startedAt, sameDay] of eventsByStart) {
+      const step = DAY_IN_MS / sameDay.length;
+      sameDay.forEach((event, index) => timelineStarts.set(event, new Date(startedAt + step * index)));
+    }
+
+    return events.map((event, index) => {
+      const next = events[index + 1];
+      const timelineStartedAt = timelineStarts.get(event)!;
+      const hasSameDaySequence = (eventsByStart.get(event.startedAt.getTime())?.length ?? 0) > 1;
+      const nextStartsBeforeOrOnEnd = next && next.startedAt.getTime() <= event.endedAt.getTime();
+      const usesLogicalTime = hasSameDaySequence || Boolean(nextStartsBeforeOrOnEnd);
+      const timelineEndedAt = nextStartsBeforeOrOnEnd
+        ? timelineStarts.get(next)!
+        : usesLogicalTime ? this.endOfDay(event.endedAt) : event.endedAt;
+      return { ...event, timelineStartedAt, timelineEndedAt, hasSameDaySequence, usesLogicalTime };
+    });
+  }
 
   // A posição média resolve fluxos com bifurcações; transições diretas mais frequentes
   // desempata pares de situações que aparecem na mesma posição média.
@@ -569,10 +622,15 @@ export class AppComponent {
   private eventDurationMs(event: DemandEvent, asOf = Number.POSITIVE_INFINITY): number {
     return Math.min(event.endedAt.getTime(), asOf) - event.startedAt.getTime() + 86_400_000;
   }
-  private eventProgress(event: DemandEvent, time: number): number {
-    return this.periodProgress(event.startedAt, event.endedAt, time);
+  private eventProgress(event: TimelineEvent, time: number): number {
+    return this.periodProgress(event.timelineStartedAt, event.timelineEndedAt, time);
   }
-  private contains(visit: Pick<PhaseVisit, "startedAt" | "endedAt">, time: number): boolean { return time >= visit.startedAt.getTime() && time <= visit.endedAt.getTime() + 86_399_999; }
+  private containsTimeline(visit: Pick<PhaseVisit, "startedAt" | "endedAt"> | TimelineEvent, time: number): boolean {
+    const startedAt = "timelineStartedAt" in visit ? visit.timelineStartedAt : visit.startedAt;
+    const endedAt = "timelineEndedAt" in visit ? visit.timelineEndedAt : visit.endedAt;
+    const usesLogicalTime = "usesLogicalTime" in visit && visit.usesLogicalTime;
+    return time >= startedAt.getTime() && time <= endedAt.getTime() + (usesLogicalTime ? 0 : DAY_IN_MS - 1);
+  }
   private periodProgress(startedAt: Date, endedAt: Date, time: number): number {
     const length = Math.max(endedAt.getTime() - startedAt.getTime(), 1);
     return Math.min(100, Math.max(0, ((time - startedAt.getTime()) / length) * 100));
@@ -733,14 +791,15 @@ export class AppComponent {
     }
     return points.at(-1)!;
   }
-  private phaseVisits(events: DemandEvent[]): PhaseVisit[] {
+  private phaseVisits(events: TimelineEvent[]): PhaseVisit[] {
     const visits: PhaseVisit[] = [];
     for (const event of events) {
       const previous = visits.at(-1);
       if (previous?.status === event.status) {
-        if (event.endedAt > previous.endedAt) previous.endedAt = event.endedAt;
+        if (event.timelineEndedAt > previous.endedAt) previous.endedAt = event.timelineEndedAt;
+        previous.usesLogicalTime ||= event.usesLogicalTime;
       } else {
-        visits.push({ status: event.status, startedAt: event.startedAt, endedAt: event.endedAt });
+        visits.push({ status: event.status, startedAt: event.timelineStartedAt, endedAt: event.timelineEndedAt, usesLogicalTime: event.usesLogicalTime });
       }
     }
     return visits;

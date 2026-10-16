@@ -82,6 +82,36 @@ test("infere as ligações do grafo e move a demanda pelo tempo da fase de orige
   assert.equal(movingDemandHalfway?.terminal, false);
 });
 
+test("percorre etapas da mesma data em subpassos na tabela e no grafo", () => {
+  const app = new AppComponent();
+  const sameDay = new Date(2026, 8, 15).getTime();
+  app.events.set([
+    { demandNumber: "DEM-MESMO-DIA", demandTitle: "Transição sequencial", demandType: "Evolutiva", status: "Em Homologação", startedAt: new Date(2026, 8, 15), endedAt: new Date(2026, 8, 15), row: 2 },
+    { demandNumber: "DEM-MESMO-DIA", demandTitle: "Transição sequencial", demandType: "Evolutiva", status: "Entregue", startedAt: new Date(2026, 8, 15), endedAt: new Date(2026, 8, 16), row: 3 },
+  ]);
+
+  app.currentTime.set(sameDay);
+  const startDemand = app.graph().demands.find((demand) => demand.number === "DEM-MESMO-DIA");
+  assert.equal(app.activeByStatus().get("Em Homologação")?.[0].number, "DEM-MESMO-DIA");
+  assert.equal(startDemand?.source, "Em Homologação");
+  assert.equal(startDemand?.target, "Entregue");
+  assert.equal(startDemand?.progress, 0);
+
+  app.currentTime.set(sameDay + 6 * 60 * 60 * 1000);
+  const halfwayDemand = app.graph().demands.find((demand) => demand.number === "DEM-MESMO-DIA");
+  assert.equal(halfwayDemand?.progress, 50);
+  assert.match(app.timelineLabel(), /sequência do dia/);
+  assert.ok(app.statusMetrics().has("Entregue"));
+
+  app.currentTime.set(sameDay + 12 * 60 * 60 * 1000 + 1);
+  const deliveredDemand = app.graph().demands.find((demand) => demand.number === "DEM-MESMO-DIA");
+  assert.equal(app.activeByStatus().get("Entregue")?.[0].number, "DEM-MESMO-DIA");
+  assert.equal(deliveredDemand?.source, "Entregue");
+  assert.equal(deliveredDemand?.terminal, true);
+  assert.equal(app.events()[0].startedAt.getTime(), sameDay);
+  assert.equal(app.events()[0].endedAt.getTime(), sameDay);
+});
+
 test("desvia uma ligação quando outra fase ocupa seu trajeto", () => {
   const app = new AppComponent();
   app.events.set([
@@ -198,7 +228,7 @@ test("alterna entre os formatos de tabela e grafo", () => {
 
 test("o cursor pode retornar ao início ao ser arrastado", () => {
   const app = new AppComponent();
-  app.scrub({ target: { value: "1000" } } as unknown as Event);
+  app.scrub({ target: { value: "10000" } } as unknown as Event);
   const end = app.currentTime();
   app.scrub({ target: { value: "0" } } as unknown as Event);
 

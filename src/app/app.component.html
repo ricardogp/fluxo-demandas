@@ -76,11 +76,11 @@
     <div class="timeline-heading">
       <div>
         <h2 id="timeline-title">Linha do tempo das demandas</h2>
-        <p class="timeline-instruction">Arraste o marcador para explorar o fluxo em outra data ou use Reproduzir para avançar automaticamente.</p>
+        <p class="timeline-instruction">Arraste o marcador para explorar o fluxo em outra data ou sequência do mesmo dia; use Reproduzir para avançar automaticamente.</p>
       </div>
     </div>
     <div class="timeline-slider">
-      <input class="timeline" type="range" min="0" max="1000" [value]="sliderValue()" (input)="scrub($event)" aria-label="Navegar na linha do tempo" [attr.aria-valuetext]="timelineLabel()" />
+      <input class="timeline" type="range" min="0" [max]="timelineSliderMaximum" [value]="sliderInputValue()" (input)="scrub($event)" aria-label="Navegar na linha do tempo" [attr.aria-valuetext]="timelineLabel()" />
       <div class="selected-date" [class.at-start]="sliderValue() <= 1" [class.at-end]="sliderValue() >= 999" [style.left.%]="sliderValue() / 10">
         <span>DATA EXIBIDA</span><strong>{{ timelineLabel() }}</strong>
       </div>
@@ -138,7 +138,7 @@
       </div>
     } @else {
       <div class="visualization-panel graph-panel" id="graph-format-panel" role="tabpanel" aria-labelledby="graph-format-tab">
-        <p class="graph-description">As fases são ordenadas da esquerda para a direita e passam ao próximo nível somente quando não cabem sem sobreposição. As ligações representam as transições inferidas da planilha e os pontos coloridos percorrem cada ligação durante a permanência na fase de origem.</p>
+        <p class="graph-description">As fases são ordenadas da esquerda para a direita e passam ao próximo nível somente quando não cabem sem sobreposição. As ligações representam as transições inferidas da planilha e os pontos coloridos percorrem cada ligação durante a permanência na fase de origem. Mudanças registradas no mesmo dia avançam em sequência, conforme a ordem das linhas.</p>
         <svg class="graph-canvas" [attr.viewBox]="'0 0 1000 ' + graph().height" role="img" aria-label="Fluxo das demandas por fase, distribuído em níveis">
           <defs>
             <marker id="graph-arrow" markerWidth="4.5" markerHeight="4.5" refX="4" refY="2.25" orient="auto" markerUnits="userSpaceOnUse">
