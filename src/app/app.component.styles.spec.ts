@@ -55,7 +55,7 @@ test("o fluxo oferece abas para os formatos de tabela, grafo e grafo circular", 
   assert.match(stylesheet, /\.graph-phase-node { r: 11px; fill-opacity: \.92; stroke-width: 1\.5px;/);
   assert.match(stylesheet, /\.graph-transition \{ fill: none; stroke-linecap: round; stroke-linejoin: round; stroke-opacity: \.62; \}/);
   assert.match(template, /<svg class="graph-canvas circular-graph-canvas" \[attr\.viewBox\]="'0 0 1000 ' \+ circularGraph\(\)\.height" role="img" aria-label="Fluxo circular das demandas por fase">/);
-  assert.match(template, /<circle class="circular-graph-guide" cx="500" cy="280" r="220" aria-hidden="true"><\/circle>/);
+  assert.match(template, /<circle class="circular-graph-guide" cx="500" cy="280" r="160" aria-hidden="true"><\/circle>/);
   assert.match(template, /<path class="graph-transition" \[attr\.d\]="transition\.path"[^>]*marker-end="url\(#circular-graph-arrow\)">/);
   assert.match(globalStylesheet, /\.circular-graph-guide \{ fill: none; stroke: #76809b; stroke-width: 1px;/);
 });

@@ -180,14 +180,14 @@
       </div>
     } @else {
       <div class="visualization-panel graph-panel" id="circular-graph-format-panel" role="tabpanel" aria-labelledby="circular-graph-format-tab">
-        <p class="graph-description">As fases são distribuídas ao redor de um círculo e as transições seguem arcos internos. Esse formato reduz passagens próximas a fases intermediárias e deixa retornos entre etapas distantes mais claros; a visualização em níveis continua disponível para fluxos predominantemente lineares.</p>
+        <p class="graph-description">As fases são distribuídas em um círculo compacto e as transições usam curvas internas em faixas separadas ou, quando necessário, externas. Esse formato reduz sobreposições e passagens próximas a fases intermediárias, deixando retornos entre etapas distantes mais claros; a visualização em níveis continua disponível para fluxos predominantemente lineares.</p>
         <svg class="graph-canvas circular-graph-canvas" [attr.viewBox]="'0 0 1000 ' + circularGraph().height" role="img" aria-label="Fluxo circular das demandas por fase">
           <defs>
             <marker id="circular-graph-arrow" markerWidth="4.5" markerHeight="4.5" refX="4" refY="2.25" orient="auto" markerUnits="userSpaceOnUse">
               <path d="M 0 0 L 4.5 2.25 L 0 4.5 z" class="graph-arrow"></path>
             </marker>
           </defs>
-          <circle class="circular-graph-guide" cx="500" cy="280" r="220" aria-hidden="true"></circle>
+          <circle class="circular-graph-guide" cx="500" cy="280" r="160" aria-hidden="true"></circle>
           @for (transition of circularGraph().transitions; track transition.source + transition.target) {
             <path class="graph-transition" [attr.d]="transition.path" [attr.stroke]="transition.color" [attr.stroke-width]="transition.strokeWidth" marker-end="url(#circular-graph-arrow)">
               <title>{{ transition.source }} para {{ transition.target }} · {{ transition.count }} transição(ões)</title>

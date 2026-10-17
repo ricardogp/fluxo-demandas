@@ -312,10 +312,43 @@ test("organiza as fases e os arcos no formato de grafo circular", () => {
 
   assert.equal(circularGraph.height, 560);
   assert.equal(circularGraph.phases.length, app.visibleStatusOrder().length);
-  assert.ok(circularGraph.phases.every((phase) => Math.abs(radius(phase) - 220) < 0.001));
-  assert.ok(circularGraph.transitions.every((transition) => transition.points.length > 2));
-  assert.ok(circularGraph.transitions.every((transition) => transition.path.startsWith("M ")));
+  assert.ok(circularGraph.phases.every((phase) => Math.abs(radius(phase) - 160) < 0.001));
+  assert.ok(circularGraph.transitions.every((transition) => transition.points.length === 25));
+  assert.ok(circularGraph.transitions.every((transition) => transition.path.includes(" C ")));
   assert.equal(circularGraph.demands.length, app.graph().demands.length);
+});
+
+test("desvia curvas circulares que cruzariam outra ligação ou uma fase", () => {
+  const app = new AppComponent();
+  app.events.set([
+    { demandNumber: "DEM-AC", demandTitle: "Ligação vertical", demandType: "Evolutiva", status: "A", startedAt: new Date(2026, 0, 1), endedAt: new Date(2026, 0, 1), row: 2 },
+    { demandNumber: "DEM-AC", demandTitle: "Ligação vertical", demandType: "Evolutiva", status: "C", startedAt: new Date(2026, 0, 2), endedAt: new Date(2026, 0, 2), row: 3 },
+    { demandNumber: "DEM-BD", demandTitle: "Ligação horizontal", demandType: "Evolutiva", status: "B", startedAt: new Date(2026, 0, 1), endedAt: new Date(2026, 0, 1), row: 4 },
+    { demandNumber: "DEM-BD", demandTitle: "Ligação horizontal", demandType: "Evolutiva", status: "D", startedAt: new Date(2026, 0, 2), endedAt: new Date(2026, 0, 2), row: 5 },
+  ]);
+
+  const graph = app.circularGraph();
+  const vertical = graph.transitions.find((transition) => transition.source === "A" && transition.target === "C");
+  const horizontal = graph.transitions.find((transition) => transition.source === "B" && transition.target === "D");
+  const intermediatePhase = graph.phases.find((phase) => phase.status === "C");
+  const distanceToSegment = (point: { x: number; y: number }, start: { x: number; y: number }, end: { x: number; y: number }) => {
+    const horizontalDistance = end.x - start.x;
+    const verticalDistance = end.y - start.y;
+    const length = horizontalDistance ** 2 + verticalDistance ** 2;
+    const ratio = length === 0 ? 0 : Math.min(1, Math.max(0, ((point.x - start.x) * horizontalDistance + (point.y - start.y) * verticalDistance) / length));
+    return Math.hypot(point.x - (start.x + horizontalDistance * ratio), point.y - (start.y + verticalDistance * ratio));
+  };
+  const closestDistance = (first: Array<{ x: number; y: number }>, second: Array<{ x: number; y: number }>) => first.slice(2, -3).reduce((closest, point) => Math.min(
+    closest,
+    ...second.slice(2, -3).map((_, secondIndex) => distanceToSegment(point, second[secondIndex + 2], second[secondIndex + 3])),
+  ), Number.POSITIVE_INFINITY);
+
+  assert.ok(vertical);
+  assert.ok(horizontal);
+  assert.ok(intermediatePhase);
+  assert.ok(closestDistance(vertical.points, horizontal.points) >= 30);
+  assert.ok(horizontal.points.slice(1).every((point, index) => distanceToSegment(intermediatePhase, horizontal.points[index], point) >= 30));
+  assert.match(horizontal.path, / C /);
 });
 
 test("distribui fases em novos níveis antes que os nós se sobreponham", () => {
