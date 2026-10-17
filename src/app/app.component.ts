@@ -169,9 +169,9 @@ const CIRCULAR_GRAPH_CENTER_X = GRAPH_WIDTH / 2;
 const CIRCULAR_GRAPH_CENTER_Y = CIRCULAR_GRAPH_HEIGHT / 2;
 const CIRCULAR_GRAPH_RADIUS = 160;
 const CIRCULAR_GRAPH_ROUTE_MIN_RADIUS = 34;
-const CIRCULAR_GRAPH_MAX_EXTERNAL_RADIUS = 320;
 const CIRCULAR_GRAPH_CURVE_STEPS = 24;
 const CIRCULAR_GRAPH_ROUTE_LANE_OFFSETS = [-48, -32, -16, 0, 16, 32, 48];
+const CIRCULAR_GRAPH_GUIDE_LANE_OFFSETS = [0, 22, 44, 66];
 const DAY_IN_MS = 86_400_000;
 const TIMELINE_SLIDER_MAXIMUM = 10_000;
 
@@ -360,7 +360,7 @@ export class AppComponent {
     }
     const transitions = circularTransitions;
     const transitionByRoute = new Map(transitions.map((transition) => [`${transition.source}\u0000${transition.target}`, transition]));
-    return { height: CIRCULAR_GRAPH_HEIGHT, phases: graphPhases, transitions, demands: this.graphDemandNodes(phaseByStatus, transitionByRoute) };
+    return { height: CIRCULAR_GRAPH_HEIGHT, phases: graphPhases, transitions, demands: this.graphDemandNodes(phaseByStatus, transitionByRoute, false) };
   });
 
   readonly activeCount = computed(() => [...this.visibleActiveByStatus().entries()]
@@ -711,7 +711,7 @@ export class AppComponent {
     }
     return transitionCounts;
   }
-  private graphDemandNodes(phaseByStatus: Map<string, GraphPhaseNode>, transitionByRoute: Map<string, GraphTransition>): GraphDemandNode[] {
+  private graphDemandNodes(phaseByStatus: Map<string, GraphPhaseNode>, transitionByRoute: Map<string, GraphTransition>, distributeAcrossLanes = true): GraphDemandNode[] {
     const demands: GraphDemandNode[] = [];
     const current = this.currentTime();
 
@@ -762,7 +762,7 @@ export class AppComponent {
     }
     for (const [route, demandsAtRoute] of demandsByRoute) {
       const transition = transitionByRoute.get(route)!;
-      const offsets = this.graphDemandLaneOffsets(demandsAtRoute.length);
+      const offsets = distributeAcrossLanes ? this.graphDemandLaneOffsets(demandsAtRoute.length) : demandsAtRoute.map(() => 0);
       demandsAtRoute.sort((first, second) => first.number.localeCompare(second.number)).forEach((demand, index) => {
         const { point, normal } = this.graphRoutePosition(transition.points, demand.progress);
         demand.x = point.x + normal.x * offsets[index];
@@ -803,35 +803,60 @@ export class AppComponent {
     const candidates = [
       ...CIRCULAR_GRAPH_ROUTE_LANE_OFFSETS.map((laneOffset) => ({
         laneOffset,
-        external: false,
-        route: this.circularGraphRouteCandidate(source, target, angleDifference, laneOffset, false, portOffsets),
+        usesGuideTrack: false,
+        route: this.circularGraphRouteCandidate(source, target, angleDifference, laneOffset, portOffsets),
       })),
-      ...[0, 28, 56, 84, 112, 140].flatMap((laneOffset) => [angleDifference, alternativeAngleDifference].map((routeAngleDifference) => ({
+      ...CIRCULAR_GRAPH_GUIDE_LANE_OFFSETS.flatMap((laneOffset) => [angleDifference, alternativeAngleDifference].map((routeAngleDifference) => ({
         laneOffset,
-        external: true,
-        route: this.circularGraphRouteCandidate(source, target, routeAngleDifference, laneOffset, true, portOffsets),
+        usesGuideTrack: true,
+        route: this.circularGraphGuideRouteCandidate(source, target, routeAngleDifference, laneOffset, portOffsets),
       }))),
     ];
     const routesThatClearPhases = candidates.filter(({ route }) => this.graphRouteClearsPhases(route.points, phases, new Set([source.status, target.status])));
     return (routesThatClearPhases.length ? routesThatClearPhases : candidates).sort((first, second) =>
-      this.circularGraphRouteScore(first.route.points, occupiedRoutes, first.laneOffset, first.external)
-      - this.circularGraphRouteScore(second.route.points, occupiedRoutes, second.laneOffset, second.external),
+      this.circularGraphRouteScore(first.route.points, occupiedRoutes, first.laneOffset, first.usesGuideTrack)
+      - this.circularGraphRouteScore(second.route.points, occupiedRoutes, second.laneOffset, second.usesGuideTrack),
     )[0].route;
   }
-  private circularGraphRouteCandidate(source: GraphPhaseNode, target: GraphPhaseNode, angleDifference: number, laneOffset: number, external: boolean, portOffsets: CircularGraphPortOffsets): CircularGraphRoute {
+  private circularGraphRouteCandidate(source: GraphPhaseNode, target: GraphPhaseNode, angleDifference: number, laneOffset: number, portOffsets: CircularGraphPortOffsets): CircularGraphRoute {
     const sourceAngle = Math.atan2(source.y - CIRCULAR_GRAPH_CENTER_Y, source.x - CIRCULAR_GRAPH_CENTER_X);
     const targetAngle = Math.atan2(target.y - CIRCULAR_GRAPH_CENTER_Y, target.x - CIRCULAR_GRAPH_CENTER_X);
     const directionOffset = angleDifference < 0 ? GRAPH_ROUTE_SEPARATION : -GRAPH_ROUTE_SEPARATION;
-    const routedRadius = external
-      ? Math.min(CIRCULAR_GRAPH_MAX_EXTERNAL_RADIUS, CIRCULAR_GRAPH_RADIUS + 42 + laneOffset)
-      : Math.max(CIRCULAR_GRAPH_ROUTE_MIN_RADIUS, CIRCULAR_GRAPH_RADIUS - 24 - (Math.abs(angleDifference) / Math.PI) * 52 + directionOffset + laneOffset);
-    const radius = external ? routedRadius : Math.min(CIRCULAR_GRAPH_RADIUS - GRAPH_PHASE_RADIUS - GRAPH_ROUTE_CLEARANCE, routedRadius);
+    const routedRadius = Math.max(CIRCULAR_GRAPH_ROUTE_MIN_RADIUS, CIRCULAR_GRAPH_RADIUS - 24 - (Math.abs(angleDifference) / Math.PI) * 52 + directionOffset + laneOffset);
+    const radius = Math.min(CIRCULAR_GRAPH_RADIUS - GRAPH_PHASE_RADIUS - GRAPH_ROUTE_CLEARANCE, routedRadius);
     const controlAngleOffset = angleDifference / 3;
     const firstControl = this.circularGraphPoint(sourceAngle + controlAngleOffset, radius);
     const secondControl = this.circularGraphPoint(targetAngle - controlAngleOffset, radius);
     const start = this.circularGraphPortPoint(this.graphOffsetPoint(source, firstControl, GRAPH_PHASE_RADIUS), sourceAngle, portOffsets.source);
     const end = this.circularGraphPortPoint(this.graphOffsetPoint(target, secondControl, GRAPH_PHASE_RADIUS), targetAngle, portOffsets.target);
     return this.circularGraphCurve(start, firstControl, secondControl, end);
+  }
+  private circularGraphGuideRouteCandidate(source: GraphPhaseNode, target: GraphPhaseNode, angleDifference: number, laneOffset: number, portOffsets: CircularGraphPortOffsets): CircularGraphRoute {
+    const sourceAngle = Math.atan2(source.y - CIRCULAR_GRAPH_CENTER_Y, source.x - CIRCULAR_GRAPH_CENTER_X);
+    const targetAngle = Math.atan2(target.y - CIRCULAR_GRAPH_CENTER_Y, target.x - CIRCULAR_GRAPH_CENTER_X);
+    const portRadius = CIRCULAR_GRAPH_RADIUS - GRAPH_PHASE_RADIUS;
+    // The guide track stays just inside the dotted circle: it remains visually aligned
+    // with the phases while leaving the required clearance around every other node.
+    const guideRadius = portRadius - GRAPH_ROUTE_CLEARANCE - 2 - laneOffset;
+    const sourcePortAngle = sourceAngle + portOffsets.source / portRadius;
+    const targetPortAngle = targetAngle + portOffsets.target / portRadius;
+    const guideAngleDifference = angleDifference + (targetPortAngle - targetAngle) - (sourcePortAngle - sourceAngle);
+    const start = this.circularGraphPoint(sourcePortAngle, portRadius);
+    const guideStart = this.circularGraphPoint(sourcePortAngle, guideRadius);
+    const guideEnd = this.circularGraphPoint(sourcePortAngle + guideAngleDifference, guideRadius);
+    const end = this.circularGraphPoint(targetPortAngle, portRadius);
+    const steps = Math.max(4, Math.ceil(Math.abs(guideAngleDifference) / (Math.PI / 18)));
+    const points = [start, guideStart];
+    for (let index = 1; index <= steps; index += 1) {
+      points.push(this.circularGraphPoint(sourcePortAngle + guideAngleDifference * index / steps, guideRadius));
+    }
+    points.push(end);
+    const largeArc = Math.abs(guideAngleDifference) > Math.PI ? 1 : 0;
+    const sweep = guideAngleDifference > 0 ? 1 : 0;
+    return {
+      path: `M ${start.x} ${start.y} L ${guideStart.x} ${guideStart.y} A ${guideRadius} ${guideRadius} 0 ${largeArc} ${sweep} ${guideEnd.x} ${guideEnd.y} L ${end.x} ${end.y}`,
+      points,
+    };
   }
   private circularGraphSelfRoute(phase: GraphPhaseNode): CircularGraphRoute {
     const angle = Math.atan2(phase.y - CIRCULAR_GRAPH_CENTER_Y, phase.x - CIRCULAR_GRAPH_CENTER_X);
@@ -858,8 +883,8 @@ export class AppComponent {
       points,
     };
   }
-  private circularGraphRouteScore(points: GraphPoint[], occupiedRoutes: GraphPoint[][], laneOffset: number, external: boolean): number {
-    let score = this.graphRouteLength(points) + Math.abs(laneOffset) * 2 + (external ? 500 : 0);
+  private circularGraphRouteScore(points: GraphPoint[], occupiedRoutes: GraphPoint[][], laneOffset: number, usesGuideTrack: boolean): number {
+    let score = this.graphRouteLength(points) + Math.abs(laneOffset) * 2 + (usesGuideTrack ? 250 : 0);
     for (let index = 2; index < points.length - 3; index += 1) {
       for (const occupiedRoute of occupiedRoutes) {
         for (let occupiedIndex = 2; occupiedIndex < occupiedRoute.length - 3; occupiedIndex += 1) {
