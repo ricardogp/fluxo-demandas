@@ -497,9 +497,9 @@ test("alterna o marcador no grafo sem alterar tabela ou grafo circular", () => {
   const app = new AppComponent();
 
   assert.equal(app.graphDemandRepresentation(), "circle");
-  assert.equal(app.graphDemandLabelWidth("12"), 16);
-  assert.equal(app.graphDemandLabelWidth("5301188"), 37.5);
-  assert.equal(app.graphDemandLabelWidth("demanda-com-identificador-extenso"), 44);
+  assert.equal(app.graphDemandLabelWidth("12"), 10.5);
+  assert.equal(app.graphDemandLabelWidth("5301188"), 29.25);
+  assert.equal(app.graphDemandLabelWidth("demanda-com-identificador-extenso"), 36);
   app.setGraphDemandRepresentation("number");
   assert.equal(app.graphDemandRepresentation(), "number");
   assert.equal(app.demandRepresentation(), "detailedCard");

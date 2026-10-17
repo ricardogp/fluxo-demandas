@@ -47,7 +47,7 @@ test("o fluxo oferece abas para os formatos de tabela, grafo e grafo circular", 
   assert.match(template, /<label class="demand-representation graph-demand-representation">Marcadores em movimento\s*<select \[value\]="graphDemandRepresentation\(\)" \(change\)="setGraphDemandRepresentation\(\$any\(\$event\.target\)\.value\)">/);
   assert.match(template, /<option value="circle">Círculo colorido<\/option>/);
   assert.match(template, /<g class="graph-demand-label" tabindex="0"[^>]*\(pointerenter\)="showDemandHint\(\$event, demand\.item\)"[^>]*\(focusin\)="showDemandHint\(\$event, demand\.item\)"/);
-  assert.match(template, /<rect \[attr\.x\]="demand\.x - graphDemandLabelWidth\(demand\.number\) \/ 2" \[attr\.y\]="demand\.y - 6" \[attr\.width\]="graphDemandLabelWidth\(demand\.number\)" height="12" \[attr\.stroke\]="demand\.color"><\/rect>/);
+  assert.match(template, /<rect \[attr\.x\]="demand\.x - graphDemandLabelWidth\(demand\.number\) \/ 2" \[attr\.y\]="demand\.y - 4\.5" \[attr\.width\]="graphDemandLabelWidth\(demand\.number\)" height="9" \[attr\.stroke\]="demand\.color"><\/rect>/);
   assert.match(template, /<text \[attr\.x\]="demand\.x" \[attr\.y\]="demand\.y">\{\{ demand\.number \}\}<\/text>/);
   assert.match(template, /<text class="graph-phase-label" \[attr\.x\]="phase\.x" \[attr\.y\]="phase\.y \+ 25">/);
   assert.match(template, /<tspan \[attr\.x\]="phase\.x" \[attr\.dy\]="\$index === 0 \? 0 : 7">\{\{ line \}\}<\/tspan>/);

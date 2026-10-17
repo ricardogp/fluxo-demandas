@@ -182,7 +182,7 @@
               </circle>
             } @else {
               <g class="graph-demand-label" tabindex="0" (pointerenter)="showDemandHint($event, demand.item)" (pointerleave)="hideDemandHint()" (focusin)="showDemandHint($event, demand.item)" (focusout)="hideDemandHint()" [attr.aria-describedby]="'demand-hint-' + demand.number" [attr.aria-label]="'Demanda ' + demand.number + ': ' + demand.title">
-                <rect [attr.x]="demand.x - graphDemandLabelWidth(demand.number) / 2" [attr.y]="demand.y - 6" [attr.width]="graphDemandLabelWidth(demand.number)" height="12" [attr.stroke]="demand.color"></rect>
+                <rect [attr.x]="demand.x - graphDemandLabelWidth(demand.number) / 2" [attr.y]="demand.y - 4.5" [attr.width]="graphDemandLabelWidth(demand.number)" height="9" [attr.stroke]="demand.color"></rect>
                 <text [attr.x]="demand.x" [attr.y]="demand.y">{{ demand.number }}</text>
                 <title>{{ demand.number }} · {{ demand.title }} · {{ demand.source }}{{ demand.target ? ' → ' + demand.target : '' }} · {{ demand.progress | number:'1.0-0' }}%</title>
               </g>

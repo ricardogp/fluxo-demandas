@@ -434,7 +434,7 @@ export class AppComponent {
   setVisualization(format: VisualizationFormat): void { this.activeVisualization.set(format); }
   setDemandRepresentation(representation: DemandRepresentation): void { this.demandRepresentation.set(representation); }
   setGraphDemandRepresentation(representation: GraphDemandRepresentation): void { this.graphDemandRepresentation.set(representation); }
-  graphDemandLabelWidth(number: string): number { return Math.max(16, Math.min(44, 6 + number.length * 4.5)); }
+  graphDemandLabelWidth(number: string): number { return Math.max(10, Math.min(36, 3 + number.length * 3.75)); }
   visibilityFilterExpanded(filter: VisibilityFilter): boolean { return this.expandedVisibilityFilters().has(filter); }
   toggleVisibilityFilter(filter: VisibilityFilter): void {
     this.expandedVisibilityFilters.update((filters) => {
