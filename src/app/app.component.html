@@ -99,7 +99,6 @@
     <div class="visualization-tabs" role="tablist" aria-label="Formato da visualização">
       <button class="visualization-tab" [class.active]="activeVisualization() === 'table'" type="button" id="table-format-tab" role="tab" [attr.aria-selected]="activeVisualization() === 'table'" aria-controls="table-format-panel" (click)="setVisualization('table')">Formato de tabela</button>
       <button class="visualization-tab" [class.active]="activeVisualization() === 'graph'" type="button" id="graph-format-tab" role="tab" [attr.aria-selected]="activeVisualization() === 'graph'" aria-controls="graph-format-panel" (click)="setVisualization('graph')">Formato de grafo</button>
-      <button class="visualization-tab" [class.active]="activeVisualization() === 'circularGraph'" type="button" id="circular-graph-format-tab" role="tab" [attr.aria-selected]="activeVisualization() === 'circularGraph'" aria-controls="circular-graph-format-panel" (click)="setVisualization('circularGraph')">Formato de grafo circular</button>
     </div>
     @if (activeVisualization() === 'table') {
       <div class="visualization-panel" id="table-format-panel" role="tabpanel" aria-labelledby="table-format-tab">
@@ -190,48 +189,6 @@
           }
         </svg>
         <aside class="graph-legend" aria-label="Legenda das cores dos tipos de demanda">
-          <span class="graph-legend-title">Cores das demandas</span>
-          @for (demandType of demandTypeOrder(); track demandType) {
-            @if (demandTypeVisible(demandType)) {
-              <span class="graph-legend-item"><i class="graph-legend-dot" [style.background]="demandTypeColor(demandType)" aria-hidden="true"></i>{{ demandType }}</span>
-            }
-          }
-        </aside>
-      </div>
-    } @else {
-      <div class="visualization-panel graph-panel" id="circular-graph-format-panel" role="tabpanel" aria-labelledby="circular-graph-format-tab">
-        <p class="graph-description">As fases são distribuídas em um círculo compacto e as transições usam curvas internas em faixas separadas ou, quando necessário, uma faixa concêntrica à circunferência tracejada. Esse formato reduz sobreposições e passagens próximas a fases intermediárias, deixando retornos entre etapas distantes mais claros; a visualização em níveis continua disponível para fluxos predominantemente lineares.</p>
-        <svg class="graph-canvas circular-graph-canvas" [attr.viewBox]="'0 0 1000 ' + circularGraph().height" role="img" aria-label="Fluxo circular das demandas por fase">
-          <defs>
-            <marker id="circular-graph-arrow" markerWidth="4.5" markerHeight="4.5" refX="4" refY="2.25" orient="auto" markerUnits="userSpaceOnUse">
-              <path d="M 0 0 L 4.5 2.25 L 0 4.5 z" class="graph-arrow"></path>
-            </marker>
-          </defs>
-          <circle class="circular-graph-guide" cx="500" cy="280" r="160" aria-hidden="true"></circle>
-          @for (transition of circularGraph().transitions; track transition.source + transition.target) {
-            <path class="graph-transition" [attr.d]="transition.path" [attr.stroke]="transition.color" [attr.stroke-width]="transition.strokeWidth" marker-end="url(#circular-graph-arrow)">
-              <title>{{ transition.source }} para {{ transition.target }} · {{ transition.count }} transição(ões)</title>
-            </path>
-          }
-          @for (phase of circularGraph().phases; track phase.status) {
-            <g class="graph-phase">
-              <circle class="graph-phase-node" [attr.cx]="phase.x" [attr.cy]="phase.y" [attr.fill]="phase.color" [attr.stroke]="phase.color" r="11"></circle>
-              <text class="graph-phase-count" [attr.x]="phase.x" [attr.y]="phase.y" [attr.fill]="phase.countColor">{{ phase.activeCount }}</text>
-              <title>{{ phase.status }} · {{ phase.activeCount }} demanda(s) em andamento</title>
-              <text class="circular-graph-label" [attr.x]="circularGraphLabelX(phase)" [attr.y]="circularGraphLabelY(phase)" [attr.text-anchor]="circularGraphLabelAnchor(phase)">
-                @for (line of phase.labelLines; track $index) {
-                  <tspan [attr.x]="circularGraphLabelX(phase)" [attr.dy]="$index === 0 ? 0 : 7">{{ line }}</tspan>
-                }
-              </text>
-            </g>
-          }
-          @for (demand of circularGraph().demands; track demand.number) {
-            <circle class="graph-demand" [attr.cx]="demand.x" [attr.cy]="demand.y" [attr.fill]="demand.color" r="3.5" tabindex="0" (pointerenter)="showDemandHint($event, demand.item)" (pointerleave)="hideDemandHint()" (focusin)="showDemandHint($event, demand.item)" (focusout)="hideDemandHint()" [attr.aria-describedby]="'demand-hint-' + demand.number" [attr.aria-label]="'Demanda ' + demand.number + ': ' + demand.title">
-              <title>{{ demand.number }} · {{ demand.title }} · {{ demand.source }}{{ demand.target ? ' → ' + demand.target : '' }} · {{ demand.progress | number:'1.0-0' }}%</title>
-            </circle>
-          }
-        </svg>
-        <aside class="graph-legend" aria-label="Legenda das cores dos tipos de demanda no grafo circular">
           <span class="graph-legend-title">Cores das demandas</span>
           @for (demandType of demandTypeOrder(); track demandType) {
             @if (demandTypeVisible(demandType)) {

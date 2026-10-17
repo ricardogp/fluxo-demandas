@@ -366,88 +366,6 @@ test("mantém espessura uniforme mesmo em transições muito frequentes", () => 
   assert.equal(transition?.strokeWidth, 1);
 });
 
-test("organiza as fases e os arcos no formato de grafo circular", () => {
-  const app = new AppComponent();
-  const circularGraph = app.circularGraph();
-  const radius = (phase: { x: number; y: number }) => Math.hypot(phase.x - 500, phase.y - 280);
-
-  assert.equal(circularGraph.height, 560);
-  assert.equal(circularGraph.phases.length, app.visibleStatusOrder().length);
-  assert.ok(circularGraph.phases.every((phase) => Math.abs(radius(phase) - 160) < 0.001));
-  assert.ok(circularGraph.transitions.every((transition) => transition.points.length > 2));
-  assert.ok(circularGraph.transitions.every((transition) => transition.path.includes(" C ") || transition.path.includes(" A ")));
-  assert.equal(circularGraph.demands.length, app.graph().demands.length);
-  const movingDemand = circularGraph.demands.find((demand) => demand.number === "DEM-1042");
-  const movingRoute = circularGraph.transitions.find((transition) => transition.source === movingDemand?.source && transition.target === movingDemand?.target);
-  assert.ok(movingDemand);
-  assert.ok(movingRoute);
-  assert.equal(movingDemand.x, movingRoute.points[0].x);
-  assert.equal(movingDemand.y, movingRoute.points[0].y);
-});
-
-test("desvia curvas circulares que cruzariam outra ligação ou uma fase", () => {
-  const app = new AppComponent();
-  app.events.set([
-    { demandNumber: "DEM-AC", demandTitle: "Ligação vertical", demandType: "Evolutiva", status: "A", startedAt: new Date(2026, 0, 1), endedAt: new Date(2026, 0, 1), row: 2 },
-    { demandNumber: "DEM-AC", demandTitle: "Ligação vertical", demandType: "Evolutiva", status: "C", startedAt: new Date(2026, 0, 2), endedAt: new Date(2026, 0, 2), row: 3 },
-    { demandNumber: "DEM-BD", demandTitle: "Ligação horizontal", demandType: "Evolutiva", status: "B", startedAt: new Date(2026, 0, 1), endedAt: new Date(2026, 0, 1), row: 4 },
-    { demandNumber: "DEM-BD", demandTitle: "Ligação horizontal", demandType: "Evolutiva", status: "D", startedAt: new Date(2026, 0, 2), endedAt: new Date(2026, 0, 2), row: 5 },
-  ]);
-
-  const graph = app.circularGraph();
-  const vertical = graph.transitions.find((transition) => transition.source === "A" && transition.target === "C");
-  const horizontal = graph.transitions.find((transition) => transition.source === "B" && transition.target === "D");
-  const intermediatePhase = graph.phases.find((phase) => phase.status === "C");
-  const distanceToSegment = (point: { x: number; y: number }, start: { x: number; y: number }, end: { x: number; y: number }) => {
-    const horizontalDistance = end.x - start.x;
-    const verticalDistance = end.y - start.y;
-    const length = horizontalDistance ** 2 + verticalDistance ** 2;
-    const ratio = length === 0 ? 0 : Math.min(1, Math.max(0, ((point.x - start.x) * horizontalDistance + (point.y - start.y) * verticalDistance) / length));
-    return Math.hypot(point.x - (start.x + horizontalDistance * ratio), point.y - (start.y + verticalDistance * ratio));
-  };
-  const closestDistance = (first: Array<{ x: number; y: number }>, second: Array<{ x: number; y: number }>) => first.slice(2, -3).reduce((closest, point) => Math.min(
-    closest,
-    ...second.slice(2, -3).map((_, secondIndex) => distanceToSegment(point, second[secondIndex + 2], second[secondIndex + 3])),
-  ), Number.POSITIVE_INFINITY);
-
-  assert.ok(vertical);
-  assert.ok(horizontal);
-  assert.ok(intermediatePhase);
-  assert.ok(closestDistance(vertical.points, horizontal.points) >= 30);
-  assert.ok(horizontal.points.slice(1).every((point, index) => distanceToSegment(intermediatePhase, horizontal.points[index], point) >= 30));
-  assert.ok([vertical.path, horizontal.path].some((path) => path.includes(" A ")));
-});
-
-test("mantém as demandas circulares sobre o traçado da ligação", () => {
-  const app = new AppComponent();
-  app.events.set([
-    { demandNumber: "DEM-1", demandTitle: "Primeira demanda", demandType: "Evolutiva", status: "Origem", startedAt: new Date(2026, 0, 1), endedAt: new Date(2026, 0, 5), row: 2 },
-    { demandNumber: "DEM-1", demandTitle: "Primeira demanda", demandType: "Evolutiva", status: "Destino", startedAt: new Date(2026, 0, 6), endedAt: new Date(2026, 0, 6), row: 3 },
-    { demandNumber: "DEM-2", demandTitle: "Segunda demanda", demandType: "Evolutiva", status: "Origem", startedAt: new Date(2026, 0, 1), endedAt: new Date(2026, 0, 5), row: 4 },
-    { demandNumber: "DEM-2", demandTitle: "Segunda demanda", demandType: "Evolutiva", status: "Destino", startedAt: new Date(2026, 0, 6), endedAt: new Date(2026, 0, 6), row: 5 },
-  ]);
-  app.currentTime.set(new Date(2026, 0, 3).getTime());
-
-  const graph = app.circularGraph();
-  const route = graph.transitions.find((transition) => transition.source === "Origem" && transition.target === "Destino");
-  const demands = graph.demands.filter((demand) => demand.source === "Origem" && demand.target === "Destino");
-  const distanceToSegment = (point: { x: number; y: number }, start: { x: number; y: number }, end: { x: number; y: number }) => {
-    const horizontal = end.x - start.x;
-    const vertical = end.y - start.y;
-    const length = horizontal ** 2 + vertical ** 2;
-    const ratio = length === 0 ? 0 : Math.min(1, Math.max(0, ((point.x - start.x) * horizontal + (point.y - start.y) * vertical) / length));
-    return Math.hypot(point.x - (start.x + horizontal * ratio), point.y - (start.y + vertical * ratio));
-  };
-
-  assert.ok(route);
-  assert.equal(demands.length, 2);
-  assert.equal(demands[0].x, demands[1].x);
-  assert.equal(demands[0].y, demands[1].y);
-  for (const demand of demands) {
-    assert.ok(route.points.slice(1).some((point, index) => distanceToSegment(demand, route.points[index], point) < 0.001));
-  }
-});
-
 test("distribui fases em novos níveis antes que os nós se sobreponham", () => {
   const app = new AppComponent();
   app.events.set(Array.from({ length: 12 }, (_, index) => ({
@@ -475,8 +393,6 @@ test("alterna entre os formatos de tabela e grafo", () => {
   assert.equal(app.activeVisualization(), "table");
   app.setVisualization("graph");
   assert.equal(app.activeVisualization(), "graph");
-  app.setVisualization("circularGraph");
-  assert.equal(app.activeVisualization(), "circularGraph");
   app.setVisualization("table");
   assert.equal(app.activeVisualization(), "table");
 });
@@ -493,7 +409,7 @@ test("alterna a representação da demanda sem mudar o formato da visualização
   assert.equal(app.demandRepresentation(), "detailedCard");
 });
 
-test("alterna o marcador no grafo sem alterar tabela ou grafo circular", () => {
+test("alterna o marcador no grafo sem alterar a tabela", () => {
   const app = new AppComponent();
 
   assert.equal(app.graphDemandRepresentation(), "circle");
@@ -504,8 +420,6 @@ test("alterna o marcador no grafo sem alterar tabela ou grafo circular", () => {
   assert.equal(app.graphDemandRepresentation(), "number");
   assert.equal(app.demandRepresentation(), "detailedCard");
   assert.equal(app.activeVisualization(), "table");
-  app.setVisualization("circularGraph");
-  assert.equal(app.graphDemandRepresentation(), "number");
 });
 
 test("o cursor pode retornar ao início ao ser arrastado", () => {

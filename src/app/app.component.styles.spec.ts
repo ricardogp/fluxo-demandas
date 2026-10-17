@@ -30,12 +30,11 @@ test("o controle de tempo compacto antecede as situações", () => {
   assert.match(stylesheet, /\.playback-row \{[^}]*margin-top: 5px;/);
 });
 
-test("o fluxo oferece abas para os formatos de tabela, grafo e grafo circular", () => {
+test("o fluxo oferece abas para os formatos de tabela e grafo", () => {
   assert.match(template, /<button class="visualization-tab" \[class\.active\]="activeVisualization\(\) === 'table'"[^>]*\(click\)="setVisualization\('table'\)">Formato de tabela<\/button>/);
   assert.match(template, /<button class="visualization-tab" \[class\.active\]="activeVisualization\(\) === 'graph'"[^>]*\(click\)="setVisualization\('graph'\)">Formato de grafo<\/button>/);
-  assert.match(template, /<button class="visualization-tab" \[class\.active\]="activeVisualization\(\) === 'circularGraph'"[^>]*\(click\)="setVisualization\('circularGraph'\)">Formato de grafo circular<\/button>/);
   assert.match(template, /<div class="visualization-panel graph-panel" id="graph-format-panel" role="tabpanel" aria-labelledby="graph-format-tab">/);
-  assert.match(template, /<div class="visualization-panel graph-panel" id="circular-graph-format-panel" role="tabpanel" aria-labelledby="circular-graph-format-tab">/);
+  assert.doesNotMatch(template, /circularGraph|circular-graph/);
   assert.match(template, /<svg class="graph-canvas" \[attr\.viewBox\]="'0 0 1000 ' \+ graph\(\)\.height" role="img" aria-label="Fluxo das demandas por fase, distribuído em níveis">/);
   assert.match(template, /<aside class="graph-legend" aria-label="Legenda das cores dos tipos de demanda">\s*<span class="graph-legend-title">Cores das demandas<\/span>\s*@for \(demandType of demandTypeOrder\(\); track demandType\)/);
   assert.match(template, /<i class="graph-legend-dot" \[style\.background\]="demandTypeColor\(demandType\)" aria-hidden="true"><\/i>\{\{ demandType \}\}/);
@@ -60,13 +59,8 @@ test("o fluxo oferece abas para os formatos de tabela, grafo e grafo circular", 
   assert.match(globalStylesheet, /\.graph-demand-label rect \{ fill: #202231; stroke-width: 1px; \}/);
   assert.match(globalStylesheet, /\.graph-demand-label text \{[^}]*font-size: 6px;[^}]*text-anchor: middle;/);
   assert.match(stylesheet, /\.graph-phase-node { r: 11px; fill-opacity: \.92; stroke-width: 1\.5px;/);
-  assert.match(globalStylesheet, /\.graph-canvas:not\(\.circular-graph-canvas\) \.graph-phase-node \{ r: 13\.75px; \}/);
-  assert.match(globalStylesheet, /\.circular-graph-canvas \.graph-phase-node \{ r: 11px; \}/);
+  assert.match(globalStylesheet, /\.graph-canvas \.graph-phase-node \{ r: 13\.75px; \}/);
   assert.match(stylesheet, /\.graph-transition \{ fill: none; stroke-linecap: round; stroke-linejoin: round; stroke-opacity: \.62; \}/);
-  assert.match(template, /<svg class="graph-canvas circular-graph-canvas" \[attr\.viewBox\]="'0 0 1000 ' \+ circularGraph\(\)\.height" role="img" aria-label="Fluxo circular das demandas por fase">/);
-  assert.match(template, /<circle class="circular-graph-guide" cx="500" cy="280" r="160" aria-hidden="true"><\/circle>/);
-  assert.match(template, /<path class="graph-transition" \[attr\.d\]="transition\.path"[^>]*marker-end="url\(#circular-graph-arrow\)">/);
-  assert.match(globalStylesheet, /\.circular-graph-guide \{ fill: none; stroke: #76809b; stroke-width: 1px;/);
 });
 
 test("os filtros exibem checkboxes em até três linhas sob demanda", () => {
