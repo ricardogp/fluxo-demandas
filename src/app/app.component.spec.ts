@@ -95,8 +95,7 @@ test("infere as ligações do grafo e move a demanda pelo tempo da fase de orige
   assert.equal(discoveryToDevelopment?.count, 3);
   assert.ok(graphAtStart.transitions.every((transition) => transition.color === "#7d8793"));
   assert.equal(discoveryToDevelopment?.points.length, 2);
-  assert.ok((discoveryToDevelopment?.strokeWidth ?? 0) > 0.75);
-  assert.ok((discoveryToDevelopment?.strokeWidth ?? Number.POSITIVE_INFINITY) < 1.75);
+  assert.equal(discoveryToDevelopment?.strokeWidth, 1);
   assert.equal(movingDemandAtStart?.source, "Descoberta");
   assert.equal(movingDemandAtStart?.target, "Desenvolvimento");
   assert.equal(movingDemandAtStart?.item.event.status, "Descoberta");
@@ -319,7 +318,26 @@ test("separa em faixas vizinhas os desvios que usariam o mesmo corredor", () => 
   assert.equal(Math.abs(firstLane! - secondLane!), 6);
 });
 
-test("limita a espessura de transições muito frequentes", () => {
+test("abre novos níveis superiores para ligações concorrentes", () => {
+  const app = new AppComponent() as TestableApp;
+  const phase = (status: string, x: number) => ({ status, labelLines: [status], color: "#889", countColor: "#fff", activeCount: 0, x, y: 60 });
+  const phases = [phase("A", 38), phase("B", 130), phase("C", 223), phase("D", 315), phase("E", 408)];
+  const pairs = [[0, 4], [0, 3], [1, 4], [1, 3]];
+  const occupiedRoutes: Array<Array<{ x: number; y: number }>> = [];
+  const routes = pairs.map(([source, target]) => {
+    const route = app.graphTransitionPoints(phases[source], phases[target], phases, occupiedRoutes);
+    occupiedRoutes.push(route);
+    return route;
+  });
+  const horizontalLane = (points: Array<{ x: number; y: number }>) => points.slice(1)
+    .find((point, index) => point.y === points[index].y && Math.abs(point.x - points[index].x) > 100)?.y;
+  const lanes = routes.map(horizontalLane);
+
+  assert.equal(new Set(lanes).size, routes.length);
+  assert.ok(lanes.every((lane) => lane !== undefined && lane < phases[0].y));
+});
+
+test("mantém espessura uniforme mesmo em transições muito frequentes", () => {
   const app = new AppComponent();
   app.events.set(Array.from({ length: 100 }, (_, index) => [
     {
@@ -345,7 +363,7 @@ test("limita a espessura de transições muito frequentes", () => {
   const transition = app.graph().transitions.find((item) => item.source === "Origem" && item.target === "Destino");
 
   assert.equal(transition?.count, 100);
-  assert.equal(transition?.strokeWidth, 1.75);
+  assert.equal(transition?.strokeWidth, 1);
 });
 
 test("organiza as fases e os arcos no formato de grafo circular", () => {

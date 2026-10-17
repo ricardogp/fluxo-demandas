@@ -139,7 +139,7 @@
       </div>
     } @else if (activeVisualization() === 'graph') {
       <div class="visualization-panel graph-panel" id="graph-format-panel" role="tabpanel" aria-labelledby="graph-format-tab">
-        <p class="graph-description">As fases são ordenadas da esquerda para a direita e passam ao próximo nível somente quando não cabem sem sobreposição. O cinza dos nós indica a carga atual: quanto mais escuro, mais demandas estão na fase. As ligações representam as transições inferidas da planilha; os desvios preservam os rótulos e preferem corredores acima dos nós. Os pontos coloridos percorrem cada ligação durante a permanência na fase de origem. Mudanças registradas no mesmo dia avançam em sequência, conforme a ordem das linhas.</p>
+        <p class="graph-description">As fases são ordenadas da esquerda para a direita e passam ao próximo nível somente quando não cabem sem sobreposição. O cinza dos nós indica a carga atual: quanto mais escuro, mais demandas estão na fase. As ligações têm espessura uniforme; os desvios preservam os rótulos, preferem corredores acima dos nós e usam outro nível quando uma faixa já está ocupada. Os pontos coloridos percorrem cada ligação durante a permanência na fase de origem. Mudanças registradas no mesmo dia avançam em sequência, conforme a ordem das linhas.</p>
         <svg class="graph-canvas" [attr.viewBox]="'0 0 1000 ' + graph().height" role="img" aria-label="Fluxo das demandas por fase, distribuído em níveis">
           <defs>
             <marker id="graph-arrow" markerWidth="4.5" markerHeight="4.5" refX="4" refY="2.25" orient="auto" markerUnits="userSpaceOnUse">

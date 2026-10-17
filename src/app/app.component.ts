@@ -159,17 +159,17 @@ const GRAPH_PHASE_RADIUS = 13.75;
 const GRAPH_FLOW_PADDING = 38;
 const GRAPH_PHASE_MIN_WIDTH = 80;
 const GRAPH_LEVEL_GAP = 75;
-const GRAPH_TOP_PADDING = 42;
+const GRAPH_TOP_PADDING = 60;
 const GRAPH_BOTTOM_PADDING = 50;
 const GRAPH_PHASE_LABEL_OFFSET = 25;
 const GRAPH_PHASE_LABEL_LINE_HEIGHT = 7;
 const GRAPH_PHASE_LABEL_FONT_SIZE = 6.5;
 const GRAPH_PHASE_LABEL_CHARACTER_WIDTH = 4;
 const GRAPH_PHASE_LABEL_PADDING = 2;
-const GRAPH_TRANSITION_MIN_STROKE_WIDTH = 0.75;
-const GRAPH_TRANSITION_MAX_STROKE_WIDTH = 1.75;
+const GRAPH_TRANSITION_STROKE_WIDTH = 1;
 const GRAPH_ROUTE_CLEARANCE = 19;
 const GRAPH_ROUTE_SEPARATION = 6;
+const GRAPH_ROUTE_CHANNEL_LEVELS = 4;
 const GRAPH_ROUTE_OVERLAP_PENALTY = 10_000;
 const GRAPH_ROUTE_SPACING_COST = 0.35;
 const GRAPH_PHASE_PORT_SEPARATION = 5;
@@ -304,7 +304,7 @@ export class AppComponent {
         target: targetStatus,
         color: GRAPH_TRANSITION_COLOR,
         count,
-        strokeWidth: this.graphTransitionWidth(count),
+        strokeWidth: GRAPH_TRANSITION_STROKE_WIDTH,
         path: this.graphPath(points),
         points,
       };
@@ -349,7 +349,7 @@ export class AppComponent {
           target: targetStatus,
           color: GRAPH_TRANSITION_COLOR,
           count,
-          strokeWidth: this.graphTransitionWidth(count),
+          strokeWidth: GRAPH_TRANSITION_STROKE_WIDTH,
           path: route.path,
           points: route.points,
         };
@@ -953,11 +953,6 @@ export class AppComponent {
     if (Math.abs(horizontalDistance) < 50) return "middle";
     return horizontalDistance < 0 ? "end" : "start";
   }
-  // A escala logarítmica preserva a diferença entre fluxos sem permitir que
-  // uma transição muito frequente domine o desenho.
-  private graphTransitionWidth(count: number): number {
-    return Math.min(GRAPH_TRANSITION_MAX_STROKE_WIDTH, GRAPH_TRANSITION_MIN_STROKE_WIDTH + Math.log2(Math.max(1, count)) * 0.2);
-  }
   // Rotas diretas são preferidas. Quando uma fase ou seu rótulo ocupa o segmento,
   // os corredores superiores são favorecidos e faixas vizinhas separam rotas paralelas.
   // A rota externa permanece como garantia para casos densos.
@@ -1008,7 +1003,11 @@ export class AppComponent {
     const channels = [sorted[0] - clearance, sorted.at(-1)! + clearance];
     for (const coordinate of sorted) channels.push(coordinate - clearance, coordinate + clearance);
     for (let index = 0; index < sorted.length - 1; index += 1) channels.push((sorted[index] + sorted[index + 1]) / 2);
-    return [...new Set(channels.flatMap((channel) => [channel, channel - GRAPH_ROUTE_SEPARATION, channel + GRAPH_ROUTE_SEPARATION]))];
+    const laneOffsets = [0];
+    for (let level = 1; level <= GRAPH_ROUTE_CHANNEL_LEVELS; level += 1) {
+      laneOffsets.push(-level * GRAPH_ROUTE_SEPARATION, level * GRAPH_ROUTE_SEPARATION);
+    }
+    return [...new Set(channels.flatMap((channel) => laneOffsets.map((offset) => channel + offset)))];
   }
   private graphRouteEndpoints(candidate: GraphPoint[], source: GraphPhaseNode, target: GraphPhaseNode): GraphPoint[] {
     const centers = this.graphSimplifyPoints(candidate);
@@ -1053,7 +1052,7 @@ export class AppComponent {
 
     // A mudança lateral ocorre somente perto da borda do nó. Usar o ponto
     // anterior da rota como cotovelo faria uma ligação longa ganhar um degrau
-    // reto distante da fase, principalmente quando sua espessura é maior.
+    // reto distante da fase.
     const elbows = ports
       .filter((port) => port.offset !== undefined)
       .map((port) => ({
@@ -1196,9 +1195,9 @@ export class AppComponent {
   }
   private graphRouteLanePenalty(points: GraphPoint[], occupiedRoutes: GraphPoint[][]): number {
     let penalty = 0;
-    for (let index = 0; index < points.length - 1; index += 1) {
+    for (let index = 1; index < points.length - 2; index += 1) {
       for (const occupied of occupiedRoutes) {
-        for (let occupiedIndex = 0; occupiedIndex < occupied.length - 1; occupiedIndex += 1) {
+        for (let occupiedIndex = 1; occupiedIndex < occupied.length - 2; occupiedIndex += 1) {
           const lane = this.graphSharedLane(points[index], points[index + 1], occupied[occupiedIndex], occupied[occupiedIndex + 1]);
           if (!lane) continue;
           penalty += lane.separation < GRAPH_ROUTE_SEPARATION
@@ -1215,8 +1214,8 @@ export class AppComponent {
     if (!horizontal && !vertical) return undefined;
     const firstLength = horizontal ? Math.abs(end.x - start.x) : Math.abs(end.y - start.y);
     const occupiedLength = horizontal ? Math.abs(occupiedEnd.x - occupiedStart.x) : Math.abs(occupiedEnd.y - occupiedStart.y);
-    // Com os nós menores, os segmentos de entrada e saída ficam mais longos.
-    // Eles não representam corredores compartilhados e não devem decidir a faixa.
+    // Cotovelos curtos não representam corredores compartilhados e não devem
+    // decidir a faixa usada pelo trecho principal da ligação.
     if (firstLength < GRAPH_ROUTE_SEPARATION * 5 || occupiedLength < GRAPH_ROUTE_SEPARATION * 5) return undefined;
     const overlap = horizontal
       ? this.graphIntervalOverlap(start.x, end.x, occupiedStart.x, occupiedEnd.x)
