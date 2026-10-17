@@ -151,6 +151,7 @@ const GRAPH_ROUTE_SEPARATION = 6;
 const GRAPH_ROUTE_OVERLAP_PENALTY = 10_000;
 const GRAPH_ROUTE_SPACING_COST = 0.35;
 const GRAPH_PHASE_PORT_SEPARATION = 5;
+const GRAPH_PHASE_PORT_ELBOW_DISTANCE = 8;
 const GRAPH_DEMAND_LANE_SEPARATION = 9;
 const GRAPH_TRANSITION_COLOR = "#7d8793";
 const DAY_IN_MS = 86_400_000;
@@ -784,22 +785,26 @@ export class AppComponent {
       });
     }
 
-    // A mudança lateral acontece antes da borda do nó. Assim, entradas e
-    // saídas vizinhas usam segmentos finais paralelos, sem sobrepor o centro.
+    // A mudança lateral ocorre somente perto da borda do nó. Usar o ponto
+    // anterior da rota como cotovelo faria uma ligação longa ganhar um degrau
+    // reto distante da fase, principalmente quando sua espessura é maior.
     const elbows = ports
       .filter((port) => port.offset !== undefined)
       .map((port) => ({
         port,
-        point: this.graphPortElbow(port, port.kind === "outgoing" ? port.transition.points[1] : port.transition.points.at(-2)!),
+        points: this.graphPortElbows(port, port.kind === "outgoing" ? port.transition.points[1] : port.transition.points.at(-2)!),
       }));
-    for (const { port, point } of elbows.filter(({ port }) => port.kind === "outgoing")) {
-      port.transition.points.splice(1, 0, point);
+    for (const { port, points } of elbows.filter(({ port }) => port.kind === "outgoing")) {
+      port.transition.points.splice(1, 0, ...points);
     }
-    for (const { port, point } of elbows.filter(({ port }) => port.kind === "incoming")) {
-      port.transition.points.splice(-1, 0, point);
+    for (const { port, points } of elbows.filter(({ port }) => port.kind === "incoming")) {
+      port.transition.points.splice(-1, 0, ...points);
     }
 
-    transitions.forEach((transition) => transition.path = this.graphPath(transition.points));
+    transitions.forEach((transition) => {
+      transition.points = this.graphSimplifyPoints(transition.points);
+      transition.path = this.graphPath(transition.points);
+    });
   }
   private graphPortSide(point: GraphPoint, phase: GraphPhaseNode): GraphPortSide {
     const horizontalDistance = point.x - phase.x;
@@ -832,10 +837,18 @@ export class AppComponent {
     point.x = port.phase.x + (port.side === "left" ? -GRAPH_PHASE_RADIUS : GRAPH_PHASE_RADIUS);
     point.y = port.phase.y + offset;
   }
-  private graphPortElbow(port: GraphPhasePort, adjacent: GraphPoint): GraphPoint {
+  private graphPortElbows(port: GraphPhasePort, adjacent: GraphPoint): GraphPoint[] {
     const point = port.transition.points[port.pointIndex];
-    if (port.side === "top" || port.side === "bottom") return { x: point.x, y: adjacent.y };
-    return { x: adjacent.x, y: point.y };
+    if (port.side === "top" || port.side === "bottom") {
+      const direction = port.side === "top" ? -1 : 1;
+      const y = point.y + direction * GRAPH_PHASE_PORT_ELBOW_DISTANCE;
+      const elbows = [{ x: adjacent.x, y }, { x: point.x, y }];
+      return port.kind === "outgoing" ? elbows.reverse() : elbows;
+    }
+    const direction = port.side === "left" ? -1 : 1;
+    const x = point.x + direction * GRAPH_PHASE_PORT_ELBOW_DISTANCE;
+    const elbows = [{ x, y: adjacent.y }, { x, y: point.y }];
+    return port.kind === "outgoing" ? elbows.reverse() : elbows;
   }
   private graphSimplifyPoints(points: GraphPoint[]): GraphPoint[] {
     const simplified: GraphPoint[] = [];

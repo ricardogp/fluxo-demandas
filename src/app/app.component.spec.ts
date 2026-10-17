@@ -112,12 +112,28 @@ test("separa simetricamente chegada e saída que usam o topo de uma fase", () =>
 
   app.separateGraphPorts(transitions, phases);
 
-  assert.deepEqual(transitions[0].points.slice(-3), [{ x: 100, y: 60 }, { x: 97.5, y: 60 }, { x: 97.5, y: 89 }]);
-  assert.deepEqual(transitions[1].points.slice(0, 3), [{ x: 102.5, y: 89 }, { x: 102.5, y: 60 }, { x: 100, y: 60 }]);
+  assert.deepEqual(transitions[0].points.slice(-4), [{ x: 100, y: 60 }, { x: 100, y: 81 }, { x: 97.5, y: 81 }, { x: 97.5, y: 89 }]);
+  assert.deepEqual(transitions[1].points.slice(0, 4), [{ x: 102.5, y: 89 }, { x: 102.5, y: 81 }, { x: 100, y: 81 }, { x: 100, y: 60 }]);
   assert.equal((transitions[0].points.at(-1)!.x + transitions[1].points[0].x) / 2, 100);
   assert.equal(transitions.flatMap((transition) => transition.points).some((point) => point.x === 100 && point.y === 89), false);
-  assert.match(transitions[0].path, /L 100 60 L 97.5 60 L 97.5 89$/);
-  assert.match(transitions[1].path, /^M 102.5 89 L 102.5 60 L 100 60/);
+  assert.match(transitions[0].path, /L 100 60 L 100 81 L 97.5 81 L 97.5 89$/);
+  assert.match(transitions[1].path, /^M 102.5 89 L 102.5 81 L 100 81 L 100 60/);
+});
+
+test("mantém o trecho longo reto ao separar chegadas pelo lado esquerdo", () => {
+  const app = new AppComponent() as TestableApp;
+  const phase = (status: string, x: number, y: number) => ({ status, labelLines: [status], color: "#889", activeCount: 0, x, y });
+  const phases = [phase("Origem A", 30, 100), phase("Origem B", 30, 160), phase("Destino", 100, 100)];
+  const transitions = [
+    { source: "Origem A", target: "Destino", color: "#789", count: 2, strokeWidth: 1.1, path: "", points: [{ x: 41, y: 100 }, { x: 89, y: 100 }] },
+    { source: "Origem B", target: "Destino", color: "#789", count: 1, strokeWidth: .75, path: "", points: [{ x: 30, y: 149 }, { x: 89, y: 100 }] },
+  ];
+
+  app.separateGraphPorts(transitions, phases);
+
+  assert.deepEqual(transitions[0].points, [{ x: 41, y: 100 }, { x: 81, y: 100 }, { x: 81, y: 97.5 }, { x: 89, y: 97.5 }]);
+  assert.doesNotMatch(transitions[0].path, /^M 41 100 L 41 97.5/);
+  assert.match(transitions[0].path, /L 81 100 L 81 97.5 L 89 97.5$/);
 });
 
 test("separa entradas que chegam pelo mesmo lado de uma fase", () => {
@@ -133,8 +149,8 @@ test("separa entradas que chegam pelo mesmo lado de uma fase", () => {
 
   assert.deepEqual(transitions.map((transition) => transition.points.at(-1)!.x), [97.5, 102.5]);
   assert.deepEqual(transitions.map((transition) => transition.points.slice(-2)), [
-    [{ x: 97.5, y: 60 }, { x: 97.5, y: 89 }],
-    [{ x: 102.5, y: 60 }, { x: 102.5, y: 89 }],
+    [{ x: 97.5, y: 81 }, { x: 97.5, y: 89 }],
+    [{ x: 102.5, y: 81 }, { x: 102.5, y: 89 }],
   ]);
   assert.equal(transitions.flatMap((transition) => transition.points).some((point) => point.x === 100 && point.y === 89), false);
 });
