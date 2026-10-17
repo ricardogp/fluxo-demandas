@@ -305,6 +305,19 @@ test("limita a espessura de transições muito frequentes", () => {
   assert.equal(transition?.strokeWidth, 1.75);
 });
 
+test("organiza as fases e os arcos no formato de grafo circular", () => {
+  const app = new AppComponent();
+  const circularGraph = app.circularGraph();
+  const radius = (phase: { x: number; y: number }) => Math.hypot(phase.x - 500, phase.y - 280);
+
+  assert.equal(circularGraph.height, 560);
+  assert.equal(circularGraph.phases.length, app.visibleStatusOrder().length);
+  assert.ok(circularGraph.phases.every((phase) => Math.abs(radius(phase) - 220) < 0.001));
+  assert.ok(circularGraph.transitions.every((transition) => transition.points.length > 2));
+  assert.ok(circularGraph.transitions.every((transition) => transition.path.startsWith("M ")));
+  assert.equal(circularGraph.demands.length, app.graph().demands.length);
+});
+
 test("distribui fases em novos níveis antes que os nós se sobreponham", () => {
   const app = new AppComponent();
   app.events.set(Array.from({ length: 12 }, (_, index) => ({
@@ -332,6 +345,8 @@ test("alterna entre os formatos de tabela e grafo", () => {
   assert.equal(app.activeVisualization(), "table");
   app.setVisualization("graph");
   assert.equal(app.activeVisualization(), "graph");
+  app.setVisualization("circularGraph");
+  assert.equal(app.activeVisualization(), "circularGraph");
   app.setVisualization("table");
   assert.equal(app.activeVisualization(), "table");
 });

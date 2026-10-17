@@ -121,7 +121,7 @@ interface GraphView {
 
 type SpreadsheetRow = Record<string, unknown>;
 type VisibilityFilter = "status" | "demand" | "demandType";
-type VisualizationFormat = "table" | "graph";
+type VisualizationFormat = "table" | "graph" | "circularGraph";
 
 const SAMPLE_EVENTS: DemandEvent[] = [
   { demandNumber: "DEM-1042", demandTitle: "Portal de fornecedores", demandType: "Evolutiva", status: "Descoberta", startedAt: new Date(2026, 7, 3), endedAt: new Date(2026, 7, 7), row: 2 },
@@ -154,6 +154,11 @@ const GRAPH_PHASE_PORT_SEPARATION = 5;
 const GRAPH_PHASE_PORT_ELBOW_DISTANCE = 8;
 const GRAPH_DEMAND_LANE_SEPARATION = 9;
 const GRAPH_TRANSITION_COLOR = "#7d8793";
+const CIRCULAR_GRAPH_HEIGHT = 560;
+const CIRCULAR_GRAPH_CENTER_X = GRAPH_WIDTH / 2;
+const CIRCULAR_GRAPH_CENTER_Y = CIRCULAR_GRAPH_HEIGHT / 2;
+const CIRCULAR_GRAPH_RADIUS = 220;
+const CIRCULAR_GRAPH_ROUTE_MIN_RADIUS = 75;
 const DAY_IN_MS = 86_400_000;
 const TIMELINE_SLIDER_MAXIMUM = 10_000;
 
@@ -259,18 +264,7 @@ export class AppComponent {
       };
     });
     const phaseByStatus = new Map(graphPhases.map((phase) => [phase.status, phase]));
-    const transitionCounts = new Map<string, number>();
-
-    for (const history of this.histories()) {
-      const visits = this.phaseVisits(history.events);
-      for (let index = 0; index < visits.length - 1; index += 1) {
-        const source = visits[index];
-        const target = visits[index + 1];
-        if (!phaseByStatus.has(source.status) || !phaseByStatus.has(target.status)) continue;
-        const key = `${source.status}\u0000${target.status}`;
-        transitionCounts.set(key, (transitionCounts.get(key) ?? 0) + 1);
-      }
-    }
+    const transitionCounts = this.graphTransitionCounts(phaseByStatus);
 
     const occupiedRoutes: GraphPoint[][] = [];
     const transitions = [...transitionCounts.entries()].map(([key, count]) => {
@@ -291,67 +285,45 @@ export class AppComponent {
     });
     this.separateGraphPorts(transitions, graphPhases);
     const transitionByRoute = new Map(transitions.map((transition) => [`${transition.source}\u0000${transition.target}`, transition]));
-    const demands: GraphDemandNode[] = [];
-    const current = this.currentTime();
+    return { height: graphHeight, phases: graphPhases, transitions, demands: this.graphDemandNodes(phaseByStatus, transitionByRoute) };
+  });
 
-    for (const history of this.histories()) {
-      if (!this.demandVisible(history.number) || !this.demandTypeVisible(history.demandType)) continue;
-      const visits = this.phaseVisits(history.events);
-      const visitIndex = visits.findIndex((visit) => this.containsTimeline(visit, current));
-      if (visitIndex < 0) continue;
-      const source = visits[visitIndex];
-      const target = visits[visitIndex + 1];
-      const sourcePhase = phaseByStatus.get(source.status);
-      const targetPhase = target ? phaseByStatus.get(target.status) : undefined;
-      if (!sourcePhase) continue;
-      const event = history.events.find((item) => this.containsTimeline(item, current));
-      if (!event) continue;
-      const item: ActiveDemand = {
-        number: history.number,
-        title: history.title,
-        demandType: history.demandType,
-        event,
-        progress: this.eventProgress(event, current),
-        events: history.events,
+  readonly circularGraph = computed<GraphView>(() => {
+    const phases = this.visibleStatusOrder();
+    const activeCounts = new Map(phases.map((status) => [status, this.visibleActiveByStatus().get(status)?.length ?? 0]));
+    const maximumActiveCount = Math.max(1, ...activeCounts.values());
+    const graphPhases = phases.map((status, index) => {
+      const angle = phases.length === 1 ? -Math.PI / 2 : -Math.PI / 2 + (index / phases.length) * Math.PI * 2;
+      const radius = phases.length === 1 ? 0 : CIRCULAR_GRAPH_RADIUS;
+      const activeCount = activeCounts.get(status) ?? 0;
+      return {
+        status,
+        labelLines: this.graphLabelLines(status),
+        color: this.graphPhaseLoadColor(activeCount, maximumActiveCount),
+        countColor: this.graphPhaseCountColor(activeCount, maximumActiveCount),
+        activeCount,
+        x: CIRCULAR_GRAPH_CENTER_X + Math.cos(angle) * radius,
+        y: CIRCULAR_GRAPH_CENTER_Y + Math.sin(angle) * radius,
       };
-      const color = this.demandTypeColor(history.demandType);
-      const transition = target ? transitionByRoute.get(`${source.status}\u0000${target.status}`) : undefined;
-      const progress = this.periodProgress(source.startedAt, source.endedAt, current);
-
-      if (target && targetPhase && transition) {
-        demands.push({
-          number: history.number,
-          title: history.title,
-          demandType: history.demandType,
-          item,
-          color,
-          source: source.status,
-          target: target.status,
-          progress,
-          x: 0,
-          y: 0,
-        });
-      }
-    }
-
-    const demandsByRoute = new Map<string, GraphDemandNode[]>();
-    for (const demand of demands) {
-      const route = `${demand.source}\u0000${demand.target}`;
-      const atRoute = demandsByRoute.get(route) ?? [];
-      atRoute.push(demand);
-      demandsByRoute.set(route, atRoute);
-    }
-    for (const [route, demandsAtRoute] of demandsByRoute) {
-      const transition = transitionByRoute.get(route)!;
-      const offsets = this.graphDemandLaneOffsets(demandsAtRoute.length);
-      demandsAtRoute.sort((first, second) => first.number.localeCompare(second.number)).forEach((demand, index) => {
-        const { point, normal } = this.graphRoutePosition(transition.points, demand.progress);
-        demand.x = point.x + normal.x * offsets[index];
-        demand.y = point.y + normal.y * offsets[index];
-      });
-    }
-
-    return { height: graphHeight, phases: graphPhases, transitions, demands };
+    });
+    const phaseByStatus = new Map(graphPhases.map((phase) => [phase.status, phase]));
+    const transitions = [...this.graphTransitionCounts(phaseByStatus).entries()].map(([key, count]) => {
+      const [sourceStatus, targetStatus] = key.split("\u0000");
+      const source = phaseByStatus.get(sourceStatus)!;
+      const target = phaseByStatus.get(targetStatus)!;
+      const points = this.circularGraphTransitionPoints(source, target);
+      return {
+        source: sourceStatus,
+        target: targetStatus,
+        color: GRAPH_TRANSITION_COLOR,
+        count,
+        strokeWidth: this.graphTransitionWidth(count),
+        path: this.graphPath(points),
+        points,
+      };
+    });
+    const transitionByRoute = new Map(transitions.map((transition) => [`${transition.source}\u0000${transition.target}`, transition]));
+    return { height: CIRCULAR_GRAPH_HEIGHT, phases: graphPhases, transitions, demands: this.graphDemandNodes(phaseByStatus, transitionByRoute) };
   });
 
   readonly activeCount = computed(() => [...this.visibleActiveByStatus().entries()]
@@ -687,6 +659,127 @@ export class AppComponent {
   private periodProgress(startedAt: Date, endedAt: Date, time: number): number {
     const length = Math.max(endedAt.getTime() - startedAt.getTime(), 1);
     return Math.min(100, Math.max(0, ((time - startedAt.getTime()) / length) * 100));
+  }
+  private graphTransitionCounts(phaseByStatus: Map<string, GraphPhaseNode>): Map<string, number> {
+    const transitionCounts = new Map<string, number>();
+    for (const history of this.histories()) {
+      const visits = this.phaseVisits(history.events);
+      for (let index = 0; index < visits.length - 1; index += 1) {
+        const source = visits[index];
+        const target = visits[index + 1];
+        if (!phaseByStatus.has(source.status) || !phaseByStatus.has(target.status)) continue;
+        const key = `${source.status}\u0000${target.status}`;
+        transitionCounts.set(key, (transitionCounts.get(key) ?? 0) + 1);
+      }
+    }
+    return transitionCounts;
+  }
+  private graphDemandNodes(phaseByStatus: Map<string, GraphPhaseNode>, transitionByRoute: Map<string, GraphTransition>): GraphDemandNode[] {
+    const demands: GraphDemandNode[] = [];
+    const current = this.currentTime();
+
+    for (const history of this.histories()) {
+      if (!this.demandVisible(history.number) || !this.demandTypeVisible(history.demandType)) continue;
+      const visits = this.phaseVisits(history.events);
+      const visitIndex = visits.findIndex((visit) => this.containsTimeline(visit, current));
+      if (visitIndex < 0) continue;
+      const source = visits[visitIndex];
+      const target = visits[visitIndex + 1];
+      const sourcePhase = phaseByStatus.get(source.status);
+      const targetPhase = target ? phaseByStatus.get(target.status) : undefined;
+      if (!sourcePhase) continue;
+      const event = history.events.find((item) => this.containsTimeline(item, current));
+      if (!event) continue;
+      const item: ActiveDemand = {
+        number: history.number,
+        title: history.title,
+        demandType: history.demandType,
+        event,
+        progress: this.eventProgress(event, current),
+        events: history.events,
+      };
+      const transition = target ? transitionByRoute.get(`${source.status}\u0000${target.status}`) : undefined;
+
+      if (target && targetPhase && transition) {
+        demands.push({
+          number: history.number,
+          title: history.title,
+          demandType: history.demandType,
+          item,
+          color: this.demandTypeColor(history.demandType),
+          source: source.status,
+          target: target.status,
+          progress: this.periodProgress(source.startedAt, source.endedAt, current),
+          x: 0,
+          y: 0,
+        });
+      }
+    }
+
+    const demandsByRoute = new Map<string, GraphDemandNode[]>();
+    for (const demand of demands) {
+      const route = `${demand.source}\u0000${demand.target}`;
+      const atRoute = demandsByRoute.get(route) ?? [];
+      atRoute.push(demand);
+      demandsByRoute.set(route, atRoute);
+    }
+    for (const [route, demandsAtRoute] of demandsByRoute) {
+      const transition = transitionByRoute.get(route)!;
+      const offsets = this.graphDemandLaneOffsets(demandsAtRoute.length);
+      demandsAtRoute.sort((first, second) => first.number.localeCompare(second.number)).forEach((demand, index) => {
+        const { point, normal } = this.graphRoutePosition(transition.points, demand.progress);
+        demand.x = point.x + normal.x * offsets[index];
+        demand.y = point.y + normal.y * offsets[index];
+      });
+    }
+    return demands;
+  }
+  private circularGraphTransitionPoints(source: GraphPhaseNode, target: GraphPhaseNode): GraphPoint[] {
+    const sourceAngle = Math.atan2(source.y - CIRCULAR_GRAPH_CENTER_Y, source.x - CIRCULAR_GRAPH_CENTER_X);
+    const targetAngle = Math.atan2(target.y - CIRCULAR_GRAPH_CENTER_Y, target.x - CIRCULAR_GRAPH_CENTER_X);
+    const angleDifference = this.circularAngleDifference(sourceAngle, targetAngle);
+
+    if (source.status === target.status) {
+      const outward = { x: Math.cos(sourceAngle), y: Math.sin(sourceAngle) };
+      const tangent = { x: -outward.y, y: outward.x };
+      return this.graphRouteEndpoints([
+        { x: source.x, y: source.y },
+        { x: source.x + tangent.x * 42 - outward.x * 38, y: source.y + tangent.y * 42 - outward.y * 38 },
+        { x: source.x - tangent.x * 42 - outward.x * 38, y: source.y - tangent.y * 42 - outward.y * 38 },
+        { x: target.x, y: target.y },
+      ], source, target);
+    }
+
+    const directionOffset = angleDifference < 0 ? GRAPH_ROUTE_SEPARATION : -GRAPH_ROUTE_SEPARATION;
+    const routeRadius = Math.max(
+      CIRCULAR_GRAPH_ROUTE_MIN_RADIUS,
+      CIRCULAR_GRAPH_RADIUS - 34 - (Math.abs(angleDifference) / Math.PI) * 78 + directionOffset,
+    );
+    const steps = Math.max(2, Math.ceil(Math.abs(angleDifference) / (Math.PI / 10)));
+    const points = [{ x: source.x, y: source.y }];
+    for (let index = 1; index < steps; index += 1) {
+      const angle = sourceAngle + angleDifference * (index / steps);
+      points.push({ x: CIRCULAR_GRAPH_CENTER_X + Math.cos(angle) * routeRadius, y: CIRCULAR_GRAPH_CENTER_Y + Math.sin(angle) * routeRadius });
+    }
+    points.push({ x: target.x, y: target.y });
+    return this.graphRouteEndpoints(points, source, target);
+  }
+  private circularAngleDifference(source: number, target: number): number {
+    return ((target - source + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
+  }
+  circularGraphLabelX(phase: GraphPhaseNode): number {
+    const horizontalDistance = phase.x - CIRCULAR_GRAPH_CENTER_X;
+    return Math.abs(horizontalDistance) < 50 ? phase.x : phase.x + (horizontalDistance < 0 ? -18 : 18);
+  }
+  circularGraphLabelY(phase: GraphPhaseNode): number {
+    const horizontalDistance = phase.x - CIRCULAR_GRAPH_CENTER_X;
+    if (Math.abs(horizontalDistance) >= 50) return phase.y + 2;
+    return phase.y + (phase.y < CIRCULAR_GRAPH_CENTER_Y ? -18 : 22);
+  }
+  circularGraphLabelAnchor(phase: GraphPhaseNode): "start" | "middle" | "end" {
+    const horizontalDistance = phase.x - CIRCULAR_GRAPH_CENTER_X;
+    if (Math.abs(horizontalDistance) < 50) return "middle";
+    return horizontalDistance < 0 ? "end" : "start";
   }
   // A escala logarítmica preserva a diferença entre fluxos sem permitir que
   // uma transição muito frequente domine o desenho.
