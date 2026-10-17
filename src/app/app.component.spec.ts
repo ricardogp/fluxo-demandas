@@ -481,6 +481,18 @@ test("alterna entre os formatos de tabela e grafo", () => {
   assert.equal(app.activeVisualization(), "table");
 });
 
+test("alterna a representação da demanda sem mudar o formato da visualização", () => {
+  const app = new AppComponent();
+
+  assert.equal(app.demandRepresentation(), "detailedCard");
+  assert.equal(app.activeVisualization(), "table");
+  app.setDemandRepresentation("number");
+  assert.equal(app.demandRepresentation(), "number");
+  assert.equal(app.activeVisualization(), "table");
+  app.setDemandRepresentation("detailedCard");
+  assert.equal(app.demandRepresentation(), "detailedCard");
+});
+
 test("o cursor pode retornar ao início ao ser arrastado", () => {
   const app = new AppComponent();
   app.scrub({ target: { value: "10000" } } as unknown as Event);

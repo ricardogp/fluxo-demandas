@@ -103,6 +103,12 @@
     </div>
     @if (activeVisualization() === 'table') {
       <div class="visualization-panel" id="table-format-panel" role="tabpanel" aria-labelledby="table-format-tab">
+        <label class="demand-representation">Representação das demandas
+          <select [value]="demandRepresentation()" (change)="setDemandRepresentation($any($event.target).value)">
+            <option value="detailedCard">Cartão detalhado</option>
+            <option value="number">Número da demanda</option>
+          </select>
+        </label>
         <section class="flow" aria-label="Fluxo de demandas por situação">
           @for (status of visibleStatusOrder(); track status) {
             <article class="lane" [style.--lane-color]="laneColor(status)">
@@ -119,9 +125,9 @@
                   <p class="statistics-empty">Sem dados até esta data.</p>
                 }
               </header>
-              <div class="lane-content">
+              <div class="lane-content" [class.number-representation]="demandRepresentation() === 'number'">
                 @for (item of visibleActiveByStatus().get(status) ?? []; track trackByNumber($index, item)) {
-                  <article class="demand-card" tabindex="0" (pointerenter)="showDemandHint($event, item)" (pointerleave)="hideDemandHint()" (focusin)="showDemandHint($event, item)" (focusout)="hideDemandHint()" [attr.aria-describedby]="'demand-hint-' + item.number">
+                  <article class="demand-card" [class.demand-number]="demandRepresentation() === 'number'" tabindex="0" (pointerenter)="showDemandHint($event, item)" (pointerleave)="hideDemandHint()" (focusin)="showDemandHint($event, item)" (focusout)="hideDemandHint()" [attr.aria-describedby]="'demand-hint-' + item.number">
                     <div class="card-topline"><span>{{ item.progress | number:'1.0-0' }}%</span></div>
                     <h3 [style.color]="demandTypeColor(item.demandType)">{{ item.number }}</h3>
                     <p class="card-date-range" [attr.aria-label]="'Período de ' + rangeLabel(item.event.startedAt) + ' até ' + rangeLabel(item.event.endedAt)">

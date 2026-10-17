@@ -139,6 +139,7 @@ interface CircularGraphPortOffsets {
 type SpreadsheetRow = Record<string, unknown>;
 type VisibilityFilter = "status" | "demand" | "demandType";
 type VisualizationFormat = "table" | "graph" | "circularGraph";
+type DemandRepresentation = "detailedCard" | "number";
 
 const SAMPLE_EVENTS: DemandEvent[] = [
   { demandNumber: "DEM-1042", demandTitle: "Portal de fornecedores", demandType: "Evolutiva", status: "Descoberta", startedAt: new Date(2026, 7, 3), endedAt: new Date(2026, 7, 7), row: 2 },
@@ -210,6 +211,7 @@ export class AppComponent {
   readonly sourceName = signal("Exemplo de simulação");
   readonly currentTime = signal(this.timelineStart().getTime());
   readonly activeVisualization = signal<VisualizationFormat>("table");
+  readonly demandRepresentation = signal<DemandRepresentation>("detailedCard");
   readonly timelineSliderMaximum = TIMELINE_SLIDER_MAXIMUM;
 
   private animationFrame?: number;
@@ -428,6 +430,7 @@ export class AppComponent {
   togglePlayback(): void { this.playing() ? this.pause() : this.play(); }
   toggleTheme(): void { this.theme.update((theme) => theme === "light" ? "dark" : "light"); }
   setVisualization(format: VisualizationFormat): void { this.activeVisualization.set(format); }
+  setDemandRepresentation(representation: DemandRepresentation): void { this.demandRepresentation.set(representation); }
   visibilityFilterExpanded(filter: VisibilityFilter): boolean { return this.expandedVisibilityFilters().has(filter); }
   toggleVisibilityFilter(filter: VisibilityFilter): void {
     this.expandedVisibilityFilters.update((filters) => {

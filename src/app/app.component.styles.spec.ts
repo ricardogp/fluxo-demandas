@@ -79,6 +79,17 @@ test("o número do card recebe a cor do tipo da demanda", () => {
   assert.match(stylesheet, /\.hint-title, \.hint-type \{[^}]*display: grid;/);
 });
 
+test("a tabela permite trocar o cartão pelo número da demanda em um retângulo amplo", () => {
+  assert.match(template, /<label class="demand-representation">Representação das demandas\s*<select \[value\]="demandRepresentation\(\)" \(change\)="setDemandRepresentation\(\$any\(\$event\.target\)\.value\)">/);
+  assert.match(template, /<option value="detailedCard">Cartão detalhado<\/option>/);
+  assert.match(template, /<option value="number">Número da demanda<\/option>/);
+  assert.match(template, /<div class="lane-content" \[class\.number-representation\]="demandRepresentation\(\) === 'number'">/);
+  assert.match(template, /<article class="demand-card" \[class\.demand-number\]="demandRepresentation\(\) === 'number'" tabindex="0"/);
+  assert.match(globalStylesheet, /\.lane-content\.number-representation \{ grid-template-columns: minmax\(0, 1fr\); \}/);
+  assert.match(globalStylesheet, /\.demand-card\.demand-number \{[^}]*min-height: 62px;/);
+  assert.match(globalStylesheet, /\.demand-card\.demand-number h3 \{[^}]*overflow-wrap: anywhere;[^}]*font-variant-numeric: tabular-nums;/);
+});
+
 test("os cards usam sombras em camadas para criar profundidade", () => {
   assert.match(stylesheet, /:host \.demand-card \{ box-shadow: 0 3px #0004, 0 9px 18px #0004; \}/);
   assert.match(stylesheet, /:host \.light-theme \.demand-card \{ box-shadow: 0 3px #2a374f14, 0 9px 18px #2a374f1f; \}/);
