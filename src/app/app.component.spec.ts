@@ -235,13 +235,9 @@ test("escurece os nós do grafo conforme a carga visível da fase", () => {
   assert.equal(atendimento?.loadState, "empty");
 });
 
-test("atribui ícones semânticos e preserva rótulos longos do grafo", () => {
+test("sinaliza a carga e preserva rótulos longos do grafo", () => {
   const app = new AppComponent();
 
-  assert.equal(app.graphPhaseIcon("Aberta").name, "Entrada");
-  assert.equal(app.graphPhaseIcon("Em Análise Técnica").name, "Análise");
-  assert.equal(app.graphPhaseIcon("Aguardando Homologação").name, "Validação");
-  assert.equal(app.graphPhaseIcon("Implantação Autorizada").name, "Implantação");
   assert.equal(app.graphPhaseLoadState(3, 3), "critical");
   assert.equal(app.graphPhaseLoadColor(1, 1), "#d39a39");
   assert.equal(app.graphPhaseLoadColor(3, 3), "#c84e5b");

@@ -42,8 +42,7 @@ test("o fluxo oferece abas para os formatos de tabela e grafo", () => {
   assert.match(template, /<path class="graph-transition" \[class\.active\]="transition\.activeDemandCount > 0" \[attr\.d\]="transition\.path"[^>]*\[attr\.stroke-width\]="transition\.strokeWidth"[^>]*marker-end="url\(#graph-arrow\)">/);
   assert.match(template, /<circle class="graph-phase-node"[^>]*r="13\.75"><\/circle>/);
   assert.doesNotMatch(template, /graph-phase-load-ring/);
-  assert.match(template, /<g class="graph-phase-icon" \[attr\.transform\]="'translate\('\s*\+\s*\(phase\.x \+ 9\) \+ ' ' \+ \(phase\.y - 9\) \+ '\)'" aria-hidden="true">/);
-  assert.match(template, /<path \[attr\.d\]="phase\.icon\.path"><\/path>/);
+  assert.doesNotMatch(template, /graph-phase-icon/);
   assert.match(template, /<text class="graph-phase-count" \[attr\.x\]="phase\.x" \[attr\.y\]="phase\.y" \[attr\.fill\]="phase\.countColor">\{\{ phase\.activeCount \}\}<\/text>/);
   assert.match(template, /<circle class="graph-demand"[^>]*r="3\.5" tabindex="0"[^>]*\(pointerenter\)="showDemandHint\(\$event, demand\.item\)"[^>]*\(focusin\)="showDemandHint\(\$event, demand\.item\)"[^>]*\[attr\.aria-describedby\]="'demand-hint-' \+ demand\.number"/);
   assert.match(template, /<label class="demand-representation graph-demand-representation">Representação das demandas\s*<select \[value\]="graphDemandRepresentation\(\)" \(change\)="setGraphDemandRepresentation\(\$any\(\$event\.target\)\.value\)">/);
@@ -65,6 +64,7 @@ test("o fluxo oferece abas para os formatos de tabela e grafo", () => {
   assert.match(globalStylesheet, /\.graph-canvas \.graph-phase-node \{ r: 13\.75px; \}/);
   assert.match(stylesheet, /\.graph-transition \{ fill: none; stroke-linecap: round; stroke-linejoin: round; stroke-opacity: \.62; \}/);
   assert.match(globalStylesheet, /\.graph-transition\.active \{ stroke: #d99e3f;[^}]*drop-shadow/);
+  assert.doesNotMatch(globalStylesheet, /graph-phase-icon/);
   assert.doesNotMatch(globalStylesheet, /graph-phase-load-ring/);
   assert.match(globalStylesheet, /@media \(prefers-reduced-motion: no-preference\) \{[^}]*\.graph-canvas\.is-playing \.graph-transition\.active/);
 });
