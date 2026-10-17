@@ -44,7 +44,7 @@ test("o fluxo oferece abas para os formatos de tabela, grafo e grafo circular", 
   assert.match(template, /<circle class="graph-phase-node"[^>]*r="13\.75"><\/circle>/);
   assert.match(template, /<text class="graph-phase-count" \[attr\.x\]="phase\.x" \[attr\.y\]="phase\.y" \[attr\.fill\]="phase\.countColor">\{\{ phase\.activeCount \}\}<\/text>/);
   assert.match(template, /<circle class="graph-demand"[^>]*r="3\.5" tabindex="0"[^>]*\(pointerenter\)="showDemandHint\(\$event, demand\.item\)"[^>]*\(focusin\)="showDemandHint\(\$event, demand\.item\)"[^>]*\[attr\.aria-describedby\]="'demand-hint-' \+ demand\.number"/);
-  assert.match(template, /<label class="demand-representation graph-demand-representation">Marcadores em movimento\s*<select \[value\]="graphDemandRepresentation\(\)" \(change\)="setGraphDemandRepresentation\(\$any\(\$event\.target\)\.value\)">/);
+  assert.match(template, /<label class="demand-representation graph-demand-representation">Representação das demandas\s*<select \[value\]="graphDemandRepresentation\(\)" \(change\)="setGraphDemandRepresentation\(\$any\(\$event\.target\)\.value\)">/);
   assert.match(template, /<option value="circle">Círculo colorido<\/option>/);
   assert.match(template, /<g class="graph-demand-label" tabindex="0"[^>]*\(pointerenter\)="showDemandHint\(\$event, demand\.item\)"[^>]*\(focusin\)="showDemandHint\(\$event, demand\.item\)"/);
   assert.match(template, /<rect \[attr\.x\]="demand\.x - graphDemandLabelWidth\(demand\.number\) \/ 2" \[attr\.y\]="demand\.y - 4\.5" \[attr\.width\]="graphDemandLabelWidth\(demand\.number\)" height="9" \[attr\.stroke\]="demand\.color"><\/rect>/);
