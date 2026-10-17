@@ -41,6 +41,7 @@ test("o fluxo oferece abas para os formatos de tabela e grafo", () => {
   assert.match(template, /<marker id="graph-arrow" markerWidth="4\.5" markerHeight="4\.5" refX="4" refY="2\.25" orient="auto" markerUnits="userSpaceOnUse">/);
   assert.match(template, /<path class="graph-transition" \[class\.active\]="transition\.activeDemandCount > 0" \[attr\.d\]="transition\.path"[^>]*\[attr\.stroke-width\]="transition\.strokeWidth"[^>]*marker-end="url\(#graph-arrow\)">/);
   assert.match(template, /<circle class="graph-phase-node"[^>]*r="13\.75"><\/circle>/);
+  assert.match(template, /<g class="graph-phase" tabindex="0" \(pointerenter\)="showPhaseHint\(\$event, phase\.status\)" \(pointerleave\)="hidePhaseHint\(\)" \(focusin\)="showPhaseHint\(\$event, phase\.status\)" \(focusout\)="hidePhaseHint\(\)" \[attr\.aria-describedby\]="phaseHintId\(phase\.status\)"/);
   assert.doesNotMatch(template, /graph-phase-load-ring/);
   assert.doesNotMatch(template, /graph-phase-icon/);
   assert.match(template, /<text class="graph-phase-count" \[attr\.x\]="phase\.x" \[attr\.y\]="phase\.y" \[attr\.fill\]="phase\.countColor">\{\{ phase\.activeCount \}\}<\/text>/);
@@ -64,6 +65,11 @@ test("o fluxo oferece abas para os formatos de tabela e grafo", () => {
   assert.match(globalStylesheet, /\.graph-canvas \.graph-phase-node \{ r: 13\.75px; \}/);
   assert.match(stylesheet, /\.graph-transition \{ fill: none; stroke-linecap: round; stroke-linejoin: round; stroke-opacity: \.62; \}/);
   assert.match(globalStylesheet, /\.graph-transition\.active \{ stroke: #d99e3f;[^}]*drop-shadow/);
+  assert.match(template, /<aside class="demand-hint phase-hint" \[class\.below\]="hint\.below" \[id\]="phaseHintId\(hint\.status\)" role="tooltip"/);
+  assert.match(template, /<p class="hint-type"><span>Demandas nesta fase<\/span><strong>\{\{ hint\.items\.length \}\}<\/strong><\/p>/);
+  assert.match(template, /<li><strong>\{\{ item\.number \}\}<\/strong><span \[style\.color\]="demandTypeColor\(item\.demandType\)">\{\{ item\.demandType \}\}<\/span><\/li>/);
+  assert.match(globalStylesheet, /\.graph-phase \{ cursor: pointer; outline: none; \}/);
+  assert.match(globalStylesheet, /\.phase-hint-demands \{ display: grid; gap: 5px;/);
   assert.doesNotMatch(globalStylesheet, /graph-phase-icon/);
   assert.doesNotMatch(globalStylesheet, /graph-phase-load-ring/);
   assert.match(globalStylesheet, /@media \(prefers-reduced-motion: no-preference\) \{[^}]*\.graph-canvas\.is-playing \.graph-transition\.active/);

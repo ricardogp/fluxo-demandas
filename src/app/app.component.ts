@@ -49,6 +49,14 @@ interface ActiveHint {
   below: boolean;
 }
 
+interface PhaseHint {
+  status: string;
+  items: ActiveDemand[];
+  x: number;
+  y: number;
+  below: boolean;
+}
+
 interface StatusMetrics {
   maxConcurrent: number;
   averageMs: number;
@@ -191,6 +199,7 @@ export class AppComponent {
   readonly hiddenDemandTypes = signal<Set<string>>(new Set());
   readonly expandedVisibilityFilters = signal<Set<VisibilityFilter>>(new Set());
   readonly activeHint = signal<ActiveHint | undefined>(undefined);
+  readonly phaseHint = signal<PhaseHint | undefined>(undefined);
   readonly speed = signal(1);
   readonly playing = signal(false);
   readonly loading = signal(false);
@@ -466,8 +475,28 @@ export class AppComponent {
       y: below ? rect.bottom + 8 : rect.top - 8,
       below,
     });
+    this.phaseHint.set(undefined);
   }
   hideDemandHint(): void { this.activeHint.set(undefined); }
+  phaseHintItems(status: string): ActiveDemand[] { return this.visibleActiveByStatus().get(status) ?? []; }
+  phaseHintId(status: string): string {
+    const normalized = status.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLocaleLowerCase("pt-BR").replace(/[^\p{L}\p{N}]+/gu, "-");
+    return `phase-hint-${normalized}`;
+  }
+  showPhaseHint(event: Event, status: string): void {
+    const node = event.currentTarget as Element;
+    const rect = node.getBoundingClientRect();
+    const below = rect.top < 150;
+    this.phaseHint.set({
+      status,
+      items: this.phaseHintItems(status),
+      x: Math.max(8, Math.min(rect.left, window.innerWidth - 268)),
+      y: below ? rect.bottom + 8 : rect.top - 8,
+      below,
+    });
+    this.activeHint.set(undefined);
+  }
+  hidePhaseHint(): void { this.phaseHint.set(undefined); }
 
   private play(): void {
     if (this.currentTime() >= this.timelineEnd().getTime()) this.currentTime.set(this.timelineStart().getTime());

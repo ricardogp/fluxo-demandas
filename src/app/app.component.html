@@ -163,7 +163,7 @@
             </path>
           }
           @for (phase of graph().phases; track phase.status) {
-            <g class="graph-phase">
+            <g class="graph-phase" tabindex="0" (pointerenter)="showPhaseHint($event, phase.status)" (pointerleave)="hidePhaseHint()" (focusin)="showPhaseHint($event, phase.status)" (focusout)="hidePhaseHint()" [attr.aria-describedby]="phaseHintId(phase.status)" [attr.aria-label]="'Fase ' + phase.status + ': ' + phase.activeCount + ' demanda(s)'">
               <circle class="graph-phase-node" [attr.cx]="phase.x" [attr.cy]="phase.y" [attr.fill]="phase.color" [attr.stroke]="phase.color" r="13.75"></circle>
               <text class="graph-phase-count" [attr.x]="phase.x" [attr.y]="phase.y" [attr.fill]="phase.countColor">{{ phase.activeCount }}</text>
               <title>{{ phase.status }} · {{ phase.activeCount }} demanda(s) em andamento{{ phase.loadState === 'overloaded' ? ' · carga muito alta' : phase.loadState === 'critical' ? ' · carga crítica' : phase.loadState === 'warning' ? ' · carga elevada' : '' }}</title>
@@ -210,6 +210,23 @@
           <div><dt>{{ duration.status }}</dt><dd>{{ durationLabel(duration.durationMs) }}</dd></div>
         }
       </dl>
+    </aside>
+  }
+
+  @if (phaseHint(); as hint) {
+    <aside class="demand-hint phase-hint" [class.below]="hint.below" [id]="phaseHintId(hint.status)" role="tooltip" [style.left.px]="hint.x" [style.top.px]="hint.y">
+      <p class="hint-title"><span>Fase</span>{{ hint.status }}</p>
+      <p class="hint-type"><span>Demandas nesta fase</span><strong>{{ hint.items.length }}</strong></p>
+      @if (hint.items.length) {
+        <p class="hint-subtitle">Demandas visíveis</p>
+        <ul class="phase-hint-demands">
+          @for (item of hint.items; track trackByNumber($index, item)) {
+            <li><strong>{{ item.number }}</strong><span [style.color]="demandTypeColor(item.demandType)">{{ item.demandType }}</span></li>
+          }
+        </ul>
+      } @else {
+        <p class="statistics-empty">Nenhuma demanda visível nesta fase.</p>
+      }
     </aside>
   }
 

@@ -253,6 +253,21 @@ test("sinaliza a carga e preserva rótulos longos do grafo", () => {
   assert.deepEqual(app.graphLabelLines("Homologada Aguardando Autorização"), ["Homologada", "Aguardando", "Autorização"]);
 });
 
+test("lista as demandas visíveis da fase para o painel contextual do grafo", () => {
+  const app = new AppComponent();
+  app.events.set([
+    { demandNumber: "DEM-1", demandTitle: "Primeira", demandType: "Evolutiva", status: "Triagem", startedAt: new Date(2026, 0, 1), endedAt: new Date(2026, 0, 2), row: 2 },
+    { demandNumber: "DEM-2", demandTitle: "Segunda", demandType: "Corretiva", status: "Triagem", startedAt: new Date(2026, 0, 1), endedAt: new Date(2026, 0, 2), row: 3 },
+  ]);
+  app.currentTime.set(new Date(2026, 0, 1).getTime());
+
+  assert.deepEqual(app.phaseHintItems("Triagem").map((item) => ({ number: item.number, type: item.demandType })), [
+    { number: "DEM-1", type: "Evolutiva" },
+    { number: "DEM-2", type: "Corretiva" },
+  ]);
+  assert.equal(app.phaseHintId("Em Análise Técnica"), "phase-hint-em-analise-tecnica");
+});
+
 test("percorre etapas da mesma data em subpassos na tabela e no grafo", () => {
   const app = new AppComponent();
   const sameDay = new Date(2026, 8, 15).getTime();
