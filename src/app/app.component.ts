@@ -74,7 +74,7 @@ interface GraphPhaseNode {
   y: number;
 }
 
-type GraphPhaseLoadState = "empty" | "active" | "warning" | "critical";
+type GraphPhaseLoadState = "empty" | "neutral" | "warning" | "critical" | "overloaded";
 
 interface GraphPoint {
   x: number;
@@ -256,7 +256,6 @@ export class AppComponent {
   readonly graph = computed<GraphView>(() => {
     const phases = this.visibleStatusOrder();
     const activeCounts = new Map(phases.map((status) => [status, this.visibleActiveByStatus().get(status)?.length ?? 0]));
-    const maximumActiveCount = Math.max(1, ...activeCounts.values());
     const maximumColumns = Math.max(1, Math.floor((GRAPH_WIDTH - (GRAPH_FLOW_PADDING * 2)) / GRAPH_PHASE_MIN_WIDTH));
     const levels = Math.ceil(phases.length / maximumColumns);
     const graphHeight = Math.max(GRAPH_MIN_HEIGHT, GRAPH_TOP_PADDING + GRAPH_BOTTOM_PADDING + Math.max(0, levels - 1) * GRAPH_LEVEL_GAP);
@@ -271,9 +270,9 @@ export class AppComponent {
       return {
         status,
         labelLines: this.graphLabelLines(status),
-        color: this.graphPhaseLoadColor(activeCount, maximumActiveCount),
-        countColor: this.graphPhaseCountColor(activeCount, maximumActiveCount),
-        loadState: this.graphPhaseLoadState(activeCount, maximumActiveCount),
+        color: this.graphPhaseLoadColor(activeCount),
+        countColor: this.graphPhaseCountColor(activeCount),
+        loadState: this.graphPhaseLoadState(activeCount),
         activeCount,
         x,
         y: GRAPH_TOP_PADDING + level * GRAPH_LEVEL_GAP,
@@ -424,23 +423,24 @@ export class AppComponent {
     const colors = ["#6f77dc", "#d79b42", "#3aa888", "#d76370", "#4e91c7", "#8a6ec5"];
     return colors[this.statusOrder().indexOf(status) % colors.length] ?? colors[0];
   }
-  graphPhaseLoadColor(activeCount: number, maximumActiveCount: number): string {
-    const loadState = this.graphPhaseLoadState(activeCount, maximumActiveCount);
+  graphPhaseLoadColor(activeCount: number): string {
+    const loadState = this.graphPhaseLoadState(activeCount);
+    if (loadState === "overloaded") return "#7856a8";
     if (loadState === "critical") return "#c84e5b";
     if (loadState === "warning") return "#d39a39";
-    const intensity = activeCount === 0 ? 0 : Math.sqrt(activeCount / Math.max(1, maximumActiveCount));
+    const intensity = activeCount === 0 ? 0 : Math.sqrt(activeCount / 3);
     const lightness = 88 - intensity * 37;
     return `hsl(215 10% ${lightness.toFixed(1)}%)`;
   }
-  graphPhaseCountColor(activeCount: number, maximumActiveCount: number): string {
-    const intensity = activeCount === 0 ? 0 : Math.sqrt(activeCount / Math.max(1, maximumActiveCount));
-    return intensity > .55 ? "#f7f9fc" : "#354254";
+  graphPhaseCountColor(activeCount: number): string {
+    return activeCount === 3 || activeCount >= 6 ? "#f7f9fc" : "#354254";
   }
-  graphPhaseLoadState(activeCount: number, maximumActiveCount: number): GraphPhaseLoadState {
+  graphPhaseLoadState(activeCount: number): GraphPhaseLoadState {
     if (activeCount === 0) return "empty";
-    if (activeCount === maximumActiveCount && activeCount >= 3) return "critical";
-    if (activeCount === maximumActiveCount) return "warning";
-    return "active";
+    if (activeCount >= 8) return "overloaded";
+    if (activeCount >= 6) return "critical";
+    if (activeCount >= 4) return "warning";
+    return "neutral";
   }
   trackByNumber(_index: number, item: ActiveDemand): string { return item.number; }
   demandDurations(item: ActiveDemand): StatusDuration[] {

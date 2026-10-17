@@ -166,7 +166,7 @@
             <g class="graph-phase">
               <circle class="graph-phase-node" [attr.cx]="phase.x" [attr.cy]="phase.y" [attr.fill]="phase.color" [attr.stroke]="phase.color" r="13.75"></circle>
               <text class="graph-phase-count" [attr.x]="phase.x" [attr.y]="phase.y" [attr.fill]="phase.countColor">{{ phase.activeCount }}</text>
-              <title>{{ phase.status }} · {{ phase.activeCount }} demanda(s) em andamento{{ phase.loadState === 'critical' ? ' · carga crítica' : phase.loadState === 'warning' ? ' · maior carga atual' : '' }}</title>
+              <title>{{ phase.status }} · {{ phase.activeCount }} demanda(s) em andamento{{ phase.loadState === 'overloaded' ? ' · carga muito alta' : phase.loadState === 'critical' ? ' · carga crítica' : phase.loadState === 'warning' ? ' · carga elevada' : '' }}</title>
               <text class="graph-phase-label" [attr.x]="phase.x" [attr.y]="phase.y + 25">
                 @for (line of phase.labelLines; track $index) {
                   <tspan [attr.x]="phase.x" [attr.dy]="$index === 0 ? 0 : 7">{{ line }}</tspan>

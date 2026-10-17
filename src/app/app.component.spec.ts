@@ -224,23 +224,28 @@ test("escurece os nós do grafo conforme a carga visível da fase", () => {
   assert.equal(triagem?.activeCount, 2);
   assert.equal(entrega?.activeCount, 1);
   assert.equal(atendimento?.activeCount, 0);
-  assert.equal(triagem?.countColor, "#f7f9fc");
+  assert.equal(triagem?.countColor, "#354254");
   assert.equal(atendimento?.countColor, "#354254");
   assert.equal(atendimento?.color, "hsl(215 10% 88.0%)");
-  assert.equal(triagem?.color, "#d39a39");
-  assert.equal(entrega?.color, "hsl(215 10% 61.8%)");
+  assert.equal(triagem?.color, "hsl(215 10% 57.8%)");
+  assert.equal(entrega?.color, "hsl(215 10% 66.6%)");
   assert.equal(atendimento?.color, "hsl(215 10% 88.0%)");
-  assert.equal(triagem?.loadState, "warning");
-  assert.equal(entrega?.loadState, "active");
+  assert.equal(triagem?.loadState, "neutral");
+  assert.equal(entrega?.loadState, "neutral");
   assert.equal(atendimento?.loadState, "empty");
 });
 
 test("sinaliza a carga e preserva rótulos longos do grafo", () => {
   const app = new AppComponent();
 
-  assert.equal(app.graphPhaseLoadState(3, 3), "critical");
-  assert.equal(app.graphPhaseLoadColor(1, 1), "#d39a39");
-  assert.equal(app.graphPhaseLoadColor(3, 3), "#c84e5b");
+  assert.equal(app.graphPhaseLoadState(0), "empty");
+  assert.equal(app.graphPhaseLoadState(3), "neutral");
+  assert.equal(app.graphPhaseLoadState(4), "warning");
+  assert.equal(app.graphPhaseLoadState(6), "critical");
+  assert.equal(app.graphPhaseLoadState(8), "overloaded");
+  assert.equal(app.graphPhaseLoadColor(4), "#d39a39");
+  assert.equal(app.graphPhaseLoadColor(6), "#c84e5b");
+  assert.equal(app.graphPhaseLoadColor(8), "#7856a8");
   assert.deepEqual(app.graphLabelLines("Homologada Aguardando Autorização"), ["Homologada", "Aguardando", "Autorização"]);
 });
 

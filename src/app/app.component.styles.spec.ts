@@ -54,7 +54,7 @@ test("o fluxo oferece abas para os formatos de tabela e grafo", () => {
   assert.match(template, /<tspan \[attr\.x\]="phase\.x" \[attr\.dy\]="\$index === 0 \? 0 : 7">\{\{ line \}\}<\/tspan>/);
   assert.match(stylesheet, /\.visualization-tab\.active \{[^}]*border-bottom-color: #e5bb65;[^}]*color: #f1c970;/);
   assert.match(stylesheet, /\.graph-canvas {[^}]*min-height: 150px;[^}]*background: linear-gradient/);
-  assert.match(template, /\{\{ phase\.loadState === 'critical' \? ' · carga crítica' : phase\.loadState === 'warning' \? ' · maior carga atual' : '' \}\}/);
+  assert.match(template, /\{\{ phase\.loadState === 'overloaded' \? ' · carga muito alta' : phase\.loadState === 'critical' \? ' · carga crítica' : phase\.loadState === 'warning' \? ' · carga elevada' : '' \}\}/);
   assert.match(stylesheet, /\.graph-phase-count { font-size: 7px; font-weight: 800; text-anchor: middle; dominant-baseline: central; \}/);
   assert.match(globalStylesheet, /\.graph-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin-top: 8px;/);
   assert.match(stylesheet, /\.graph-demand { cursor: pointer; \}/);
