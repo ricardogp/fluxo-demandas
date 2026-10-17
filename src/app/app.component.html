@@ -139,7 +139,7 @@
       </div>
     } @else if (activeVisualization() === 'graph') {
       <div class="visualization-panel graph-panel" id="graph-format-panel" role="tabpanel" aria-labelledby="graph-format-tab">
-        <p class="graph-description">As fases são ordenadas da esquerda para a direita e passam ao próximo nível somente quando não cabem sem sobreposição. O cinza dos nós indica a carga atual: quanto mais escuro, mais demandas estão na fase. As ligações representam as transições inferidas da planilha e os pontos coloridos percorrem cada ligação durante a permanência na fase de origem. Mudanças registradas no mesmo dia avançam em sequência, conforme a ordem das linhas.</p>
+        <p class="graph-description">As fases são ordenadas da esquerda para a direita e passam ao próximo nível somente quando não cabem sem sobreposição. O cinza dos nós indica a carga atual: quanto mais escuro, mais demandas estão na fase. As ligações representam as transições inferidas da planilha; os desvios preservam os rótulos e preferem corredores acima dos nós. Os pontos coloridos percorrem cada ligação durante a permanência na fase de origem. Mudanças registradas no mesmo dia avançam em sequência, conforme a ordem das linhas.</p>
         <svg class="graph-canvas" [attr.viewBox]="'0 0 1000 ' + graph().height" role="img" aria-label="Fluxo das demandas por fase, distribuído em níveis">
           <defs>
             <marker id="graph-arrow" markerWidth="4.5" markerHeight="4.5" refX="4" refY="2.25" orient="auto" markerUnits="userSpaceOnUse">
@@ -153,10 +153,10 @@
           }
           @for (phase of graph().phases; track phase.status) {
             <g class="graph-phase">
-              <circle class="graph-phase-node" [attr.cx]="phase.x" [attr.cy]="phase.y" [attr.fill]="phase.color" [attr.stroke]="phase.color" r="11"></circle>
+              <circle class="graph-phase-node" [attr.cx]="phase.x" [attr.cy]="phase.y" [attr.fill]="phase.color" [attr.stroke]="phase.color" r="13.75"></circle>
               <text class="graph-phase-count" [attr.x]="phase.x" [attr.y]="phase.y" [attr.fill]="phase.countColor">{{ phase.activeCount }}</text>
               <title>{{ phase.status }} · {{ phase.activeCount }} demanda(s) em andamento</title>
-              <text class="graph-phase-label" [attr.x]="phase.x" [attr.y]="phase.y + 22">
+              <text class="graph-phase-label" [attr.x]="phase.x" [attr.y]="phase.y + 25">
                 @for (line of phase.labelLines; track $index) {
                   <tspan [attr.x]="phase.x" [attr.dy]="$index === 0 ? 0 : 7">{{ line }}</tspan>
                 }

@@ -78,6 +78,13 @@ interface GraphPoint {
   y: number;
 }
 
+interface GraphBounds {
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+}
+
 interface GraphTransition {
   source: string;
   target: string;
@@ -148,12 +155,17 @@ const SAMPLE_EVENTS: DemandEvent[] = [
 const MONTH_ABBREVIATIONS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 const GRAPH_WIDTH = 1000;
 const GRAPH_MIN_HEIGHT = 150;
-const GRAPH_PHASE_RADIUS = 11;
+const GRAPH_PHASE_RADIUS = 13.75;
 const GRAPH_FLOW_PADDING = 38;
 const GRAPH_PHASE_MIN_WIDTH = 80;
 const GRAPH_LEVEL_GAP = 75;
 const GRAPH_TOP_PADDING = 42;
 const GRAPH_BOTTOM_PADDING = 50;
+const GRAPH_PHASE_LABEL_OFFSET = 25;
+const GRAPH_PHASE_LABEL_LINE_HEIGHT = 7;
+const GRAPH_PHASE_LABEL_FONT_SIZE = 6.5;
+const GRAPH_PHASE_LABEL_CHARACTER_WIDTH = 4;
+const GRAPH_PHASE_LABEL_PADDING = 2;
 const GRAPH_TRANSITION_MIN_STROKE_WIDTH = 0.75;
 const GRAPH_TRANSITION_MAX_STROKE_WIDTH = 1.75;
 const GRAPH_ROUTE_CLEARANCE = 19;
@@ -168,6 +180,7 @@ const CIRCULAR_GRAPH_HEIGHT = 560;
 const CIRCULAR_GRAPH_CENTER_X = GRAPH_WIDTH / 2;
 const CIRCULAR_GRAPH_CENTER_Y = CIRCULAR_GRAPH_HEIGHT / 2;
 const CIRCULAR_GRAPH_RADIUS = 160;
+const CIRCULAR_GRAPH_PHASE_RADIUS = 11;
 const CIRCULAR_GRAPH_ROUTE_MIN_RADIUS = 34;
 const CIRCULAR_GRAPH_CURVE_STEPS = 24;
 const CIRCULAR_GRAPH_ROUTE_LANE_OFFSETS = [-48, -32, -16, 0, 16, 32, 48];
@@ -812,7 +825,7 @@ export class AppComponent {
         route: this.circularGraphGuideRouteCandidate(source, target, routeAngleDifference, laneOffset, portOffsets),
       }))),
     ];
-    const routesThatClearPhases = candidates.filter(({ route }) => this.graphRouteClearsPhases(route.points, phases, new Set([source.status, target.status])));
+    const routesThatClearPhases = candidates.filter(({ route }) => this.graphRouteClearsPhases(route.points, phases, new Set([source.status, target.status]), CIRCULAR_GRAPH_PHASE_RADIUS));
     return (routesThatClearPhases.length ? routesThatClearPhases : candidates).sort((first, second) =>
       this.circularGraphRouteScore(first.route.points, occupiedRoutes, first.laneOffset, first.usesGuideTrack)
       - this.circularGraphRouteScore(second.route.points, occupiedRoutes, second.laneOffset, second.usesGuideTrack),
@@ -823,18 +836,18 @@ export class AppComponent {
     const targetAngle = Math.atan2(target.y - CIRCULAR_GRAPH_CENTER_Y, target.x - CIRCULAR_GRAPH_CENTER_X);
     const directionOffset = angleDifference < 0 ? GRAPH_ROUTE_SEPARATION : -GRAPH_ROUTE_SEPARATION;
     const routedRadius = Math.max(CIRCULAR_GRAPH_ROUTE_MIN_RADIUS, CIRCULAR_GRAPH_RADIUS - 24 - (Math.abs(angleDifference) / Math.PI) * 52 + directionOffset + laneOffset);
-    const radius = Math.min(CIRCULAR_GRAPH_RADIUS - GRAPH_PHASE_RADIUS - GRAPH_ROUTE_CLEARANCE, routedRadius);
+    const radius = Math.min(CIRCULAR_GRAPH_RADIUS - CIRCULAR_GRAPH_PHASE_RADIUS - GRAPH_ROUTE_CLEARANCE, routedRadius);
     const controlAngleOffset = angleDifference / 3;
     const firstControl = this.circularGraphPoint(sourceAngle + controlAngleOffset, radius);
     const secondControl = this.circularGraphPoint(targetAngle - controlAngleOffset, radius);
-    const start = this.circularGraphPortPoint(this.graphOffsetPoint(source, firstControl, GRAPH_PHASE_RADIUS), sourceAngle, portOffsets.source);
-    const end = this.circularGraphPortPoint(this.graphOffsetPoint(target, secondControl, GRAPH_PHASE_RADIUS), targetAngle, portOffsets.target);
+    const start = this.circularGraphPortPoint(this.graphOffsetPoint(source, firstControl, CIRCULAR_GRAPH_PHASE_RADIUS), sourceAngle, portOffsets.source);
+    const end = this.circularGraphPortPoint(this.graphOffsetPoint(target, secondControl, CIRCULAR_GRAPH_PHASE_RADIUS), targetAngle, portOffsets.target);
     return this.circularGraphCurve(start, firstControl, secondControl, end);
   }
   private circularGraphGuideRouteCandidate(source: GraphPhaseNode, target: GraphPhaseNode, angleDifference: number, laneOffset: number, portOffsets: CircularGraphPortOffsets): CircularGraphRoute {
     const sourceAngle = Math.atan2(source.y - CIRCULAR_GRAPH_CENTER_Y, source.x - CIRCULAR_GRAPH_CENTER_X);
     const targetAngle = Math.atan2(target.y - CIRCULAR_GRAPH_CENTER_Y, target.x - CIRCULAR_GRAPH_CENTER_X);
-    const portRadius = CIRCULAR_GRAPH_RADIUS - GRAPH_PHASE_RADIUS;
+    const portRadius = CIRCULAR_GRAPH_RADIUS - CIRCULAR_GRAPH_PHASE_RADIUS;
     // The guide track stays just inside the dotted circle: it remains visually aligned
     // with the phases while leaving the required clearance around every other node.
     const guideRadius = portRadius - GRAPH_ROUTE_CLEARANCE - 2 - laneOffset;
@@ -862,8 +875,8 @@ export class AppComponent {
     const angle = Math.atan2(phase.y - CIRCULAR_GRAPH_CENTER_Y, phase.x - CIRCULAR_GRAPH_CENTER_X);
     const outward = { x: Math.cos(angle), y: Math.sin(angle) };
     const tangent = { x: -outward.y, y: outward.x };
-    const start = { x: phase.x + tangent.x * GRAPH_PHASE_RADIUS, y: phase.y + tangent.y * GRAPH_PHASE_RADIUS };
-    const end = { x: phase.x - tangent.x * GRAPH_PHASE_RADIUS, y: phase.y - tangent.y * GRAPH_PHASE_RADIUS };
+    const start = { x: phase.x + tangent.x * CIRCULAR_GRAPH_PHASE_RADIUS, y: phase.y + tangent.y * CIRCULAR_GRAPH_PHASE_RADIUS };
+    const end = { x: phase.x - tangent.x * CIRCULAR_GRAPH_PHASE_RADIUS, y: phase.y - tangent.y * CIRCULAR_GRAPH_PHASE_RADIUS };
     const firstControl = { x: phase.x + tangent.x * 54 - outward.x * 40, y: phase.y + tangent.y * 54 - outward.y * 40 };
     const secondControl = { x: phase.x - tangent.x * 54 - outward.x * 40, y: phase.y - tangent.y * 54 - outward.y * 40 };
     return this.circularGraphCurve(start, firstControl, secondControl, end);
@@ -945,9 +958,9 @@ export class AppComponent {
   private graphTransitionWidth(count: number): number {
     return Math.min(GRAPH_TRANSITION_MAX_STROKE_WIDTH, GRAPH_TRANSITION_MIN_STROKE_WIDTH + Math.log2(Math.max(1, count)) * 0.2);
   }
-  // Rotas diretas são preferidas. Quando uma fase ocupa esse segmento, os corredores
-  // ao redor das fases são avaliados; faixas vizinhas separam rotas paralelas e a
-  // rota externa é a garantia para casos densos.
+  // Rotas diretas são preferidas. Quando uma fase ou seu rótulo ocupa o segmento,
+  // os corredores superiores são favorecidos e faixas vizinhas separam rotas paralelas.
+  // A rota externa permanece como garantia para casos densos.
   private graphTransitionPoints(source: GraphPhaseNode, target: GraphPhaseNode, phases: GraphPhaseNode[], occupiedRoutes: GraphPoint[][]): GraphPoint[] {
     const sourceCenter = { x: source.x, y: source.y };
     const targetCenter = { x: target.x, y: target.y };
@@ -985,8 +998,8 @@ export class AppComponent {
 
     const routes = candidates
       .map((candidate) => this.graphRouteEndpoints(candidate, source, target))
-      .filter((points) => this.graphRouteClearsPhases(points, phases, new Set([source.status, target.status])))
-      .sort((first, second) => this.graphRouteScore(first, occupiedRoutes) - this.graphRouteScore(second, occupiedRoutes));
+      .filter((points) => this.graphRouteClearsPhases(points, phases, new Set([source.status, target.status])) && this.graphRouteClearsLabels(points, phases))
+      .sort((first, second) => this.graphRouteScore(first, occupiedRoutes, source, target) - this.graphRouteScore(second, occupiedRoutes, source, target));
 
     return routes[0] ?? this.graphRouteEndpoints([sourceCenter, targetCenter], source, target);
   }
@@ -1031,9 +1044,10 @@ export class AppComponent {
 
     for (const portsAtSide of portsBySide.values()) {
       if (portsAtSide.length < 2) continue;
+      const availablePortWidth = GRAPH_PHASE_RADIUS * 2 - GRAPH_PHASE_PORT_SEPARATION;
+      const separation = Math.min(GRAPH_PHASE_PORT_SEPARATION, availablePortWidth / Math.max(1, portsAtSide.length - 1));
       this.graphPortOrder(portsAtSide).forEach((port, index) => {
-        const distance = (Math.floor(index / 2) + .5) * GRAPH_PHASE_PORT_SEPARATION;
-        this.positionGraphPort(port, index % 2 === 0 ? -distance : distance);
+        this.positionGraphPort(port, (index - (portsAtSide.length - 1) / 2) * separation);
       });
     }
 
@@ -1065,18 +1079,15 @@ export class AppComponent {
     return verticalDistance < 0 ? "top" : "bottom";
   }
   private graphPortOrder(ports: GraphPhasePort[]): GraphPhasePort[] {
-    const byRoute = (first: GraphPhasePort, second: GraphPhasePort) =>
-      first.transition.source.localeCompare(second.transition.source) || first.transition.target.localeCompare(second.transition.target);
-    const incoming = ports.filter((port) => port.kind === "incoming").sort(byRoute);
-    const outgoing = ports.filter((port) => port.kind === "outgoing").sort(byRoute);
-    const ordered: GraphPhasePort[] = [];
-    while (incoming.length || outgoing.length) {
-      const nextIncoming = incoming.shift();
-      const nextOutgoing = outgoing.shift();
-      if (nextIncoming) ordered.push(nextIncoming);
-      if (nextOutgoing) ordered.push(nextOutgoing);
-    }
-    return ordered;
+    const approachCoordinate = (port: GraphPhasePort) => {
+      const adjacent = port.kind === "outgoing" ? port.transition.points[1] : port.transition.points.at(-2)!;
+      return port.side === "top" || port.side === "bottom" ? adjacent.x : adjacent.y;
+    };
+    return [...ports].sort((first, second) =>
+      approachCoordinate(first) - approachCoordinate(second)
+      || first.transition.source.localeCompare(second.transition.source)
+      || first.transition.target.localeCompare(second.transition.target),
+    );
   }
   private positionGraphPort(port: GraphPhasePort, offset: number): void {
     const point = port.transition.points[port.pointIndex];
@@ -1092,10 +1103,9 @@ export class AppComponent {
   private graphPortElbows(port: GraphPhasePort, adjacent: GraphPoint): GraphPoint[] {
     const point = port.transition.points[port.pointIndex];
     if (port.side === "top" || port.side === "bottom") {
-      const direction = port.side === "top" ? -1 : 1;
-      const y = point.y + direction * GRAPH_PHASE_PORT_ELBOW_DISTANCE;
-      const elbows = [{ x: adjacent.x, y }, { x: point.x, y }];
-      return port.kind === "outgoing" ? elbows.reverse() : elbows;
+      // Deslocar a rota no próprio corredor mantém a chegada vertical e elimina
+      // os pequenos ganchos que se cruzavam imediatamente acima do nó.
+      return [{ x: point.x, y: adjacent.y }];
     }
     const direction = port.side === "left" ? -1 : 1;
     const x = point.x + direction * GRAPH_PHASE_PORT_ELBOW_DISTANCE;
@@ -1120,12 +1130,51 @@ export class AppComponent {
     const distance = Math.hypot(to.x - from.x, to.y - from.y) || 1;
     return { x: (to.x - from.x) / distance, y: (to.y - from.y) / distance };
   }
-  private graphRouteClearsPhases(points: GraphPoint[], phases: GraphPhaseNode[], excludedStatuses: Set<string>): boolean {
+  private graphRouteClearsPhases(points: GraphPoint[], phases: GraphPhaseNode[], excludedStatuses: Set<string>, phaseRadius = GRAPH_PHASE_RADIUS): boolean {
     for (let index = 0; index < points.length - 1; index += 1) {
       for (const phase of phases) {
         if (excludedStatuses.has(phase.status)) continue;
-        if (this.graphDistanceToSegment({ x: phase.x, y: phase.y }, points[index], points[index + 1]) < GRAPH_PHASE_RADIUS + GRAPH_ROUTE_CLEARANCE) return false;
+        if (this.graphDistanceToSegment({ x: phase.x, y: phase.y }, points[index], points[index + 1]) < phaseRadius + GRAPH_ROUTE_CLEARANCE) return false;
       }
+    }
+    return true;
+  }
+  private graphRouteClearsLabels(points: GraphPoint[], phases: GraphPhaseNode[]): boolean {
+    return phases.every((phase) => {
+      const bounds = this.graphPhaseLabelBounds(phase);
+      return points.slice(1).every((point, index) => !this.graphSegmentIntersectsBounds(points[index], point, bounds));
+    });
+  }
+  private graphPhaseLabelBounds(phase: GraphPhaseNode): GraphBounds {
+    const longestLine = Math.max(...phase.labelLines.map((line) => line.length));
+    const halfWidth = longestLine * GRAPH_PHASE_LABEL_CHARACTER_WIDTH / 2 + GRAPH_PHASE_LABEL_PADDING;
+    return {
+      left: phase.x - halfWidth,
+      right: phase.x + halfWidth,
+      top: phase.y + GRAPH_PHASE_LABEL_OFFSET - GRAPH_PHASE_LABEL_FONT_SIZE - GRAPH_PHASE_LABEL_PADDING,
+      bottom: phase.y + GRAPH_PHASE_LABEL_OFFSET + (phase.labelLines.length - 1) * GRAPH_PHASE_LABEL_LINE_HEIGHT + GRAPH_PHASE_LABEL_PADDING,
+    };
+  }
+  private graphSegmentIntersectsBounds(start: GraphPoint, end: GraphPoint, bounds: GraphBounds): boolean {
+    const horizontal = end.x - start.x;
+    const vertical = end.y - start.y;
+    let minimum = 0;
+    let maximum = 1;
+    const boundaries: Array<[number, number]> = [
+      [-horizontal, start.x - bounds.left],
+      [horizontal, bounds.right - start.x],
+      [-vertical, start.y - bounds.top],
+      [vertical, bounds.bottom - start.y],
+    ];
+    for (const [direction, distance] of boundaries) {
+      if (direction === 0) {
+        if (distance < 0) return false;
+        continue;
+      }
+      const ratio = distance / direction;
+      if (direction < 0) minimum = Math.max(minimum, ratio);
+      else maximum = Math.min(maximum, ratio);
+      if (minimum > maximum) return false;
     }
     return true;
   }
@@ -1139,8 +1188,11 @@ export class AppComponent {
   private graphRouteLength(points: GraphPoint[]): number {
     return points.slice(1).reduce((length, point, index) => length + Math.hypot(point.x - points[index].x, point.y - points[index].y), 0);
   }
-  private graphRouteScore(points: GraphPoint[], occupiedRoutes: GraphPoint[][]): number {
-    return this.graphRouteLength(points) + this.graphRouteLanePenalty(points, occupiedRoutes);
+  private graphRouteScore(points: GraphPoint[], occupiedRoutes: GraphPoint[][], source: GraphPhaseNode, target: GraphPhaseNode): number {
+    const lowerEdge = Math.max(source.y, target.y);
+    const lowerDepth = Math.max(0, ...points.map((point) => point.y - lowerEdge));
+    const lowerRoutePenalty = lowerDepth === 0 ? 0 : 500 + lowerDepth * 4;
+    return this.graphRouteLength(points) + this.graphRouteLanePenalty(points, occupiedRoutes) + lowerRoutePenalty;
   }
   private graphRouteLanePenalty(points: GraphPoint[], occupiedRoutes: GraphPoint[][]): number {
     let penalty = 0;

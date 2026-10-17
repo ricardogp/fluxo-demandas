@@ -25,6 +25,16 @@ type TestableApp = AppComponent & {
     y: number;
   }>): void;
   graphDemandLaneOffsets(count: number): number[];
+  graphTransitionPoints(source: {
+    status: string; labelLines: string[]; color: string; countColor: string; activeCount: number; x: number; y: number;
+  }, target: {
+    status: string; labelLines: string[]; color: string; countColor: string; activeCount: number; x: number; y: number;
+  }, phases: Array<{
+    status: string; labelLines: string[]; color: string; countColor: string; activeCount: number; x: number; y: number;
+  }>, occupiedRoutes: Array<Array<{ x: number; y: number }>>): Array<{ x: number; y: number }>;
+  graphRouteClearsLabels(points: Array<{ x: number; y: number }>, phases: Array<{
+    status: string; labelLines: string[]; color: string; countColor: string; activeCount: number; x: number; y: number;
+  }>): boolean;
   calculateStatusMetrics(events: Array<{ demand: string; status: string; startedAt: Date; endedAt: Date; row: number }>, asOf: number): Map<string, {
     maxConcurrent: number;
     averageMs: number;
@@ -112,12 +122,12 @@ test("separa simetricamente chegada e saída que usam o topo de uma fase", () =>
 
   app.separateGraphPorts(transitions, phases);
 
-  assert.deepEqual(transitions[0].points.slice(-4), [{ x: 100, y: 60 }, { x: 100, y: 81 }, { x: 97.5, y: 81 }, { x: 97.5, y: 89 }]);
-  assert.deepEqual(transitions[1].points.slice(0, 4), [{ x: 102.5, y: 89 }, { x: 102.5, y: 81 }, { x: 100, y: 81 }, { x: 100, y: 60 }]);
+  assert.deepEqual(transitions[0].points.slice(-3), [{ x: 100, y: 60 }, { x: 102.5, y: 60 }, { x: 102.5, y: 86.25 }]);
+  assert.deepEqual(transitions[1].points.slice(0, 3), [{ x: 97.5, y: 86.25 }, { x: 97.5, y: 60 }, { x: 100, y: 60 }]);
   assert.equal((transitions[0].points.at(-1)!.x + transitions[1].points[0].x) / 2, 100);
-  assert.equal(transitions.flatMap((transition) => transition.points).some((point) => point.x === 100 && point.y === 89), false);
-  assert.match(transitions[0].path, /L 100 60 L 100 81 L 97.5 81 L 97.5 89$/);
-  assert.match(transitions[1].path, /^M 102.5 89 L 102.5 81 L 100 81 L 100 60/);
+  assert.equal(transitions.flatMap((transition) => transition.points).some((point) => point.x === 100 && point.y === 86.25), false);
+  assert.match(transitions[0].path, /L 100 60 L 102.5 60 L 102.5 86.25$/);
+  assert.match(transitions[1].path, /^M 97.5 86.25 L 97.5 60 L 100 60/);
 });
 
 test("mantém o trecho longo reto ao separar chegadas pelo lado esquerdo", () => {
@@ -131,9 +141,9 @@ test("mantém o trecho longo reto ao separar chegadas pelo lado esquerdo", () =>
 
   app.separateGraphPorts(transitions, phases);
 
-  assert.deepEqual(transitions[0].points, [{ x: 41, y: 100 }, { x: 81, y: 100 }, { x: 81, y: 97.5 }, { x: 89, y: 97.5 }]);
+  assert.deepEqual(transitions[0].points, [{ x: 41, y: 100 }, { x: 78.25, y: 100 }, { x: 78.25, y: 97.5 }, { x: 86.25, y: 97.5 }]);
   assert.doesNotMatch(transitions[0].path, /^M 41 100 L 41 97.5/);
-  assert.match(transitions[0].path, /L 81 100 L 81 97.5 L 89 97.5$/);
+  assert.match(transitions[0].path, /L 78.25 100 L 78.25 97.5 L 86.25 97.5$/);
 });
 
 test("separa entradas que chegam pelo mesmo lado de uma fase", () => {
@@ -149,10 +159,41 @@ test("separa entradas que chegam pelo mesmo lado de uma fase", () => {
 
   assert.deepEqual(transitions.map((transition) => transition.points.at(-1)!.x), [97.5, 102.5]);
   assert.deepEqual(transitions.map((transition) => transition.points.slice(-2)), [
-    [{ x: 97.5, y: 81 }, { x: 97.5, y: 89 }],
-    [{ x: 102.5, y: 81 }, { x: 102.5, y: 89 }],
+    [{ x: 97.5, y: 60 }, { x: 97.5, y: 86.25 }],
+    [{ x: 102.5, y: 60 }, { x: 102.5, y: 86.25 }],
   ]);
-  assert.equal(transitions.flatMap((transition) => transition.points).some((point) => point.x === 100 && point.y === 89), false);
+  assert.equal(transitions.flatMap((transition) => transition.points).some((point) => point.x === 100 && point.y === 86.25), false);
+});
+
+test("ordena as portas pela posição de chegada sem cruzar os segmentos finais", () => {
+  const app = new AppComponent() as TestableApp;
+  const phase = (status: string, x: number, y: number) => ({ status, labelLines: [status], color: "#889", activeCount: 0, x, y });
+  const phases = [phase("Z", 40, 30), phase("A", 80, 30), phase("Y", 120, 30), phase("B", 160, 30), phase("Destino", 100, 100)];
+  const transitions = [
+    { source: "Z", target: "Destino", color: "#789", count: 1, strokeWidth: 1, path: "", points: [{ x: 40, y: 30 }, { x: 40, y: 60 }, { x: 100, y: 89 }] },
+    { source: "A", target: "Destino", color: "#789", count: 1, strokeWidth: 1, path: "", points: [{ x: 80, y: 30 }, { x: 80, y: 60 }, { x: 100, y: 89 }] },
+    { source: "Y", target: "Destino", color: "#789", count: 1, strokeWidth: 1, path: "", points: [{ x: 120, y: 30 }, { x: 120, y: 60 }, { x: 100, y: 89 }] },
+    { source: "B", target: "Destino", color: "#789", count: 1, strokeWidth: 1, path: "", points: [{ x: 160, y: 30 }, { x: 160, y: 60 }, { x: 100, y: 89 }] },
+  ];
+
+  app.separateGraphPorts(transitions, phases);
+
+  assert.deepEqual(transitions.map((transition) => transition.points.at(-1)!.x), [92.5, 97.5, 102.5, 107.5]);
+  assert.ok(transitions.every((transition) => transition.points.at(-2)!.x === transition.points.at(-1)!.x));
+});
+
+test("desvia uma ligação vertical para não atravessar o rótulo do nó", () => {
+  const app = new AppComponent() as TestableApp;
+  const phase = (status: string, y: number) => ({ status, labelLines: [status], color: "#889", countColor: "#fff", activeCount: 0, x: 100, y });
+  const phases = [phase("Origem", 42), phase("Destino", 117)];
+
+  const points = app.graphTransitionPoints(phases[0], phases[1], phases, []);
+
+  assert.equal(points[0].y, phases[0].y);
+  assert.notEqual(points[0].x, phases[0].x);
+  assert.equal(points.at(-1)!.y, phases[1].y);
+  assert.notEqual(points.at(-1)!.x, phases[1].x);
+  assert.equal(app.graphRouteClearsLabels(points, phases), true);
 });
 
 test("distribui demandas na mesma ligação em faixas laterais", () => {
@@ -223,7 +264,7 @@ test("percorre etapas da mesma data em subpassos na tabela e no grafo", () => {
 });
 
 test("desvia uma ligação quando outra fase ocupa seu trajeto", () => {
-  const app = new AppComponent();
+  const app = new AppComponent() as TestableApp;
   app.events.set([
     { demandNumber: "DEM-SALTO", demandTitle: "Salto de fase", demandType: "Evolutiva", status: "Origem", startedAt: new Date(2026, 0, 1), endedAt: new Date(2026, 0, 3), row: 2 },
     { demandNumber: "DEM-SALTO", demandTitle: "Salto de fase", demandType: "Evolutiva", status: "Destino", startedAt: new Date(2026, 0, 4), endedAt: new Date(2026, 0, 5), row: 3 },
@@ -248,8 +289,10 @@ test("desvia uma ligação quando outra fase ocupa seu trajeto", () => {
   }, Number.POSITIVE_INFINITY);
 
   assert.ok(skippedTransition.points.length > 2);
-  assert.ok(skippedTransition.points.some((point) => Math.abs(point.y - intermediatePhase.y) >= 30));
-  assert.ok(shortestDistanceToIntermediate >= 30);
+  assert.ok(skippedTransition.points.some((point) => point.y < intermediatePhase.y));
+  assert.ok(skippedTransition.points.every((point) => point.y <= intermediatePhase.y));
+  assert.ok(shortestDistanceToIntermediate >= 32.75);
+  assert.equal(app.graphRouteClearsLabels(skippedTransition.points, graph.phases), true);
   assert.match(skippedTransition.path, /^M .* L /);
 });
 
