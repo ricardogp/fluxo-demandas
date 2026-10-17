@@ -35,12 +35,15 @@ test("o fluxo oferece abas para os formatos de tabela e grafo", () => {
   assert.match(template, /<button class="visualization-tab" \[class\.active\]="activeVisualization\(\) === 'graph'"[^>]*\(click\)="setVisualization\('graph'\)">Formato de grafo<\/button>/);
   assert.match(template, /<div class="visualization-panel graph-panel" id="graph-format-panel" role="tabpanel" aria-labelledby="graph-format-tab">/);
   assert.doesNotMatch(template, /circularGraph|circular-graph/);
-  assert.match(template, /<svg class="graph-canvas" \[attr\.viewBox\]="'0 0 1000 ' \+ graph\(\)\.height" role="img" aria-label="Fluxo das demandas por fase, distribuído em níveis">/);
+  assert.match(template, /<svg class="graph-canvas" \[class\.is-playing\]="playing\(\)" \[attr\.viewBox\]="'0 0 1000 ' \+ graph\(\)\.height" role="img" aria-label="Fluxo das demandas por fase, distribuído em níveis">/);
   assert.match(template, /<aside class="graph-legend" aria-label="Legenda das cores dos tipos de demanda">\s*<span class="graph-legend-title">Cores das demandas<\/span>\s*@for \(demandType of demandTypeOrder\(\); track demandType\)/);
   assert.match(template, /<i class="graph-legend-dot" \[style\.background\]="demandTypeColor\(demandType\)" aria-hidden="true"><\/i>\{\{ demandType \}\}/);
   assert.match(template, /<marker id="graph-arrow" markerWidth="4\.5" markerHeight="4\.5" refX="4" refY="2\.25" orient="auto" markerUnits="userSpaceOnUse">/);
-  assert.match(template, /<path class="graph-transition" \[attr\.d\]="transition\.path"[^>]*\[attr\.stroke-width\]="transition\.strokeWidth"[^>]*marker-end="url\(#graph-arrow\)">/);
+  assert.match(template, /<path class="graph-transition" \[class\.active\]="transition\.activeDemandCount > 0" \[attr\.d\]="transition\.path"[^>]*\[attr\.stroke-width\]="transition\.strokeWidth"[^>]*marker-end="url\(#graph-arrow\)">/);
   assert.match(template, /<circle class="graph-phase-node"[^>]*r="13\.75"><\/circle>/);
+  assert.match(template, /<circle class="graph-phase-load-ring" \[class\.warning\]="phase\.loadState === 'warning'" \[class\.critical\]="phase\.loadState === 'critical'"[^>]*r="17" aria-hidden="true"><\/circle>/);
+  assert.match(template, /<g class="graph-phase-icon" \[attr\.transform\]="'translate\('\s*\+\s*\(phase\.x \+ 9\) \+ ' ' \+ \(phase\.y - 9\) \+ '\)'" aria-hidden="true">/);
+  assert.match(template, /<path \[attr\.d\]="phase\.icon\.path"><\/path>/);
   assert.match(template, /<text class="graph-phase-count" \[attr\.x\]="phase\.x" \[attr\.y\]="phase\.y" \[attr\.fill\]="phase\.countColor">\{\{ phase\.activeCount \}\}<\/text>/);
   assert.match(template, /<circle class="graph-demand"[^>]*r="3\.5" tabindex="0"[^>]*\(pointerenter\)="showDemandHint\(\$event, demand\.item\)"[^>]*\(focusin\)="showDemandHint\(\$event, demand\.item\)"[^>]*\[attr\.aria-describedby\]="'demand-hint-' \+ demand\.number"/);
   assert.match(template, /<label class="demand-representation graph-demand-representation">Representação das demandas\s*<select \[value\]="graphDemandRepresentation\(\)" \(change\)="setGraphDemandRepresentation\(\$any\(\$event\.target\)\.value\)">/);
@@ -52,7 +55,7 @@ test("o fluxo oferece abas para os formatos de tabela e grafo", () => {
   assert.match(template, /<tspan \[attr\.x\]="phase\.x" \[attr\.dy\]="\$index === 0 \? 0 : 7">\{\{ line \}\}<\/tspan>/);
   assert.match(stylesheet, /\.visualization-tab\.active \{[^}]*border-bottom-color: #e5bb65;[^}]*color: #f1c970;/);
   assert.match(stylesheet, /\.graph-canvas {[^}]*min-height: 150px;[^}]*background: linear-gradient/);
-  assert.match(template, /<title>\{\{ phase\.status \}\} · \{\{ phase\.activeCount \}\} demanda\(s\) em andamento<\/title>/);
+  assert.match(template, /\{\{ phase\.loadState === 'critical' \? ' · carga crítica' : phase\.loadState === 'warning' \? ' · maior carga atual' : '' \}\}/);
   assert.match(stylesheet, /\.graph-phase-count { font-size: 7px; font-weight: 800; text-anchor: middle; dominant-baseline: central; \}/);
   assert.match(globalStylesheet, /\.graph-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin-top: 8px;/);
   assert.match(stylesheet, /\.graph-demand { cursor: pointer; \}/);
@@ -61,6 +64,9 @@ test("o fluxo oferece abas para os formatos de tabela e grafo", () => {
   assert.match(stylesheet, /\.graph-phase-node { r: 11px; fill-opacity: \.92; stroke-width: 1\.5px;/);
   assert.match(globalStylesheet, /\.graph-canvas \.graph-phase-node \{ r: 13\.75px; \}/);
   assert.match(stylesheet, /\.graph-transition \{ fill: none; stroke-linecap: round; stroke-linejoin: round; stroke-opacity: \.62; \}/);
+  assert.match(globalStylesheet, /\.graph-transition\.active \{ stroke: #d99e3f;[^}]*drop-shadow/);
+  assert.match(globalStylesheet, /\.graph-phase-load-ring\.critical \{ stroke: #c84e5b;[^}]*stroke-width: 1\.5px;/);
+  assert.match(globalStylesheet, /@media \(prefers-reduced-motion: no-preference\) \{[^}]*\.graph-canvas\.is-playing \.graph-transition\.active/);
 });
 
 test("os filtros exibem checkboxes em até três linhas sob demanda", () => {

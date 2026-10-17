@@ -96,6 +96,7 @@ test("infere as ligações do grafo e move a demanda pelo tempo da fase de orige
   assert.ok(graphAtStart.transitions.every((transition) => transition.color === "#7d8793"));
   assert.equal(discoveryToDevelopment?.points.length, 2);
   assert.equal(discoveryToDevelopment?.strokeWidth, 1);
+  assert.equal(discoveryToDevelopment?.activeDemandCount, graphAtStart.demands.filter((demand) => demand.source === "Descoberta" && demand.target === "Desenvolvimento").length);
   assert.equal(movingDemandAtStart?.source, "Descoberta");
   assert.equal(movingDemandAtStart?.target, "Desenvolvimento");
   assert.equal(movingDemandAtStart?.item.event.status, "Descoberta");
@@ -229,6 +230,20 @@ test("escurece os nós do grafo conforme a carga visível da fase", () => {
   assert.equal(atendimento?.color, "hsl(215 10% 88.0%)");
   assert.ok(lightness(triagem?.color ?? "") < lightness(entrega?.color ?? ""));
   assert.ok(lightness(entrega?.color ?? "") < lightness(atendimento?.color ?? ""));
+  assert.equal(triagem?.loadState, "warning");
+  assert.equal(entrega?.loadState, "active");
+  assert.equal(atendimento?.loadState, "empty");
+});
+
+test("atribui ícones semânticos e preserva rótulos longos do grafo", () => {
+  const app = new AppComponent();
+
+  assert.equal(app.graphPhaseIcon("Aberta").name, "Entrada");
+  assert.equal(app.graphPhaseIcon("Em Análise Técnica").name, "Análise");
+  assert.equal(app.graphPhaseIcon("Aguardando Homologação").name, "Validação");
+  assert.equal(app.graphPhaseIcon("Implantação Autorizada").name, "Implantação");
+  assert.equal(app.graphPhaseLoadState(3, 3), "critical");
+  assert.deepEqual(app.graphLabelLines("Homologada Aguardando Autorização"), ["Homologada", "Aguardando", "Autorização"]);
 });
 
 test("percorre etapas da mesma data em subpassos na tabela e no grafo", () => {

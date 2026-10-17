@@ -68,10 +68,19 @@ interface GraphPhaseNode {
   labelLines: string[];
   color: string;
   countColor: string;
+  icon: GraphPhaseIcon;
+  loadState: GraphPhaseLoadState;
   activeCount: number;
   x: number;
   y: number;
 }
+
+interface GraphPhaseIcon {
+  name: string;
+  path: string;
+}
+
+type GraphPhaseLoadState = "empty" | "active" | "warning" | "critical";
 
 interface GraphPoint {
   x: number;
@@ -91,6 +100,7 @@ interface GraphTransition {
   color: string;
   count: number;
   strokeWidth: number;
+  activeDemandCount: number;
   path: string;
   points: GraphPoint[];
 }
@@ -168,6 +178,16 @@ const GRAPH_PHASE_PORT_SEPARATION = 5;
 const GRAPH_PHASE_PORT_ELBOW_DISTANCE = 8;
 const GRAPH_DEMAND_LANE_SEPARATION = 9;
 const GRAPH_TRANSITION_COLOR = "#7d8793";
+const GRAPH_PHASE_ICONS: Record<string, GraphPhaseIcon> = {
+  inbox: { name: "Entrada", path: "M-4-1h8v5h-8z M-4-1l1.5-2h5L4-1 M-1 1h2" },
+  analysis: { name: "Análise", path: "M-.5-3a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5 M1.5 1.5 4 4" },
+  approval: { name: "Aprovação", path: "M-4 0-1 3 4-3" },
+  service: { name: "Atendimento", path: "M-4 1v-2a4 4 0 0 1 8 0v2 M-4 0h2v3h-2z M4 0H2v3h2z M2 3H0" },
+  validation: { name: "Validação", path: "M-3-3h6v7h-6z M-1-4h2v2 M-1 .5l1 1 2-2" },
+  deployment: { name: "Implantação", path: "M0-4c2 1 3 3 3 5L1 3-1 1c0-2 1-4 3-5z M-1 3-3 4l1-3 M1 3l2 1-1-3" },
+  completed: { name: "Concluída", path: "M-3 4v-8 M-3-3h5L.5-1 2 1h-5" },
+  flow: { name: "Etapa", path: "M-4 0h7 M1-3l3 3-3 3" },
+};
 const DAY_IN_MS = 86_400_000;
 const TIMELINE_SLIDER_MAXIMUM = 10_000;
 
@@ -269,6 +289,8 @@ export class AppComponent {
         labelLines: this.graphLabelLines(status),
         color: this.graphPhaseLoadColor(activeCount, maximumActiveCount),
         countColor: this.graphPhaseCountColor(activeCount, maximumActiveCount),
+        icon: this.graphPhaseIcon(status),
+        loadState: this.graphPhaseLoadState(activeCount, maximumActiveCount),
         activeCount,
         x,
         y: GRAPH_TOP_PADDING + level * GRAPH_LEVEL_GAP,
@@ -290,13 +312,23 @@ export class AppComponent {
         color: GRAPH_TRANSITION_COLOR,
         count,
         strokeWidth: GRAPH_TRANSITION_STROKE_WIDTH,
+        activeDemandCount: 0,
         path: this.graphPath(points),
         points,
       };
     });
     this.separateGraphPorts(transitions, graphPhases);
     const transitionByRoute = new Map(transitions.map((transition) => [`${transition.source}\u0000${transition.target}`, transition]));
-    return { height: graphHeight, phases: graphPhases, transitions, demands: this.graphDemandNodes(phaseByStatus, transitionByRoute) };
+    const demands = this.graphDemandNodes(phaseByStatus, transitionByRoute);
+    const demandsByRoute = new Map<string, number>();
+    for (const demand of demands) {
+      const route = `${demand.source}\u0000${demand.target}`;
+      demandsByRoute.set(route, (demandsByRoute.get(route) ?? 0) + 1);
+    }
+    for (const transition of transitions) {
+      transition.activeDemandCount = demandsByRoute.get(`${transition.source}\u0000${transition.target}`) ?? 0;
+    }
+    return { height: graphHeight, phases: graphPhases, transitions, demands };
   });
 
   readonly activeCount = computed(() => [...this.visibleActiveByStatus().entries()]
@@ -417,6 +449,23 @@ export class AppComponent {
   graphPhaseCountColor(activeCount: number, maximumActiveCount: number): string {
     const intensity = activeCount === 0 ? 0 : Math.sqrt(activeCount / Math.max(1, maximumActiveCount));
     return intensity > .55 ? "#f7f9fc" : "#354254";
+  }
+  graphPhaseLoadState(activeCount: number, maximumActiveCount: number): GraphPhaseLoadState {
+    if (activeCount === 0) return "empty";
+    if (activeCount === maximumActiveCount && activeCount >= 3) return "critical";
+    if (activeCount === maximumActiveCount) return "warning";
+    return "active";
+  }
+  graphPhaseIcon(status: string): GraphPhaseIcon {
+    const normalized = status.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLocaleLowerCase("pt-BR");
+    if (/conclu|entreg|encerr/.test(normalized)) return GRAPH_PHASE_ICONS["completed"];
+    if (/implanta|public/.test(normalized)) return GRAPH_PHASE_ICONS["deployment"];
+    if (/homolog|valid|test/.test(normalized)) return GRAPH_PHASE_ICONS["validation"];
+    if (/atend/.test(normalized)) return GRAPH_PHASE_ICONS["service"];
+    if (/aprova/.test(normalized)) return GRAPH_PHASE_ICONS["approval"];
+    if (/analise|tecnica|triagem/.test(normalized)) return GRAPH_PHASE_ICONS["analysis"];
+    if (/abert|entrada|descoberta/.test(normalized)) return GRAPH_PHASE_ICONS["inbox"];
+    return GRAPH_PHASE_ICONS["flow"];
   }
 
   trackByNumber(_index: number, item: ActiveDemand): string { return item.number; }
@@ -1025,16 +1074,19 @@ export class AppComponent {
     }
     return visits;
   }
-  private graphLabelLines(status: string): string[] {
+  graphLabelLines(status: string): string[] {
     const maximumLineLength = 18;
-    const words = status.split(/\s+/).flatMap((word) => word.length > maximumLineLength ? [word.slice(0, maximumLineLength - 1) + "…"] : [word]);
+    const words = status.split(/\s+/).flatMap((word) =>
+      word.length > maximumLineLength
+        ? word.match(new RegExp(`.{1,${maximumLineLength}}`, "g")) ?? [word]
+        : [word],
+    );
     const lines: string[] = [];
     for (const word of words) {
       const current = lines.at(-1);
       if (current && `${current} ${word}`.length <= maximumLineLength) lines[lines.length - 1] = `${current} ${word}`;
       else lines.push(word);
     }
-    if (lines.length <= 2) return lines;
-    return [lines[0], `${lines.slice(1).join(" ").slice(0, maximumLineLength - 1)}…`];
+    return lines;
   }
 }
