@@ -44,6 +44,11 @@ test("o fluxo oferece abas para os formatos de tabela, grafo e grafo circular", 
   assert.match(template, /<circle class="graph-phase-node"[^>]*r="13\.75"><\/circle>/);
   assert.match(template, /<text class="graph-phase-count" \[attr\.x\]="phase\.x" \[attr\.y\]="phase\.y" \[attr\.fill\]="phase\.countColor">\{\{ phase\.activeCount \}\}<\/text>/);
   assert.match(template, /<circle class="graph-demand"[^>]*r="3\.5" tabindex="0"[^>]*\(pointerenter\)="showDemandHint\(\$event, demand\.item\)"[^>]*\(focusin\)="showDemandHint\(\$event, demand\.item\)"[^>]*\[attr\.aria-describedby\]="'demand-hint-' \+ demand\.number"/);
+  assert.match(template, /<label class="demand-representation graph-demand-representation">Marcadores em movimento\s*<select \[value\]="graphDemandRepresentation\(\)" \(change\)="setGraphDemandRepresentation\(\$any\(\$event\.target\)\.value\)">/);
+  assert.match(template, /<option value="circle">Círculo colorido<\/option>/);
+  assert.match(template, /<g class="graph-demand-label" tabindex="0"[^>]*\(pointerenter\)="showDemandHint\(\$event, demand\.item\)"[^>]*\(focusin\)="showDemandHint\(\$event, demand\.item\)"/);
+  assert.match(template, /<rect \[attr\.x\]="demand\.x - graphDemandLabelWidth\(demand\.number\) \/ 2" \[attr\.y\]="demand\.y - 6" \[attr\.width\]="graphDemandLabelWidth\(demand\.number\)" height="12" \[attr\.stroke\]="demand\.color"><\/rect>/);
+  assert.match(template, /<text \[attr\.x\]="demand\.x" \[attr\.y\]="demand\.y">\{\{ demand\.number \}\}<\/text>/);
   assert.match(template, /<text class="graph-phase-label" \[attr\.x\]="phase\.x" \[attr\.y\]="phase\.y \+ 25">/);
   assert.match(template, /<tspan \[attr\.x\]="phase\.x" \[attr\.dy\]="\$index === 0 \? 0 : 7">\{\{ line \}\}<\/tspan>/);
   assert.match(stylesheet, /\.visualization-tab\.active \{[^}]*border-bottom-color: #e5bb65;[^}]*color: #f1c970;/);
@@ -52,6 +57,8 @@ test("o fluxo oferece abas para os formatos de tabela, grafo e grafo circular", 
   assert.match(stylesheet, /\.graph-phase-count { font-size: 7px; font-weight: 800; text-anchor: middle; dominant-baseline: central; \}/);
   assert.match(globalStylesheet, /\.graph-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin-top: 8px;/);
   assert.match(stylesheet, /\.graph-demand { cursor: pointer; \}/);
+  assert.match(globalStylesheet, /\.graph-demand-label rect \{ fill: #202231; stroke-width: 1px; \}/);
+  assert.match(globalStylesheet, /\.graph-demand-label text \{[^}]*font-size: 6px;[^}]*text-anchor: middle;/);
   assert.match(stylesheet, /\.graph-phase-node { r: 11px; fill-opacity: \.92; stroke-width: 1\.5px;/);
   assert.match(globalStylesheet, /\.graph-canvas:not\(\.circular-graph-canvas\) \.graph-phase-node \{ r: 13\.75px; \}/);
   assert.match(globalStylesheet, /\.circular-graph-canvas \.graph-phase-node \{ r: 11px; \}/);

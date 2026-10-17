@@ -146,6 +146,12 @@
     } @else if (activeVisualization() === 'graph') {
       <div class="visualization-panel graph-panel" id="graph-format-panel" role="tabpanel" aria-labelledby="graph-format-tab">
         <p class="graph-description">As fases são ordenadas da esquerda para a direita e passam ao próximo nível somente quando não cabem sem sobreposição. O cinza dos nós indica a carga atual: quanto mais escuro, mais demandas estão na fase. As ligações têm espessura uniforme; os desvios preservam os rótulos, preferem corredores acima dos nós e usam outro nível quando uma faixa já está ocupada. Os pontos coloridos percorrem cada ligação durante a permanência na fase de origem. Mudanças registradas no mesmo dia avançam em sequência, conforme a ordem das linhas.</p>
+        <label class="demand-representation graph-demand-representation">Marcadores em movimento
+          <select [value]="graphDemandRepresentation()" (change)="setGraphDemandRepresentation($any($event.target).value)">
+            <option value="circle">Círculo colorido</option>
+            <option value="number">Número da demanda</option>
+          </select>
+        </label>
         <svg class="graph-canvas" [attr.viewBox]="'0 0 1000 ' + graph().height" role="img" aria-label="Fluxo das demandas por fase, distribuído em níveis">
           <defs>
             <marker id="graph-arrow" markerWidth="4.5" markerHeight="4.5" refX="4" refY="2.25" orient="auto" markerUnits="userSpaceOnUse">
@@ -170,9 +176,17 @@
             </g>
           }
           @for (demand of graph().demands; track demand.number) {
-            <circle class="graph-demand" [attr.cx]="demand.x" [attr.cy]="demand.y" [attr.fill]="demand.color" r="3.5" tabindex="0" (pointerenter)="showDemandHint($event, demand.item)" (pointerleave)="hideDemandHint()" (focusin)="showDemandHint($event, demand.item)" (focusout)="hideDemandHint()" [attr.aria-describedby]="'demand-hint-' + demand.number" [attr.aria-label]="'Demanda ' + demand.number + ': ' + demand.title">
-              <title>{{ demand.number }} · {{ demand.title }} · {{ demand.source }}{{ demand.target ? ' → ' + demand.target : '' }} · {{ demand.progress | number:'1.0-0' }}%</title>
-            </circle>
+            @if (graphDemandRepresentation() === 'circle') {
+              <circle class="graph-demand" [attr.cx]="demand.x" [attr.cy]="demand.y" [attr.fill]="demand.color" r="3.5" tabindex="0" (pointerenter)="showDemandHint($event, demand.item)" (pointerleave)="hideDemandHint()" (focusin)="showDemandHint($event, demand.item)" (focusout)="hideDemandHint()" [attr.aria-describedby]="'demand-hint-' + demand.number" [attr.aria-label]="'Demanda ' + demand.number + ': ' + demand.title">
+                <title>{{ demand.number }} · {{ demand.title }} · {{ demand.source }}{{ demand.target ? ' → ' + demand.target : '' }} · {{ demand.progress | number:'1.0-0' }}%</title>
+              </circle>
+            } @else {
+              <g class="graph-demand-label" tabindex="0" (pointerenter)="showDemandHint($event, demand.item)" (pointerleave)="hideDemandHint()" (focusin)="showDemandHint($event, demand.item)" (focusout)="hideDemandHint()" [attr.aria-describedby]="'demand-hint-' + demand.number" [attr.aria-label]="'Demanda ' + demand.number + ': ' + demand.title">
+                <rect [attr.x]="demand.x - graphDemandLabelWidth(demand.number) / 2" [attr.y]="demand.y - 6" [attr.width]="graphDemandLabelWidth(demand.number)" height="12" [attr.stroke]="demand.color"></rect>
+                <text [attr.x]="demand.x" [attr.y]="demand.y">{{ demand.number }}</text>
+                <title>{{ demand.number }} · {{ demand.title }} · {{ demand.source }}{{ demand.target ? ' → ' + demand.target : '' }} · {{ demand.progress | number:'1.0-0' }}%</title>
+              </g>
+            }
           }
         </svg>
         <aside class="graph-legend" aria-label="Legenda das cores dos tipos de demanda">

@@ -493,6 +493,21 @@ test("alterna a representação da demanda sem mudar o formato da visualização
   assert.equal(app.demandRepresentation(), "detailedCard");
 });
 
+test("alterna o marcador no grafo sem alterar tabela ou grafo circular", () => {
+  const app = new AppComponent();
+
+  assert.equal(app.graphDemandRepresentation(), "circle");
+  assert.equal(app.graphDemandLabelWidth("12"), 16);
+  assert.equal(app.graphDemandLabelWidth("5301188"), 37.5);
+  assert.equal(app.graphDemandLabelWidth("demanda-com-identificador-extenso"), 44);
+  app.setGraphDemandRepresentation("number");
+  assert.equal(app.graphDemandRepresentation(), "number");
+  assert.equal(app.demandRepresentation(), "detailedCard");
+  assert.equal(app.activeVisualization(), "table");
+  app.setVisualization("circularGraph");
+  assert.equal(app.graphDemandRepresentation(), "number");
+});
+
 test("o cursor pode retornar ao início ao ser arrastado", () => {
   const app = new AppComponent();
   app.scrub({ target: { value: "10000" } } as unknown as Event);
