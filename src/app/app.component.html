@@ -164,9 +164,6 @@
           }
           @for (phase of graph().phases; track phase.status) {
             <g class="graph-phase">
-              @if (phase.loadState !== 'empty') {
-                <circle class="graph-phase-load-ring" [class.warning]="phase.loadState === 'warning'" [class.critical]="phase.loadState === 'critical'" [attr.cx]="phase.x" [attr.cy]="phase.y" r="17" aria-hidden="true"></circle>
-              }
               <circle class="graph-phase-node" [attr.cx]="phase.x" [attr.cy]="phase.y" [attr.fill]="phase.color" [attr.stroke]="phase.color" r="13.75"></circle>
               <text class="graph-phase-count" [attr.x]="phase.x" [attr.y]="phase.y" [attr.fill]="phase.countColor">{{ phase.activeCount }}</text>
               <g class="graph-phase-icon" [attr.transform]="'translate(' + (phase.x + 9) + ' ' + (phase.y - 9) + ')'" aria-hidden="true">

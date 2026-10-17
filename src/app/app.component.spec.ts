@@ -220,7 +220,6 @@ test("escurece os nós do grafo conforme a carga visível da fase", () => {
   const triagem = phases.find((phase) => phase.status === "Triagem");
   const entrega = phases.find((phase) => phase.status === "Entrega");
   const atendimento = phases.find((phase) => phase.status === "Atendimento");
-  const lightness = (color: string) => Number(color.match(/(\d+\.\d+)%\)$/)?.[1]);
 
   assert.equal(triagem?.activeCount, 2);
   assert.equal(entrega?.activeCount, 1);
@@ -228,8 +227,9 @@ test("escurece os nós do grafo conforme a carga visível da fase", () => {
   assert.equal(triagem?.countColor, "#f7f9fc");
   assert.equal(atendimento?.countColor, "#354254");
   assert.equal(atendimento?.color, "hsl(215 10% 88.0%)");
-  assert.ok(lightness(triagem?.color ?? "") < lightness(entrega?.color ?? ""));
-  assert.ok(lightness(entrega?.color ?? "") < lightness(atendimento?.color ?? ""));
+  assert.equal(triagem?.color, "#d39a39");
+  assert.equal(entrega?.color, "hsl(215 10% 61.8%)");
+  assert.equal(atendimento?.color, "hsl(215 10% 88.0%)");
   assert.equal(triagem?.loadState, "warning");
   assert.equal(entrega?.loadState, "active");
   assert.equal(atendimento?.loadState, "empty");
@@ -243,6 +243,8 @@ test("atribui ícones semânticos e preserva rótulos longos do grafo", () => {
   assert.equal(app.graphPhaseIcon("Aguardando Homologação").name, "Validação");
   assert.equal(app.graphPhaseIcon("Implantação Autorizada").name, "Implantação");
   assert.equal(app.graphPhaseLoadState(3, 3), "critical");
+  assert.equal(app.graphPhaseLoadColor(1, 1), "#d39a39");
+  assert.equal(app.graphPhaseLoadColor(3, 3), "#c84e5b");
   assert.deepEqual(app.graphLabelLines("Homologada Aguardando Autorização"), ["Homologada", "Aguardando", "Autorização"]);
 });
 

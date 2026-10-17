@@ -41,7 +41,7 @@ test("o fluxo oferece abas para os formatos de tabela e grafo", () => {
   assert.match(template, /<marker id="graph-arrow" markerWidth="4\.5" markerHeight="4\.5" refX="4" refY="2\.25" orient="auto" markerUnits="userSpaceOnUse">/);
   assert.match(template, /<path class="graph-transition" \[class\.active\]="transition\.activeDemandCount > 0" \[attr\.d\]="transition\.path"[^>]*\[attr\.stroke-width\]="transition\.strokeWidth"[^>]*marker-end="url\(#graph-arrow\)">/);
   assert.match(template, /<circle class="graph-phase-node"[^>]*r="13\.75"><\/circle>/);
-  assert.match(template, /<circle class="graph-phase-load-ring" \[class\.warning\]="phase\.loadState === 'warning'" \[class\.critical\]="phase\.loadState === 'critical'"[^>]*r="17" aria-hidden="true"><\/circle>/);
+  assert.doesNotMatch(template, /graph-phase-load-ring/);
   assert.match(template, /<g class="graph-phase-icon" \[attr\.transform\]="'translate\('\s*\+\s*\(phase\.x \+ 9\) \+ ' ' \+ \(phase\.y - 9\) \+ '\)'" aria-hidden="true">/);
   assert.match(template, /<path \[attr\.d\]="phase\.icon\.path"><\/path>/);
   assert.match(template, /<text class="graph-phase-count" \[attr\.x\]="phase\.x" \[attr\.y\]="phase\.y" \[attr\.fill\]="phase\.countColor">\{\{ phase\.activeCount \}\}<\/text>/);
@@ -65,7 +65,7 @@ test("o fluxo oferece abas para os formatos de tabela e grafo", () => {
   assert.match(globalStylesheet, /\.graph-canvas \.graph-phase-node \{ r: 13\.75px; \}/);
   assert.match(stylesheet, /\.graph-transition \{ fill: none; stroke-linecap: round; stroke-linejoin: round; stroke-opacity: \.62; \}/);
   assert.match(globalStylesheet, /\.graph-transition\.active \{ stroke: #d99e3f;[^}]*drop-shadow/);
-  assert.match(globalStylesheet, /\.graph-phase-load-ring\.critical \{ stroke: #c84e5b;[^}]*stroke-width: 1\.5px;/);
+  assert.doesNotMatch(globalStylesheet, /graph-phase-load-ring/);
   assert.match(globalStylesheet, /@media \(prefers-reduced-motion: no-preference\) \{[^}]*\.graph-canvas\.is-playing \.graph-transition\.active/);
 });
 

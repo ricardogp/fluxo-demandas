@@ -442,6 +442,9 @@ export class AppComponent {
     return colors[this.statusOrder().indexOf(status) % colors.length] ?? colors[0];
   }
   graphPhaseLoadColor(activeCount: number, maximumActiveCount: number): string {
+    const loadState = this.graphPhaseLoadState(activeCount, maximumActiveCount);
+    if (loadState === "critical") return "#c84e5b";
+    if (loadState === "warning") return "#d39a39";
     const intensity = activeCount === 0 ? 0 : Math.sqrt(activeCount / Math.max(1, maximumActiveCount));
     const lightness = 88 - intensity * 37;
     return `hsl(215 10% ${lightness.toFixed(1)}%)`;
