@@ -246,6 +246,10 @@ test("sinaliza a carga e preserva rótulos longos do grafo", () => {
   assert.equal(app.graphPhaseLoadColor(4), "#d39a39");
   assert.equal(app.graphPhaseLoadColor(6), "#c84e5b");
   assert.equal(app.graphPhaseLoadColor(8), "#7856a8");
+  for (const status of ["Entregue", "Em encerramento", "Aberta", "Cancelada", "Concluída"]) {
+    assert.equal(app.graphPhaseLoadState(8, status), "neutral");
+    assert.equal(app.graphPhaseLoadColor(8, status), "hsl(215 10% 51.0%)");
+  }
   assert.deepEqual(app.graphLabelLines("Homologada Aguardando Autorização"), ["Homologada", "Aguardando", "Autorização"]);
 });
 

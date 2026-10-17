@@ -172,6 +172,7 @@ const GRAPH_PHASE_PORT_SEPARATION = 5;
 const GRAPH_PHASE_PORT_ELBOW_DISTANCE = 8;
 const GRAPH_DEMAND_LANE_SEPARATION = 9;
 const GRAPH_TRANSITION_COLOR = "#7d8793";
+const GRAPH_ALWAYS_NEUTRAL_PHASES = new Set(["aberta", "cancelada", "concluida", "em encerramento", "entregue"]);
 const DAY_IN_MS = 86_400_000;
 const TIMELINE_SLIDER_MAXIMUM = 10_000;
 
@@ -270,9 +271,9 @@ export class AppComponent {
       return {
         status,
         labelLines: this.graphLabelLines(status),
-        color: this.graphPhaseLoadColor(activeCount),
+        color: this.graphPhaseLoadColor(activeCount, status),
         countColor: this.graphPhaseCountColor(activeCount),
-        loadState: this.graphPhaseLoadState(activeCount),
+        loadState: this.graphPhaseLoadState(activeCount, status),
         activeCount,
         x,
         y: GRAPH_TOP_PADDING + level * GRAPH_LEVEL_GAP,
@@ -423,24 +424,29 @@ export class AppComponent {
     const colors = ["#6f77dc", "#d79b42", "#3aa888", "#d76370", "#4e91c7", "#8a6ec5"];
     return colors[this.statusOrder().indexOf(status) % colors.length] ?? colors[0];
   }
-  graphPhaseLoadColor(activeCount: number): string {
-    const loadState = this.graphPhaseLoadState(activeCount);
+  graphPhaseLoadColor(activeCount: number, status = ""): string {
+    const loadState = this.graphPhaseLoadState(activeCount, status);
     if (loadState === "overloaded") return "#7856a8";
     if (loadState === "critical") return "#c84e5b";
     if (loadState === "warning") return "#d39a39";
-    const intensity = activeCount === 0 ? 0 : Math.sqrt(activeCount / 3);
+    const intensity = activeCount === 0 ? 0 : Math.sqrt(Math.min(activeCount, 3) / 3);
     const lightness = 88 - intensity * 37;
     return `hsl(215 10% ${lightness.toFixed(1)}%)`;
   }
   graphPhaseCountColor(activeCount: number): string {
     return activeCount === 3 || activeCount >= 6 ? "#f7f9fc" : "#354254";
   }
-  graphPhaseLoadState(activeCount: number): GraphPhaseLoadState {
+  graphPhaseLoadState(activeCount: number, status = ""): GraphPhaseLoadState {
     if (activeCount === 0) return "empty";
+    if (this.graphPhaseMustStayNeutral(status)) return "neutral";
     if (activeCount >= 8) return "overloaded";
     if (activeCount >= 6) return "critical";
     if (activeCount >= 4) return "warning";
     return "neutral";
+  }
+  private graphPhaseMustStayNeutral(status: string): boolean {
+    const normalized = status.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLocaleLowerCase("pt-BR").trim().replace(/\s+/g, " ");
+    return GRAPH_ALWAYS_NEUTRAL_PHASES.has(normalized);
   }
   trackByNumber(_index: number, item: ActiveDemand): string { return item.number; }
   demandDurations(item: ActiveDemand): StatusDuration[] {
