@@ -7,7 +7,6 @@ import { ActiveDemand, GraphDemandRepresentation, GraphView } from "../domain/de
   selector: "fd-flow-graph",
   imports: [DecimalPipe],
   template: `
-    <p class="graph-description">As fases são ordenadas da esquerda para a direita e passam ao próximo nível somente quando não cabem sem sobreposição. O cinza dos nós indica a carga atual: quanto mais escuro, mais demandas estão na fase. Cada ligação tem uma cor própria; a demanda em trânsito recebe essa mesma cor no contorno, enquanto seu preenchimento continua identificando o tipo. Os desvios preservam os rótulos, preferem corredores acima dos nós e usam outro nível quando uma faixa já está ocupada. Mudanças registradas no mesmo dia avançam em sequência, conforme a ordem das linhas.</p>
     <label class="demand-representation graph-demand-representation">Representação das demandas
       <select [value]="graphDemandRepresentation()" (change)="setGraphDemandRepresentation.emit($any($event.target).value)"><option value="circle">Círculo colorido</option><option value="number">Número da demanda</option></select>
     </label>
