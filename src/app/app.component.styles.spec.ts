@@ -56,7 +56,7 @@ test("a linha do tempo e o grafo preservam contratos acessíveis", () => {
 test("o estilo compartilhado preserva a geometria compacta", () => {
   assert.match(globalStylesheet, /\.app-shell \.flow \{ grid-auto-columns: 150px; \}/);
   assert.match(globalStylesheet, /\.app-shell \.lane \{ min-width: 150px; \}/);
-  assert.match(globalStylesheet, /\.app-shell \.lane-header \{ height: auto; min-height: 145px; \}/);
+  assert.match(globalStylesheet, /\.app-shell \.lane-header \{ height: auto; min-height: 112px; \}/);
   assert.match(globalStylesheet, /\.app-shell \.lane-statistics \{ grid-template-columns: repeat\(3, minmax\(0, 1fr\)\); \}/);
   assert.match(stylesheet, /\.lane-content \{[^}]*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\);/);
   assert.match(stylesheet, /\.time-control \{ margin: 0 0 12px; padding: 10px 0;/);
