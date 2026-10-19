@@ -60,4 +60,6 @@ test("o estilo compartilhado preserva a geometria compacta", () => {
   assert.match(stylesheet, /\.graph-phase-count \{ font-size: 7px;/);
   assert.match(globalStylesheet, /\.app-shell \.demand-card \{ padding: 7px; \}/);
   assert.match(globalStylesheet, /\.app-shell \.card-date-range \{ margin-inline: auto; text-align: center; \}/);
+  assert.match(globalStylesheet, /\.app-shell \.demand-card h3 \{ font-size: 11px; font-weight: 400;[^}]*text-overflow: clip;[^}]*white-space: normal; \}/);
+  assert.match(globalStylesheet, /\.demand-card\.demand-number h3 \{[^}]*font-weight: 400;/);
 });
