@@ -4,6 +4,7 @@ import test from "node:test";
 import "@angular/compiler";
 
 import { AppComponent } from "./app.component";
+import { SpreadsheetImporter } from "./services/spreadsheet-importer";
 
 type TestableApp = AppComponent & {
   parseRows(rows: Array<Record<string, unknown>>): Array<{ demandNumber: string; demandTitle: string; demandType: string; status: string; startedAt: Date; endedAt: Date }>;
@@ -44,8 +45,8 @@ type TestableApp = AppComponent & {
 };
 
 test("lê cabeçalhos normalizados e datas brasileiras", () => {
-  const app = new AppComponent() as TestableApp;
-  const events = app.parseRows([{
+  const importer = new SpreadsheetImporter();
+  const events = importer.parseRows([{
     "Número da demanda": "DEM-200",
     "Título da demanda": "Acesso por SSO",
     "Tipo de demanda": "Evolutiva",
@@ -63,8 +64,8 @@ test("lê cabeçalhos normalizados e datas brasileiras", () => {
 });
 
 test("atribui Sem tipo quando a planilha não tem a coluna opcional", () => {
-  const app = new AppComponent() as TestableApp;
-  const events = app.parseRows([{
+  const importer = new SpreadsheetImporter();
+  const events = importer.parseRows([{
     "Número da demanda": "DEM-201",
     "Título da demanda": "Acesso por SSO",
     "Situação": "Desenvolvimento",

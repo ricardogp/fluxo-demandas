@@ -1,114 +1,18 @@
-import { DecimalPipe } from "@angular/common";
-import { Component, computed, signal } from "@angular/core";
-import * as XLSX from "xlsx";
-
-interface DemandEvent {
-  demandNumber: string;
-  demandTitle: string;
-  demandType: string;
-  status: string;
-  startedAt: Date;
-  endedAt: Date;
-  row: number;
-}
-
-// Mantém o período original para métricas e cria uma escala independente para
-// percorrer, em ordem, etapas que a planilha registrou na mesma data.
-interface TimelineEvent extends DemandEvent {
-  timelineStartedAt: Date;
-  timelineEndedAt: Date;
-  hasSameDaySequence: boolean;
-  usesLogicalTime: boolean;
-}
-
-interface DemandHistory {
-  number: string;
-  title: string;
-  demandType: string;
-  events: TimelineEvent[];
-}
-
-interface ActiveDemand {
-  number: string;
-  title: string;
-  demandType: string;
-  event: TimelineEvent;
-  events: TimelineEvent[];
-  progress: number;
-}
-
-interface StatusDuration {
-  status: string;
-  durationMs: number;
-}
-
-interface ActiveHint {
-  item: ActiveDemand;
-  x: number;
-  y: number;
-  below: boolean;
-}
-
-interface PhaseHint {
-  status: string;
-  items: ActiveDemand[];
-  x: number;
-  y: number;
-  below: boolean;
-}
-
-interface StatusMetrics {
-  maxConcurrent: number;
-  averageMs: number;
-  p90Ms: number;
-  p95Ms: number;
-}
-
-interface PhaseVisit {
-  status: string;
-  startedAt: Date;
-  endedAt: Date;
-  usesLogicalTime: boolean;
-}
-
-interface GraphPhaseNode {
-  status: string;
-  labelLines: string[];
-  color: string;
-  countColor: string;
-  loadState: GraphPhaseLoadState;
-  activeCount: number;
-  x: number;
-  y: number;
-}
-
-type GraphPhaseLoadState = "empty" | "neutral" | "warning" | "critical" | "overloaded";
-
-interface GraphPoint {
-  x: number;
-  y: number;
-}
-
-interface GraphBounds {
-  left: number;
-  right: number;
-  top: number;
-  bottom: number;
-}
-
-interface GraphTransition {
-  source: string;
-  target: string;
-  color: string;
-  count: number;
-  strokeWidth: number;
-  activeDemandCount: number;
-  path: string;
-  points: GraphPoint[];
-}
+import { Component, computed, signal, ViewEncapsulation } from "@angular/core";
+import {
+  ActiveDemand, ActiveHint, DemandEvent, DemandHistory, DemandRepresentation, GraphBounds,
+  GraphDemandNode, GraphDemandRepresentation, GraphPhaseLoadState, GraphPhaseNode, GraphPoint, GraphTransition,
+  GraphView, PhaseHint, PhaseVisit, StatusDuration, StatusMetrics, TimelineEvent,
+  VisibilityFilter, VisualizationFormat,
+} from "./domain/demand.models";
+import { AppHeaderComponent } from "./components/app-header.component";
+import { FlowGraphComponent } from "./components/flow-graph.component";
+import { TableFlowComponent } from "./components/table-flow.component";
+import { TimelineControlsComponent } from "./components/timeline-controls.component";
+import { VisibilityFiltersComponent } from "./components/visibility-filters.component";
+import { SpreadsheetImporter } from "./services/spreadsheet-importer";
 
 type GraphPortSide = "top" | "right" | "bottom" | "left";
-
 interface GraphPhasePort {
   transition: GraphTransition;
   pointIndex: number;
@@ -117,32 +21,6 @@ interface GraphPhasePort {
   side: GraphPortSide;
   offset?: number;
 }
-
-interface GraphDemandNode {
-  number: string;
-  title: string;
-  demandType: string;
-  item: ActiveDemand;
-  color: string;
-  source: string;
-  target?: string;
-  progress: number;
-  x: number;
-  y: number;
-}
-
-interface GraphView {
-  height: number;
-  phases: GraphPhaseNode[];
-  transitions: GraphTransition[];
-  demands: GraphDemandNode[];
-}
-
-type SpreadsheetRow = Record<string, unknown>;
-type VisibilityFilter = "status" | "demand" | "demandType";
-type VisualizationFormat = "table" | "graph";
-type DemandRepresentation = "detailedCard" | "number";
-type GraphDemandRepresentation = "circle" | "number";
 
 const SAMPLE_EVENTS: DemandEvent[] = [
   { demandNumber: "DEM-1042", demandTitle: "Portal de fornecedores", demandType: "Evolutiva", status: "Descoberta", startedAt: new Date(2026, 7, 3), endedAt: new Date(2026, 7, 7), row: 2 },
@@ -186,9 +64,10 @@ const TIMELINE_SLIDER_MAXIMUM = 10_000;
 
 @Component({
   selector: "app-root",
-  imports: [DecimalPipe],
+  imports: [AppHeaderComponent, FlowGraphComponent, TableFlowComponent, TimelineControlsComponent, VisibilityFiltersComponent],
   templateUrl: "./app.component.html",
   styleUrl: "./app.component.css",
+  encapsulation: ViewEncapsulation.None,
 })
 export class AppComponent {
   readonly speedOptions = [0.5, 1, 2, 5, 10, 25];
@@ -213,6 +92,21 @@ export class AppComponent {
 
   private animationFrame?: number;
   private lastFrame?: number;
+  private readonly spreadsheetImporter = new SpreadsheetImporter();
+  // Function bindings keep presentation components independent from the store
+  // while retaining the same derived-state rules in this container.
+  readonly presentation = {
+    visibilityFilterExpanded: (filter: VisibilityFilter) => this.visibilityFilterExpanded(filter),
+    statusVisible: (status: string) => this.statusVisible(status),
+    demandVisible: (number: string) => this.demandVisible(number),
+    demandTypeVisible: (demandType: string) => this.demandTypeVisible(demandType),
+    laneColor: (status: string) => this.laneColor(status),
+    demandTypeColor: (demandType: string) => this.demandTypeColor(demandType),
+    rangeLabel: (date: Date) => this.rangeLabel(date),
+    cardDateLabel: (date: Date) => this.cardDateLabel(date),
+    durationLabel: (durationMs: number) => this.durationLabel(durationMs),
+    phaseHintId: (status: string) => this.phaseHintId(status),
+  };
 
   readonly histories = computed<DemandHistory[]>(() => {
     const byDemand = new Map<string, DemandEvent[]>();
@@ -346,12 +240,7 @@ export class AppComponent {
     this.pause();
 
     try {
-      const data = await file.arrayBuffer();
-      const workbook = XLSX.read(data, { type: "array", cellDates: true });
-      const firstSheetName = workbook.SheetNames[0];
-      if (!firstSheetName) throw new Error("A planilha não possui uma aba para leitura.");
-      const rows = XLSX.utils.sheet_to_json<SpreadsheetRow>(workbook.Sheets[firstSheetName], { defval: null, raw: true });
-      const parsed = this.parseRows(rows);
+      const parsed = await this.spreadsheetImporter.readFile(file);
       if (!parsed.length) throw new Error("Não encontrei linhas válidas para a simulação.");
       this.events.set(parsed);
       this.sourceName.set(file.name);
@@ -528,50 +417,7 @@ export class AppComponent {
     this.animationFrame = requestAnimationFrame((time) => this.advance(time));
   }
 
-  private parseRows(rows: SpreadsheetRow[]): DemandEvent[] {
-    if (!rows.length) throw new Error("A primeira aba está vazia.");
-    const headers = Object.keys(rows[0] ?? {});
-    const demandNumberHeader = this.findHeader(headers, ["numero da demanda", "número da demanda", "numero", "número", "id da demanda"]);
-    const demandTitleHeader = this.findHeader(headers, ["titulo da demanda", "título da demanda", "titulo", "título", "nome da demanda"]);
-    const demandTypeHeader = this.findHeader(headers, ["tipo de demanda", "tipo"]);
-    const statusHeader = this.findHeader(headers, ["situacao", "situação", "status", "etapa"]);
-    const startHeader = this.findHeader(headers, ["data inicio", "data de inicio", "início", "inicio", "inicio da etapa"]);
-    const endHeader = this.findHeader(headers, ["data fim", "data de fim", "fim", "termino", "término", "fim da etapa"]);
-    if (!demandNumberHeader || !demandTitleHeader || !statusHeader || !startHeader || !endHeader) {
-      throw new Error("Use as colunas Número da demanda, Título da demanda, Situação, Data de início e Data de fim. Os nomes podem ter pequenas variações.");
-    }
-
-    const events: DemandEvent[] = [];
-    rows.forEach((row, index) => {
-      const demandNumber = String(row[demandNumberHeader] ?? "").trim();
-      const demandTitle = String(row[demandTitleHeader] ?? "").trim();
-      const demandType = demandTypeHeader ? String(row[demandTypeHeader] ?? "").trim() || "Sem tipo" : "Sem tipo";
-      const status = String(row[statusHeader] ?? "").trim();
-      const startedAt = this.parseDate(row[startHeader]);
-      const endedAt = this.parseDate(row[endHeader]);
-      if (!demandNumber && !demandTitle && !status && !startedAt && !endedAt) return;
-      if (!demandNumber || !demandTitle || !status || !startedAt || !endedAt) throw new Error(`A linha ${index + 2} está incompleta. Informe número, título, situação, início e fim.`);
-      if (endedAt < startedAt) throw new Error(`A data final da linha ${index + 2} é anterior à data inicial.`);
-      events.push({ demandNumber, demandTitle, demandType, status, startedAt, endedAt, row: index + 2 });
-    });
-    return events;
-  }
-
-  private findHeader(headers: string[], candidates: string[]): string | undefined { return headers.find((header) => candidates.includes(this.normalize(header))); }
-  private normalize(value: string): string { return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("pt-BR").trim().replace(/\s+/g, " "); }
-
-  private parseDate(value: unknown): Date | undefined {
-    if (value instanceof Date && !Number.isNaN(value.getTime())) return this.dateOnly(value);
-    if (typeof value === "number") {
-      const parsed = XLSX.SSF.parse_date_code(value);
-      return parsed ? new Date(parsed.y, parsed.m - 1, parsed.d) : undefined;
-    }
-    if (typeof value !== "string") return undefined;
-    const brazilian = value.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-    if (brazilian) return new Date(Number(brazilian[3]), Number(brazilian[2]) - 1, Number(brazilian[1]));
-    const parsed = new Date(value);
-    return Number.isNaN(parsed.getTime()) ? undefined : this.dateOnly(parsed);
-  }
+  parseRows(rows: Array<Record<string, unknown>>): DemandEvent[] { return this.spreadsheetImporter.parseRows(rows); }
 
   private dateOnly(date: Date): Date { return new Date(date.getFullYear(), date.getMonth(), date.getDate()); }
   timelineStart(): Date { return this.dateOnly(this.events().reduce((earliest, item) => item.startedAt < earliest ? item.startedAt : earliest, this.events()[0]?.startedAt ?? new Date())); }

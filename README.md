@@ -31,6 +31,17 @@ Abaixo do grafo, uma legenda associa a cor de cada marcador ao respectivo tipo d
 
 Os filtros de visualização de situações, demandas e tipos de demanda ficam recolhidos em botões e exibem checkboxes ao serem clicados. As opções recebem as cores correspondentes à situação ou ao tipo de demanda e são distribuídas em tantas colunas quanto necessário, com no máximo três linhas por filtro.
 
+## Organização do frontend
+
+`AppComponent` é o contêiner da simulação: mantém o estado reativo, a reprodução temporal, os filtros e as regras de domínio do grafo. A interface está separada em componentes de apresentação para que mudanças em uma área não acoplem as demais:
+
+- `AppHeaderComponent`: tema e seleção da planilha;
+- `VisibilityFiltersComponent`: filtros de situação, demanda e tipo;
+- `TimelineControlsComponent`: navegação, reprodução e velocidade;
+- `TableFlowComponent` e `FlowGraphComponent`: os dois formatos de visualização.
+
+Os tipos compartilhados estão em `src/app/domain/demand.models.ts`. A leitura e a validação da planilha estão em `SpreadsheetImporter`, em `src/app/services/spreadsheet-importer.ts`; o componente de tela apenas aplica o resultado ao estado da simulação. Os componentes de apresentação recebem dados e emitem intenções de interação, sem acessar ou alterar a planilha diretamente.
+
 ## Desenvolvimento
 
 ```bash
