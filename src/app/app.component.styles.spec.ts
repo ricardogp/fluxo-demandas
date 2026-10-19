@@ -32,6 +32,10 @@ test("a tabela preserva cartões, representação numérica e painel contextual"
   assert.match(table, /<option value="detailedCard">Cartão detalhado<\/option>/);
   assert.match(table, /<article class="demand-card" \[class\.demand-number\]="demandRepresentation\(\) === 'number'" tabindex="0"/);
   assert.match(table, /<span class="card-date-range-separator" aria-hidden="true">a<\/span>/);
+  assert.doesNotMatch(table, /card-topline/);
+  assert.match(table, /<dt>Tempo<br>médio<\/dt>/);
+  assert.match(table, /<dt>P90<\/dt>/);
+  assert.match(table, /<dt>P95<\/dt>/);
   assert.match(table, /\(pointerenter\)="showDemandHint\(\$event, item\)"/);
   assert.match(globalStylesheet, /\.lane-content\.number-representation \{ grid-template-columns: minmax\(0, 1fr\); \}/);
 });
@@ -49,8 +53,11 @@ test("a linha do tempo e o grafo preservam contratos acessíveis", () => {
 });
 
 test("o estilo compartilhado preserva a geometria compacta", () => {
-  assert.match(stylesheet, /\.flow \{[^}]*grid-auto-columns: 187\.333px;/);
+  assert.match(globalStylesheet, /\.app-shell \.flow \{ grid-auto-columns: 150px; \}/);
+  assert.match(globalStylesheet, /\.app-shell \.lane \{ min-width: 150px; \}/);
   assert.match(stylesheet, /\.lane-content \{[^}]*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\);/);
   assert.match(stylesheet, /\.time-control \{ margin: 0 0 12px; padding: 10px 0;/);
   assert.match(stylesheet, /\.graph-phase-count \{ font-size: 7px;/);
+  assert.match(globalStylesheet, /\.app-shell \.demand-card \{ padding: 7px; \}/);
+  assert.match(globalStylesheet, /\.app-shell \.card-date-range \{ margin-inline: auto; text-align: center; \}/);
 });
