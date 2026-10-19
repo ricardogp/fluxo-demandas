@@ -94,7 +94,7 @@ test("infere as ligações do grafo e move a demanda pelo tempo da fase de orige
   const movingDemandAtStart = graphAtStart.demands.find((demand) => demand.number === "DEM-1042");
 
   assert.equal(discoveryToDevelopment?.count, 3);
-  assert.ok(graphAtStart.transitions.every((transition) => transition.color === "#7d8793"));
+  assert.equal(new Set(graphAtStart.transitions.map((transition) => transition.color)).size, graphAtStart.transitions.length);
   assert.equal(discoveryToDevelopment?.points.length, 2);
   assert.equal(discoveryToDevelopment?.strokeWidth, 1);
   assert.equal(discoveryToDevelopment?.activeDemandCount, graphAtStart.demands.filter((demand) => demand.source === "Descoberta" && demand.target === "Desenvolvimento").length);
@@ -102,13 +102,16 @@ test("infere as ligações do grafo e move a demanda pelo tempo da fase de orige
   assert.equal(movingDemandAtStart?.target, "Desenvolvimento");
   assert.equal(movingDemandAtStart?.item.event.status, "Descoberta");
   assert.equal(movingDemandAtStart?.progress, 0);
+  assert.equal(movingDemandAtStart?.routeColor, discoveryToDevelopment?.color);
   assert.equal(new Set(graphAtStart.phases.map((phase) => phase.y)).size, 1);
   assert.ok(graphAtStart.phases.every((phase, index) => index === 0 || phase.x > graphAtStart.phases[index - 1].x));
 
   app.currentTime.set(new Date(2026, 7, 5).getTime());
-  const movingDemandHalfway = app.graph().demands.find((demand) => demand.number === "DEM-1042");
+  const graphHalfway = app.graph();
+  const movingDemandHalfway = graphHalfway.demands.find((demand) => demand.number === "DEM-1042");
 
   assert.equal(movingDemandHalfway?.progress, 50);
+  assert.equal(movingDemandHalfway?.routeColor, graphHalfway.transitions.find((transition) => transition.source === "Descoberta" && transition.target === "Desenvolvimento")?.color);
   assert.ok(movingDemandHalfway);
 });
 

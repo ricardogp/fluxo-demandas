@@ -49,9 +49,11 @@ test("a linha do tempo e o grafo preservam contratos acessíveis", () => {
   assert.match(graph, /<path class="graph-transition" \[class\.active\]="transition\.activeDemandCount > 0"/);
   assert.match(graph, /\[attr\.stroke-width\]="transition\.strokeWidth"/);
   assert.match(graph, /<circle class="graph-phase-node"[^>]*r="13\.75"><\/circle>/);
-  assert.match(graph, /<circle class="graph-demand"[^>]*tabindex="0"/);
+  assert.match(graph, /<circle class="graph-demand"[^>]*\[attr\.stroke\]="demand\.routeColor"[^>]*tabindex="0"/);
+  assert.match(graph, /<rect[^>]*\[attr\.stroke\]="demand\.routeColor"/);
   assert.match(graph, /<aside class="graph-legend" aria-label="Legenda das cores dos tipos de demanda">/);
-  assert.match(globalStylesheet, /\.graph-transition\.active \{ stroke: #d99e3f/);
+  assert.match(globalStylesheet, /\.graph-transition\.active \{ stroke-opacity: 1;/);
+  assert.doesNotMatch(globalStylesheet, /\.graph-transition\.active \{[^}]*stroke:/);
 });
 
 test("o estilo compartilhado preserva a geometria compacta", () => {

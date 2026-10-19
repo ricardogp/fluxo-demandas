@@ -57,7 +57,6 @@ const GRAPH_ROUTE_SPACING_COST = 0.35;
 const GRAPH_PHASE_PORT_SEPARATION = 5;
 const GRAPH_PHASE_PORT_ELBOW_DISTANCE = 8;
 const GRAPH_DEMAND_LANE_SEPARATION = 9;
-const GRAPH_TRANSITION_COLOR = "#7d8793";
 const GRAPH_ALWAYS_NEUTRAL_PHASES = new Set(["aberta", "cancelada", "concluida", "em encerramento", "entregue"]);
 const DAY_IN_MS = 86_400_000;
 const TIMELINE_SLIDER_MAXIMUM = 10_000;
@@ -184,6 +183,7 @@ export class AppComponent {
     });
     const phaseByStatus = new Map(graphPhases.map((phase) => [phase.status, phase]));
     const transitionCounts = this.graphTransitionCounts(phaseByStatus);
+    const transitionColors = this.graphTransitionColors();
 
     const occupiedRoutes: GraphPoint[][] = [];
     const transitions = [...transitionCounts.entries()].map(([key, count]) => {
@@ -195,7 +195,7 @@ export class AppComponent {
       return {
         source: sourceStatus,
         target: targetStatus,
-        color: GRAPH_TRANSITION_COLOR,
+        color: transitionColors.get(key)!,
         count,
         strokeWidth: GRAPH_TRANSITION_STROKE_WIDTH,
         activeDemandCount: 0,
@@ -587,6 +587,7 @@ export class AppComponent {
           demandType: history.demandType,
           item,
           color: this.demandTypeColor(history.demandType),
+          routeColor: transition.color,
           source: source.status,
           target: target.status,
           progress: this.periodProgress(source.startedAt, source.endedAt, current),
@@ -613,6 +614,30 @@ export class AppComponent {
       });
     }
     return demands;
+  }
+  // A cor pertence ao par origem-destino, e não à quantidade de demandas na rota.
+  // Assim, ela continua a mesma durante a reprodução e após filtros temporários.
+  private graphTransitionColors(): Map<string, string> {
+    const routes = new Set<string>();
+    for (const history of this.histories()) {
+      const visits = this.phaseVisits(history.events);
+      for (let index = 0; index < visits.length - 1; index += 1) {
+        routes.add(`${visits[index].status}\u0000${visits[index + 1].status}`);
+      }
+    }
+
+    const occupiedHues = new Set<number>();
+    return new Map([...routes].sort((first, second) => first.localeCompare(second, "pt-BR")).map((route) => {
+      let hue = this.graphRouteColorHash(route) % 360;
+      while (occupiedHues.has(hue)) hue = (hue + 47) % 360;
+      occupiedHues.add(hue);
+      return [route, `hsl(${hue} 68% 42%)`];
+    }));
+  }
+  private graphRouteColorHash(route: string): number {
+    let hash = 0;
+    for (const character of route) hash = (hash * 31 + character.charCodeAt(0)) >>> 0;
+    return hash;
   }
   // Rotas diretas são preferidas. Quando uma fase ou seu rótulo ocupa o segmento,
   // os corredores superiores são favorecidos e faixas vizinhas separam rotas paralelas.

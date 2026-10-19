@@ -69,6 +69,7 @@ export interface GraphDemandNode {
   demandType: string;
   item: ActiveDemand;
   color: string;
+  routeColor: string;
   source: string;
   target?: string;
   progress: number;
