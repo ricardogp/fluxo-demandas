@@ -11,7 +11,7 @@ import { ActiveDemand, DemandRepresentation, StatusMetrics } from "../domain/dem
     <section class="flow" aria-label="Fluxo de demandas por situação">
       @for (status of visibleStatusOrder(); track status) {
         <article class="lane" [style.--lane-color]="laneColor(status)">
-          <header class="lane-header"><div class="lane-title"><span class="lane-dot"></span><h2>{{ status }}</h2><span class="lane-count">{{ visibleActiveByStatus().get(status)?.length ?? 0 }}</span></div>
+          <header class="lane-header"><div class="lane-title"><span class="lane-dot"></span><h2 [title]="status">{{ status }}</h2><span class="lane-count">{{ visibleActiveByStatus().get(status)?.length ?? 0 }}</span></div>
             @if (statusMetrics().get(status); as metrics) { <dl class="lane-statistics" aria-label="Estatísticas de {{ status }}"><div><dt>MÁX.</dt><dd>{{ metrics.maxConcurrent }}</dd></div><div><dt>P90</dt><dd>{{ durationLabel()(metrics.p90Ms) }}</dd></div><div><dt>P95</dt><dd>{{ durationLabel()(metrics.p95Ms) }}</dd></div></dl> } @else { <p class="statistics-empty">Sem dados até esta data.</p> }
           </header>
           <div class="lane-content" [class.number-representation]="demandRepresentation() === 'number'">

@@ -8,6 +8,7 @@ button, input { font: inherit; }
 .app-shell .lane-header { padding-inline: 9px; }
 .app-shell .lane-header { height: auto; min-height: 112px; }
 .app-shell .lane-header h2 { line-height: 1.15; }
+.app-shell .lane-header h2 { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; text-overflow: ellipsis; }
 .app-shell .lane-title { gap: 5px; }
 .app-shell .lane-statistics { gap: 4px 6px; margin-top: 7px; }
 .app-shell .lane-statistics { grid-template-columns: repeat(3, minmax(0, 1fr)); }

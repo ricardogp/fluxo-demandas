@@ -37,6 +37,7 @@ test("a tabela preserva cartões, representação numérica e painel contextual"
   assert.doesNotMatch(table, /Tempo<br>médio/);
   assert.match(table, /<dt>P90<\/dt>/);
   assert.match(table, /<dt>P95<\/dt>/);
+  assert.match(table, /<h2 \[title\]="status">\{\{ status \}\}<\/h2>/);
   assert.match(table, /\(pointerenter\)="showDemandHint\(\$event, item\)"/);
   assert.match(globalStylesheet, /\.lane-content\.number-representation \{ grid-template-columns: minmax\(0, 1fr\); \}/);
 });
@@ -57,6 +58,7 @@ test("o estilo compartilhado preserva a geometria compacta", () => {
   assert.match(globalStylesheet, /\.app-shell \.flow \{ grid-auto-columns: 150px; \}/);
   assert.match(globalStylesheet, /\.app-shell \.lane \{ min-width: 150px; \}/);
   assert.match(globalStylesheet, /\.app-shell \.lane-header \{ height: auto; min-height: 112px; \}/);
+  assert.match(globalStylesheet, /\.app-shell \.lane-header h2 \{ display: -webkit-box;[^}]*-webkit-line-clamp: 2;[^}]*text-overflow: ellipsis;/);
   assert.match(globalStylesheet, /\.app-shell \.lane-statistics \{ grid-template-columns: repeat\(3, minmax\(0, 1fr\)\); \}/);
   assert.match(stylesheet, /\.lane-content \{[^}]*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\);/);
   assert.match(stylesheet, /\.time-control \{ margin: 0 0 12px; padding: 10px 0;/);
