@@ -36,13 +36,13 @@ const SAMPLE_EVENTS: DemandEvent[] = [
 
 const MONTH_ABBREVIATIONS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 const GRAPH_WIDTH = 1000;
-const GRAPH_MIN_HEIGHT = 150;
+const GRAPH_MIN_HEIGHT = 220;
 const GRAPH_PHASE_RADIUS = 13.75;
 const GRAPH_FLOW_PADDING = 38;
 const GRAPH_PHASE_MIN_WIDTH = 80;
-const GRAPH_LEVEL_GAP = 75;
-const GRAPH_TOP_PADDING = 60;
-const GRAPH_BOTTOM_PADDING = 50;
+const GRAPH_LEVEL_GAP = 180;
+const GRAPH_TOP_PADDING = 90;
+const GRAPH_BOTTOM_PADDING = 110;
 const GRAPH_PHASE_LABEL_OFFSET = 25;
 const GRAPH_PHASE_LABEL_LINE_HEIGHT = 7;
 const GRAPH_PHASE_LABEL_FONT_SIZE = 6.5;
@@ -50,6 +50,7 @@ const GRAPH_PHASE_LABEL_CHARACTER_WIDTH = 4;
 const GRAPH_PHASE_LABEL_PADDING = 2;
 const GRAPH_TRANSITION_STROKE_WIDTH = 1;
 const GRAPH_ROUTE_CLEARANCE = 19;
+const GRAPH_HORIZONTAL_ROUTE_CLEARANCE = 62;
 const GRAPH_ROUTE_SEPARATION = 6;
 const GRAPH_ROUTE_CHANNEL_LEVELS = 4;
 const GRAPH_ROUTE_OVERLAP_PENALTY = 10_000;
@@ -639,8 +640,8 @@ export class AppComponent {
     for (const character of route) hash = (hash * 31 + character.charCodeAt(0)) >>> 0;
     return hash;
   }
-  // Rotas diretas são preferidas. Quando uma fase ou seu rótulo ocupa o segmento,
-  // os corredores superiores são favorecidos e faixas vizinhas separam rotas paralelas.
+  // Rotas diretas são preferidas. Trechos horizontais ficam fora da faixa visual
+  // dos nós; entre níveis, o espaço central recebe corredores paralelos.
   // A rota externa permanece como garantia para casos densos.
   private graphTransitionPoints(source: GraphPhaseNode, target: GraphPhaseNode, phases: GraphPhaseNode[], occupiedRoutes: GraphPoint[][]): GraphPoint[] {
     const sourceCenter = { x: source.x, y: source.y };
@@ -648,7 +649,7 @@ export class AppComponent {
     const clearance = GRAPH_PHASE_RADIUS + GRAPH_ROUTE_CLEARANCE;
     const phaseXs = phases.map((phase) => phase.x);
     const phaseYs = phases.map((phase) => phase.y);
-    const yChannels = this.graphRouteChannels(phaseYs, clearance);
+    const yChannels = this.graphRouteChannels(phaseYs, clearance, GRAPH_HORIZONTAL_ROUTE_CLEARANCE);
     const xChannels = this.graphRouteChannels(phaseXs, clearance);
     const candidates: GraphPoint[][] = [
       [sourceCenter, targetCenter],
@@ -663,8 +664,8 @@ export class AppComponent {
     for (const outerX of outerXs) {
       for (const sourceDirection of [-1, 1]) {
         for (const targetDirection of [-1, 1]) {
-          const sourceY = source.y + clearance * sourceDirection;
-          const targetY = target.y + clearance * targetDirection;
+          const sourceY = source.y + GRAPH_HORIZONTAL_ROUTE_CLEARANCE * sourceDirection;
+          const targetY = target.y + GRAPH_HORIZONTAL_ROUTE_CLEARANCE * targetDirection;
           candidates.push([
             sourceCenter,
             { x: source.x, y: sourceY },
@@ -679,14 +680,16 @@ export class AppComponent {
 
     const routes = candidates
       .map((candidate) => this.graphRouteEndpoints(candidate, source, target))
-      .filter((points) => this.graphRouteClearsPhases(points, phases, new Set([source.status, target.status])) && this.graphRouteClearsLabels(points, phases))
+      .filter((points) => this.graphRouteClearsPhases(points, phases, new Set([source.status, target.status]))
+        && this.graphRouteClearsHorizontalPhaseBands(points, phases, new Set([source.status, target.status]))
+        && this.graphRouteClearsLabels(points, phases))
       .sort((first, second) => this.graphRouteScore(first, occupiedRoutes, source, target) - this.graphRouteScore(second, occupiedRoutes, source, target));
 
     return routes[0] ?? this.graphRouteEndpoints([sourceCenter, targetCenter], source, target);
   }
-  private graphRouteChannels(coordinates: number[], clearance: number): number[] {
+  private graphRouteChannels(coordinates: number[], clearance: number, outerClearance = clearance): number[] {
     const sorted = [...new Set(coordinates)].sort((first, second) => first - second);
-    const channels = [sorted[0] - clearance, sorted.at(-1)! + clearance];
+    const channels = [sorted[0] - outerClearance, sorted.at(-1)! + outerClearance];
     for (const coordinate of sorted) channels.push(coordinate - clearance, coordinate + clearance);
     for (let index = 0; index < sorted.length - 1; index += 1) channels.push((sorted[index] + sorted[index + 1]) / 2);
     const laneOffsets = [0];
@@ -820,6 +823,24 @@ export class AppComponent {
       for (const phase of phases) {
         if (excludedStatuses.has(phase.status)) continue;
         if (this.graphDistanceToSegment({ x: phase.x, y: phase.y }, points[index], points[index + 1]) < phaseRadius + GRAPH_ROUTE_CLEARANCE) return false;
+      }
+    }
+    return true;
+  }
+  private graphRouteClearsHorizontalPhaseBands(points: GraphPoint[], phases: GraphPhaseNode[], terminalStatuses: Set<string>): boolean {
+    for (let index = 0; index < points.length - 1; index += 1) {
+      const start = points[index];
+      const end = points[index + 1];
+      if (start.y !== end.y) continue;
+      const left = Math.min(start.x, end.x);
+      const right = Math.max(start.x, end.x);
+      for (const phase of phases) {
+        if (phase.x < left || phase.x > right) continue;
+        // Uma ligação direta entre vizinhos pode seguir a mesma fileira dos
+        // próprios terminais. Qualquer outro trecho horizontal precisa usar
+        // um corredor fora da faixa reservada aos nós.
+        if (terminalStatuses.has(phase.status) && phase.y === start.y) continue;
+        if (Math.abs(phase.y - start.y) < GRAPH_HORIZONTAL_ROUTE_CLEARANCE) return false;
       }
     }
     return true;

@@ -36,6 +36,9 @@ type TestableApp = AppComponent & {
   graphRouteClearsLabels(points: Array<{ x: number; y: number }>, phases: Array<{
     status: string; labelLines: string[]; color: string; countColor: string; activeCount: number; x: number; y: number;
   }>): boolean;
+  graphRouteClearsHorizontalPhaseBands(points: Array<{ x: number; y: number }>, phases: Array<{
+    status: string; labelLines: string[]; color: string; countColor: string; activeCount: number; x: number; y: number;
+  }>, terminalStatuses: Set<string>): boolean;
   calculateStatusMetrics(events: Array<{ demand: string; status: string; startedAt: Date; endedAt: Date; row: number }>, asOf: number): Map<string, {
     maxConcurrent: number;
     averageMs: number;
@@ -376,6 +379,35 @@ test("abre novos níveis superiores para ligações concorrentes", () => {
 
   assert.equal(new Set(lanes).size, routes.length);
   assert.ok(lanes.every((lane) => lane !== undefined && lane < phases[0].y));
+});
+
+test("reserva corredores horizontais fora da faixa dos nós entre níveis", () => {
+  const app = new AppComponent() as TestableApp;
+  const statuses = Array.from({ length: 15 }, (_, index) => `Fase ${String(index + 1).padStart(2, "0")}`);
+  const chain = statuses.map((status, index) => ({
+    demandNumber: "DEM-CADEIA",
+    demandTitle: "Cadeia de fases",
+    demandType: "Evolutiva",
+    status,
+    startedAt: new Date(2026, 0, index + 1),
+    endedAt: new Date(2026, 0, index + 1),
+    row: index + 2,
+  }));
+  const jump = [
+    { demandNumber: "DEM-SALTO", demandTitle: "Salto entre níveis", demandType: "Evolutiva", status: statuses[1], startedAt: new Date(2026, 1, 1), endedAt: new Date(2026, 1, 1), row: 30 },
+    { demandNumber: "DEM-SALTO", demandTitle: "Salto entre níveis", demandType: "Evolutiva", status: statuses[13], startedAt: new Date(2026, 1, 2), endedAt: new Date(2026, 1, 2), row: 31 },
+  ];
+  app.events.set([...chain, ...jump]);
+
+  const graph = app.graph();
+
+  assert.ok(graph.height >= 380);
+  assert.equal(new Set(graph.phases.map((phase) => phase.y)).size, 2);
+  assert.ok(graph.transitions.every((transition) => app.graphRouteClearsHorizontalPhaseBands(
+    transition.points,
+    graph.phases,
+    new Set([transition.source, transition.target]),
+  )));
 });
 
 test("mantém espessura uniforme mesmo em transições muito frequentes", () => {
