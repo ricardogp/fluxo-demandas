@@ -62,6 +62,7 @@ const GRAPH_ROUTE_CHANNEL_LEVELS = 4;
 const GRAPH_ROUTE_OVERLAP_PENALTY = 10_000;
 const GRAPH_ROUTE_SPACING_COST = 0.35;
 const GRAPH_ROUTE_CROSSING_PENALTY = 25_000;
+const GRAPH_OPTIMIZED_ROUTE_OVERLAP_PENALTY = 100_000;
 const GRAPH_OPTIMIZED_ROUTE_CANDIDATES_PER_SIDE = 8;
 const GRAPH_OPTIMIZATION_PASSES = 2;
 const GRAPH_PHASE_PORT_SEPARATION = 5;
@@ -216,7 +217,7 @@ export class AppComponent {
         points: pointsByTransition.get(key)!,
       };
     });
-    this.separateGraphPorts(transitions, graphPhases);
+    this.separateGraphPorts(transitions, graphPhases, this.graphRoutingAlgorithm() === "optimized");
     const transitionByRoute = new Map(transitions.map((transition) => [`${transition.source}\u0000${transition.target}`, transition]));
     const demands = this.graphDemandNodes(phaseByStatus, transitionByRoute);
     const demandsByRoute = new Map<string, number>();
@@ -776,7 +777,34 @@ export class AppComponent {
   }
   private graphOptimizedRouteScore(points: GraphPoint[], occupiedRoutes: GraphPoint[][], source: GraphPhaseNode, target: GraphPhaseNode): number {
     return this.graphRouteScore(points, occupiedRoutes, source, target)
-      + this.graphRouteCrossingPenalty(points, occupiedRoutes);
+      + this.graphRouteCrossingPenalty(points, occupiedRoutes)
+      + this.graphRouteOverlapPenalty(points, occupiedRoutes);
+  }
+  // No modo otimizado, uma linha sobre outra é pior que um cruzamento: o traço
+  // inteiro deixa de ser distinguível. Esta medição inclui todos os segmentos,
+  // inclusive os próximos às portas que o roteador padrão não pontua.
+  private graphRouteOverlapPenalty(points: GraphPoint[], occupiedRoutes: GraphPoint[][]): number {
+    let overlapCount = 0;
+    let overlapLength = 0;
+    for (let index = 0; index < points.length - 1; index += 1) {
+      for (const occupied of occupiedRoutes) {
+        for (let occupiedIndex = 0; occupiedIndex < occupied.length - 1; occupiedIndex += 1) {
+          const length = this.graphOrthogonalSegmentOverlapLength(points[index], points[index + 1], occupied[occupiedIndex], occupied[occupiedIndex + 1]);
+          if (length === 0) continue;
+          overlapCount += 1;
+          overlapLength += length;
+        }
+      }
+    }
+    return overlapCount * GRAPH_OPTIMIZED_ROUTE_OVERLAP_PENALTY + overlapLength;
+  }
+  private graphOrthogonalSegmentOverlapLength(firstStart: GraphPoint, firstEnd: GraphPoint, secondStart: GraphPoint, secondEnd: GraphPoint): number {
+    const horizontal = firstStart.y === firstEnd.y && secondStart.y === secondEnd.y && firstStart.y === secondStart.y;
+    const vertical = firstStart.x === firstEnd.x && secondStart.x === secondEnd.x && firstStart.x === secondStart.x;
+    if (!horizontal && !vertical) return 0;
+    const firstRange = horizontal ? [firstStart.x, firstEnd.x] : [firstStart.y, firstEnd.y];
+    const secondRange = horizontal ? [secondStart.x, secondEnd.x] : [secondStart.y, secondEnd.y];
+    return Math.max(0, Math.min(Math.max(...firstRange), Math.max(...secondRange)) - Math.max(Math.min(...firstRange), Math.min(...secondRange)));
   }
   private graphRouteCrossingPenalty(points: GraphPoint[], occupiedRoutes: GraphPoint[][]): number {
     let crossings = 0;
@@ -865,7 +893,7 @@ export class AppComponent {
       { x: target.x + lastDirection.x * GRAPH_PHASE_RADIUS, y: target.y + lastDirection.y * GRAPH_PHASE_RADIUS },
     ]);
   }
-  private separateGraphPorts(transitions: GraphTransition[], phases: GraphPhaseNode[]): void {
+  private separateGraphPorts(transitions: GraphTransition[], phases: GraphPhaseNode[], separateElbowLanes = false): void {
     const phaseByStatus = new Map(phases.map((phase) => [phase.status, phase]));
     const ports: GraphPhasePort[] = [];
 
@@ -909,7 +937,7 @@ export class AppComponent {
       .filter((port) => port.offset !== undefined)
       .map((port) => ({
         port,
-        points: this.graphPortElbows(port, port.kind === "outgoing" ? port.transition.points[1] : port.transition.points.at(-2)!),
+        points: this.graphPortElbows(port, port.kind === "outgoing" ? port.transition.points[1] : port.transition.points.at(-2)!, separateElbowLanes),
       }));
     for (const { port, points } of elbows.filter(({ port }) => port.kind === "outgoing")) {
       port.transition.points.splice(1, 0, ...points);
@@ -977,7 +1005,7 @@ export class AppComponent {
     point.x = port.phase.x + (port.side === "left" ? -GRAPH_PHASE_RADIUS : GRAPH_PHASE_RADIUS);
     point.y = port.phase.y + offset;
   }
-  private graphPortElbows(port: GraphPhasePort, adjacent: GraphPoint): GraphPoint[] {
+  private graphPortElbows(port: GraphPhasePort, adjacent: GraphPoint, separateElbowLanes: boolean): GraphPoint[] {
     const point = port.transition.points[port.pointIndex];
     if (port.side === "top" || port.side === "bottom") {
       // Deslocar a rota no próprio corredor mantém a chegada vertical e elimina
@@ -985,7 +1013,13 @@ export class AppComponent {
       return [{ x: point.x, y: adjacent.y }];
     }
     const direction = port.side === "left" ? -1 : 1;
-    const x = point.x + direction * GRAPH_PHASE_PORT_ELBOW_DISTANCE;
+    // O modo otimizado leva cada porta lateral a uma faixa externa própria.
+    // Sem isso, os cotovelos de portas com alturas distintas ainda poderiam
+    // compartilhar o mesmo segmento vertical longo após o roteamento.
+    const laneDistance = separateElbowLanes
+      ? GRAPH_PHASE_PORT_ELBOW_DISTANCE + GRAPH_PHASE_RADIUS + (port.offset ?? 0)
+      : GRAPH_PHASE_PORT_ELBOW_DISTANCE;
+    const x = point.x + direction * laneDistance;
     const elbows = [{ x, y: adjacent.y }, { x, y: point.y }];
     return port.kind === "outgoing" ? elbows.reverse() : elbows;
   }

@@ -1,10 +1,37 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import "@angular/compiler";
+import * as XLSX from "xlsx";
 
 import { AppComponent } from "./app.component";
 import { SpreadsheetImporter } from "./services/spreadsheet-importer";
+
+const graphOverlapLength = (transitions: Array<{ points: Array<{ x: number; y: number }> }>): number => {
+  let length = 0;
+  for (let firstIndex = 0; firstIndex < transitions.length; firstIndex += 1) {
+    for (let secondIndex = firstIndex + 1; secondIndex < transitions.length; secondIndex += 1) {
+      const first = transitions[firstIndex].points;
+      const second = transitions[secondIndex].points;
+      for (let firstSegment = 0; firstSegment < first.length - 1; firstSegment += 1) {
+        for (let secondSegment = 0; secondSegment < second.length - 1; secondSegment += 1) {
+          const firstStart = first[firstSegment];
+          const firstEnd = first[firstSegment + 1];
+          const secondStart = second[secondSegment];
+          const secondEnd = second[secondSegment + 1];
+          const horizontal = firstStart.y === firstEnd.y && secondStart.y === secondEnd.y && firstStart.y === secondStart.y;
+          const vertical = firstStart.x === firstEnd.x && secondStart.x === secondEnd.x && firstStart.x === secondStart.x;
+          if (!horizontal && !vertical) continue;
+          const firstRange = horizontal ? [firstStart.x, firstEnd.x] : [firstStart.y, firstEnd.y];
+          const secondRange = horizontal ? [secondStart.x, secondEnd.x] : [secondStart.y, secondEnd.y];
+          length += Math.max(0, Math.min(Math.max(...firstRange), Math.max(...secondRange)) - Math.max(Math.min(...firstRange), Math.min(...secondRange)));
+        }
+      }
+    }
+  }
+  return length;
+};
 
 type TestableApp = AppComponent & {
   parseRows(rows: Array<Record<string, unknown>>): Array<{ demandNumber: string; demandTitle: string; demandType: string; status: string; startedAt: Date; endedAt: Date }>;
@@ -237,6 +264,20 @@ test("o algoritmo otimizado desvia um cruzamento entre ligações", () => {
   const verticalRoute = [{ x: 100, y: 40 }, { x: 100, y: 80 }];
 
   assert.deepEqual(app.graphOptimizedRoute([direct, upper], [verticalRoute], source, target), upper);
+});
+
+test("o algoritmo otimizado prefere evitar linhas sobrepostas", () => {
+  const app = new AppComponent() as TestableApp;
+  const source = { y: 60 };
+  const target = { y: 60 };
+  const sharedLane = [{ x: 40, y: 60 }, { x: 40, y: 30 }, { x: 160, y: 30 }, { x: 160, y: 60 }];
+  const crossing = [{ x: 40, y: 60 }, { x: 160, y: 60 }];
+  const occupiedRoutes = [
+    [{ x: 40, y: 30 }, { x: 160, y: 30 }],
+    [{ x: 100, y: 40 }, { x: 100, y: 80 }],
+  ];
+
+  assert.deepEqual(app.graphOptimizedRoute([sharedLane, crossing], occupiedRoutes, source, target), crossing);
 });
 
 test("distribui demandas na mesma ligação em faixas laterais", () => {
@@ -562,6 +603,21 @@ test("mantém o algoritmo padrão e permite optar pelo otimizado", () => {
   app.setGraphRoutingAlgorithm("optimized");
   assert.equal(app.graphRoutingAlgorithm(), "optimized");
   assert.deepEqual(app.graph().transitions.map((transition) => `${transition.source}\u0000${transition.target}`), standardTransitions);
+});
+
+test("o algoritmo otimizado reduz linhas sobrepostas na planilha SIDA", () => {
+  const workbook = XLSX.read(readFileSync(new URL("../../static/fluxo-demandas-sida.xlsx", import.meta.url)), { type: "buffer", cellDates: true });
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: null, raw: true });
+  const app = new AppComponent();
+  app.events.set(new SpreadsheetImporter().parseRows(rows));
+
+  app.setGraphRoutingAlgorithm("standard");
+  const standardOverlapLength = graphOverlapLength(app.graph().transitions);
+  app.setGraphRoutingAlgorithm("optimized");
+  const optimizedOverlapLength = graphOverlapLength(app.graph().transitions);
+
+  assert.ok(optimizedOverlapLength < standardOverlapLength);
 });
 
 test("o cursor pode retornar ao início ao ser arrastado", () => {
