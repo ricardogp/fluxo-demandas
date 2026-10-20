@@ -42,7 +42,6 @@ export interface PhaseVisit { status: string; startedAt: Date; endedAt: Date; us
 
 export type GraphPhaseLoadState = "empty" | "neutral" | "warning" | "critical" | "overloaded";
 export interface GraphPoint { x: number; y: number; }
-export interface GraphBounds { left: number; right: number; top: number; bottom: number; }
 export interface GraphPhaseNode {
   status: string;
   labelLines: string[];

@@ -1,6 +1,6 @@
 import { Component, computed, signal, ViewEncapsulation } from "@angular/core";
 import {
-  ActiveDemand, ActiveHint, DemandEvent, DemandHistory, DemandRepresentation, GraphBounds,
+  ActiveDemand, ActiveHint, DemandEvent, DemandHistory, DemandRepresentation,
   GraphDemandNode, GraphDemandRepresentation, GraphPhaseLoadState, GraphPhaseNode, GraphPoint, GraphTransition,
   GraphView, PhaseHint, PhaseVisit, StatusDuration, StatusMetrics, TimelineEvent,
   VisibilityFilter, VisualizationFormat,
@@ -49,11 +49,6 @@ const GRAPH_PHASE_MIN_WIDTH = 80;
 const GRAPH_LEVEL_GAP = 180;
 const GRAPH_TOP_PADDING = 90;
 const GRAPH_BOTTOM_PADDING = 110;
-const GRAPH_PHASE_LABEL_OFFSET = 25;
-const GRAPH_PHASE_LABEL_LINE_HEIGHT = 7;
-const GRAPH_PHASE_LABEL_FONT_SIZE = 6.5;
-const GRAPH_PHASE_LABEL_CHARACTER_WIDTH = 4;
-const GRAPH_PHASE_LABEL_PADDING = 2;
 const GRAPH_TRANSITION_STROKE_WIDTH = 1;
 const GRAPH_ROUTE_CLEARANCE = 19;
 const GRAPH_HORIZONTAL_ROUTE_CLEARANCE = 62;
@@ -740,8 +735,7 @@ export class AppComponent {
     const routes = candidates
       .map((candidate) => this.graphRouteEndpoints(candidate, source, target))
       .filter((points) => this.graphRouteClearsPhases(points, phases, new Set([source.status, target.status]))
-        && this.graphRouteClearsHorizontalPhaseBands(points, phases, new Set([source.status, target.status]))
-        && this.graphRouteClearsLabels(points, phases))
+        && this.graphRouteClearsHorizontalPhaseBands(points, phases, new Set([source.status, target.status])))
       .sort((first, second) => this.graphRouteScore(first, occupiedRoutes, source, target) - this.graphRouteScore(second, occupiedRoutes, source, target));
 
     return routes[0] ?? this.graphRouteEndpoints([sourceCenter, targetCenter], source, target);
@@ -933,45 +927,6 @@ export class AppComponent {
         if (terminalStatuses.has(phase.status) && phase.y === start.y) continue;
         if (Math.abs(phase.y - start.y) < GRAPH_HORIZONTAL_ROUTE_CLEARANCE) return false;
       }
-    }
-    return true;
-  }
-  private graphRouteClearsLabels(points: GraphPoint[], phases: GraphPhaseNode[]): boolean {
-    return phases.every((phase) => {
-      const bounds = this.graphPhaseLabelBounds(phase);
-      return points.slice(1).every((point, index) => !this.graphSegmentIntersectsBounds(points[index], point, bounds));
-    });
-  }
-  private graphPhaseLabelBounds(phase: GraphPhaseNode): GraphBounds {
-    const longestLine = Math.max(...phase.labelLines.map((line) => line.length));
-    const halfWidth = longestLine * GRAPH_PHASE_LABEL_CHARACTER_WIDTH / 2 + GRAPH_PHASE_LABEL_PADDING;
-    return {
-      left: phase.x - halfWidth,
-      right: phase.x + halfWidth,
-      top: phase.y + GRAPH_PHASE_LABEL_OFFSET - GRAPH_PHASE_LABEL_FONT_SIZE - GRAPH_PHASE_LABEL_PADDING,
-      bottom: phase.y + GRAPH_PHASE_LABEL_OFFSET + (phase.labelLines.length - 1) * GRAPH_PHASE_LABEL_LINE_HEIGHT + GRAPH_PHASE_LABEL_PADDING,
-    };
-  }
-  private graphSegmentIntersectsBounds(start: GraphPoint, end: GraphPoint, bounds: GraphBounds): boolean {
-    const horizontal = end.x - start.x;
-    const vertical = end.y - start.y;
-    let minimum = 0;
-    let maximum = 1;
-    const boundaries: Array<[number, number]> = [
-      [-horizontal, start.x - bounds.left],
-      [horizontal, bounds.right - start.x],
-      [-vertical, start.y - bounds.top],
-      [vertical, bounds.bottom - start.y],
-    ];
-    for (const [direction, distance] of boundaries) {
-      if (direction === 0) {
-        if (distance < 0) return false;
-        continue;
-      }
-      const ratio = distance / direction;
-      if (direction < 0) minimum = Math.max(minimum, ratio);
-      else maximum = Math.min(maximum, ratio);
-      if (minimum > maximum) return false;
     }
     return true;
   }

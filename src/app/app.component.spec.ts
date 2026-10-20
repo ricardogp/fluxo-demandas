@@ -33,12 +33,10 @@ type TestableApp = AppComponent & {
   }, phases: Array<{
     status: string; labelLines: string[]; color: string; countColor: string; activeCount: number; x: number; y: number;
   }>, occupiedRoutes: Array<Array<{ x: number; y: number }>>): Array<{ x: number; y: number }>;
-  graphRouteClearsLabels(points: Array<{ x: number; y: number }>, phases: Array<{
-    status: string; labelLines: string[]; color: string; countColor: string; activeCount: number; x: number; y: number;
-  }>): boolean;
   graphRouteClearsHorizontalPhaseBands(points: Array<{ x: number; y: number }>, phases: Array<{
     status: string; labelLines: string[]; color: string; countColor: string; activeCount: number; x: number; y: number;
   }>, terminalStatuses: Set<string>): boolean;
+  graphRouteScore(points: Array<{ x: number; y: number }>, occupiedRoutes: Array<Array<{ x: number; y: number }>>, source: { y: number }, target: { y: number }): number;
   calculateStatusMetrics(events: Array<{ demand: string; status: string; startedAt: Date; endedAt: Date; row: number }>, asOf: number): Map<string, {
     maxConcurrent: number;
     averageMs: number;
@@ -204,18 +202,29 @@ test("ordena as portas pela posição de chegada sem cruzar os segmentos finais"
   assert.ok(transitions.every((transition) => transition.points.at(-2)!.x === transition.points.at(-1)!.x));
 });
 
-test("desvia uma ligação vertical para não atravessar o rótulo do nó", () => {
+test("permite ligação vertical pelo espaço ocupado pelo rótulo", () => {
   const app = new AppComponent() as TestableApp;
   const phase = (status: string, y: number) => ({ status, labelLines: [status], color: "#889", countColor: "#fff", activeCount: 0, x: 100, y });
   const phases = [phase("Origem", 42), phase("Destino", 117)];
 
   const points = app.graphTransitionPoints(phases[0], phases[1], phases, []);
 
-  assert.equal(points[0].y, phases[0].y);
-  assert.notEqual(points[0].x, phases[0].x);
-  assert.equal(points.at(-1)!.y, phases[1].y);
-  assert.notEqual(points.at(-1)!.x, phases[1].x);
-  assert.equal(app.graphRouteClearsLabels(points, phases), true);
+  assert.equal(points.length, 2);
+  assert.equal(points[0].x, phases[0].x);
+  assert.equal(points.at(-1)!.x, phases[1].x);
+  assert.ok(points[0].y > phases[0].y);
+  assert.ok(points.at(-1)!.y < phases[1].y);
+});
+
+test("prioriza o corredor superior e usa o inferior quando haveria sobreposição", () => {
+  const app = new AppComponent() as TestableApp;
+  const source = { y: 60 };
+  const target = { y: 60 };
+  const upper = [{ x: 40, y: 60 }, { x: 40, y: 30 }, { x: 160, y: 30 }, { x: 160, y: 60 }];
+  const lower = [{ x: 40, y: 60 }, { x: 40, y: 90 }, { x: 160, y: 90 }, { x: 160, y: 60 }];
+
+  assert.ok(app.graphRouteScore(upper, [], source, target) < app.graphRouteScore(lower, [], source, target));
+  assert.ok(app.graphRouteScore(lower, [upper], source, target) < app.graphRouteScore(upper, [upper], source, target));
 });
 
 test("distribui demandas na mesma ligação em faixas laterais", () => {
@@ -374,7 +383,6 @@ test("desvia uma ligação quando outra fase ocupa seu trajeto", () => {
   assert.ok(skippedTransition.points.some((point) => point.y < intermediatePhase.y));
   assert.ok(skippedTransition.points.every((point) => point.y <= intermediatePhase.y));
   assert.ok(shortestDistanceToIntermediate >= 32.75);
-  assert.equal(app.graphRouteClearsLabels(skippedTransition.points, graph.phases), true);
   assert.match(skippedTransition.path, /^M .* L /);
 });
 
