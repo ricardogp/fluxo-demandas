@@ -51,6 +51,10 @@ test("a linha do tempo e o grafo preservam contratos acessíveis", () => {
   assert.match(graph, /<circle class="graph-phase-node"[^>]*r="13\.75"><\/circle>/);
   assert.match(graph, /<circle class="graph-demand"[^>]*\[attr\.stroke\]="demand\.routeColor"[^>]*tabindex="0"/);
   assert.match(graph, /<rect[^>]*\[attr\.stroke\]="demand\.routeColor"/);
+  assert.match(graph, /<label class="demand-representation graph-routing-algorithm">Algoritmo do grafo/);
+  assert.match(graph, /<option value="standard">Algoritmo padrão<\/option><option value="optimized">Algoritmo otimizado<\/option>/);
+  assert.match(appTemplate, /\[graphRoutingAlgorithm\]="graphRoutingAlgorithm\(\)"/);
+  assert.match(appTemplate, /\(setGraphRoutingAlgorithm\)="setGraphRoutingAlgorithm\(\$event\)"/);
   assert.match(graph, /<aside class="graph-legend" aria-label="Legenda das cores dos tipos de demanda">/);
   assert.match(globalStylesheet, /\.graph-transition\.active \{ stroke-opacity: 1;/);
   assert.doesNotMatch(globalStylesheet, /\.graph-transition\.active \{[^}]*stroke:/);

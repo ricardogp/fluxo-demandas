@@ -1,7 +1,7 @@
 import { DecimalPipe } from "@angular/common";
 import { Component, input, output } from "@angular/core";
 
-import { ActiveDemand, GraphDemandRepresentation, GraphView } from "../domain/demand.models";
+import { ActiveDemand, GraphDemandRepresentation, GraphRoutingAlgorithm, GraphView } from "../domain/demand.models";
 
 @Component({
   selector: "fd-flow-graph",
@@ -9,6 +9,9 @@ import { ActiveDemand, GraphDemandRepresentation, GraphView } from "../domain/de
   template: `
     <label class="demand-representation graph-demand-representation">Representação das demandas
       <select [value]="graphDemandRepresentation()" (change)="setGraphDemandRepresentation.emit($any($event.target).value)"><option value="circle">Círculo colorido</option><option value="number">Número da demanda</option></select>
+    </label>
+    <label class="demand-representation graph-routing-algorithm">Algoritmo do grafo
+      <select [value]="graphRoutingAlgorithm()" (change)="setGraphRoutingAlgorithm.emit($any($event.target).value)"><option value="standard">Algoritmo padrão</option><option value="optimized">Algoritmo otimizado</option></select>
     </label>
     <svg class="graph-canvas" [class.is-playing]="playing()" [attr.viewBox]="'0 0 1000 ' + graph().height" role="img" aria-label="Fluxo das demandas por fase, distribuído em níveis">
       <defs><marker id="graph-arrow" markerWidth="4.5" markerHeight="4.5" refX="4" refY="2.25" orient="auto" markerUnits="userSpaceOnUse"><path d="M 0 0 L 4.5 2.25 L 0 4.5 z" fill="context-stroke"></path></marker></defs>
@@ -29,11 +32,13 @@ export class FlowGraphComponent {
   readonly graph = input.required<GraphView>();
   readonly playing = input.required<boolean>();
   readonly graphDemandRepresentation = input.required<GraphDemandRepresentation>();
+  readonly graphRoutingAlgorithm = input.required<GraphRoutingAlgorithm>();
   readonly demandTypeOrder = input.required<string[]>();
   readonly demandTypeVisibleFn = input.required<(type: string) => boolean>({ alias: "demandTypeVisible" });
   readonly demandTypeColorFn = input.required<(type: string) => string>({ alias: "demandTypeColor" });
   readonly phaseHintIdFn = input.required<(status: string) => string>({ alias: "phaseHintId" });
   readonly setGraphDemandRepresentation = output<GraphDemandRepresentation>();
+  readonly setGraphRoutingAlgorithm = output<GraphRoutingAlgorithm>();
   readonly demandHint = output<{ event: Event; item: ActiveDemand }>();
   readonly hideDemandHintEvent = output<void>({ alias: "hideDemandHint" });
   readonly phaseHint = output<{ event: Event; status: string }>();

@@ -37,6 +37,7 @@ type TestableApp = AppComponent & {
     status: string; labelLines: string[]; color: string; countColor: string; activeCount: number; x: number; y: number;
   }>, terminalStatuses: Set<string>): boolean;
   graphRouteScore(points: Array<{ x: number; y: number }>, occupiedRoutes: Array<Array<{ x: number; y: number }>>, source: { y: number }, target: { y: number }): number;
+  graphOptimizedRoute(candidates: Array<Array<{ x: number; y: number }>>, occupiedRoutes: Array<Array<{ x: number; y: number }>>, source: { y: number }, target: { y: number }): Array<{ x: number; y: number }>;
   calculateStatusMetrics(events: Array<{ demand: string; status: string; startedAt: Date; endedAt: Date; row: number }>, asOf: number): Map<string, {
     maxConcurrent: number;
     averageMs: number;
@@ -225,6 +226,17 @@ test("prioriza o corredor superior e usa o inferior quando haveria sobreposiçã
 
   assert.ok(app.graphRouteScore(upper, [], source, target) < app.graphRouteScore(lower, [], source, target));
   assert.ok(app.graphRouteScore(lower, [upper], source, target) < app.graphRouteScore(upper, [upper], source, target));
+});
+
+test("o algoritmo otimizado desvia um cruzamento entre ligações", () => {
+  const app = new AppComponent() as TestableApp;
+  const source = { y: 60 };
+  const target = { y: 60 };
+  const direct = [{ x: 40, y: 60 }, { x: 160, y: 60 }];
+  const upper = [{ x: 40, y: 60 }, { x: 40, y: 18 }, { x: 160, y: 18 }, { x: 160, y: 60 }];
+  const verticalRoute = [{ x: 100, y: 40 }, { x: 100, y: 80 }];
+
+  assert.deepEqual(app.graphOptimizedRoute([direct, upper], [verticalRoute], source, target), upper);
 });
 
 test("distribui demandas na mesma ligação em faixas laterais", () => {
@@ -540,6 +552,16 @@ test("alterna o marcador no grafo sem alterar a tabela", () => {
   assert.equal(app.graphDemandRepresentation(), "number");
   assert.equal(app.demandRepresentation(), "detailedCard");
   assert.equal(app.activeVisualization(), "table");
+});
+
+test("mantém o algoritmo padrão e permite optar pelo otimizado", () => {
+  const app = new AppComponent();
+  const standardTransitions = app.graph().transitions.map((transition) => `${transition.source}\u0000${transition.target}`);
+
+  assert.equal(app.graphRoutingAlgorithm(), "standard");
+  app.setGraphRoutingAlgorithm("optimized");
+  assert.equal(app.graphRoutingAlgorithm(), "optimized");
+  assert.deepEqual(app.graph().transitions.map((transition) => `${transition.source}\u0000${transition.target}`), standardTransitions);
 });
 
 test("o cursor pode retornar ao início ao ser arrastado", () => {

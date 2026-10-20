@@ -1,7 +1,7 @@
 import { Component, computed, signal, ViewEncapsulation } from "@angular/core";
 import {
   ActiveDemand, ActiveHint, DemandEvent, DemandHistory, DemandRepresentation,
-  GraphDemandNode, GraphDemandRepresentation, GraphPhaseLoadState, GraphPhaseNode, GraphPoint, GraphTransition,
+  GraphDemandNode, GraphDemandRepresentation, GraphPhaseLoadState, GraphPhaseNode, GraphPoint, GraphRoutingAlgorithm, GraphTransition,
   GraphView, PhaseHint, PhaseVisit, StatusDuration, StatusMetrics, TimelineEvent,
   VisibilityFilter, VisualizationFormat,
 } from "./domain/demand.models";
@@ -26,6 +26,11 @@ interface GraphRouteTraversal {
   route: string;
   startedAt: Date;
   endedAt: Date;
+}
+interface GraphRouteRequest {
+  key: string;
+  source: GraphPhaseNode;
+  target: GraphPhaseNode;
 }
 
 const SAMPLE_EVENTS: DemandEvent[] = [
@@ -56,6 +61,9 @@ const GRAPH_ROUTE_SEPARATION = 6;
 const GRAPH_ROUTE_CHANNEL_LEVELS = 4;
 const GRAPH_ROUTE_OVERLAP_PENALTY = 10_000;
 const GRAPH_ROUTE_SPACING_COST = 0.35;
+const GRAPH_ROUTE_CROSSING_PENALTY = 25_000;
+const GRAPH_OPTIMIZED_ROUTE_CANDIDATES_PER_SIDE = 8;
+const GRAPH_OPTIMIZATION_PASSES = 2;
 const GRAPH_PHASE_PORT_SEPARATION = 5;
 const GRAPH_PHASE_PORT_ELBOW_DISTANCE = 8;
 const GRAPH_DEMAND_LANE_SEPARATION = 9;
@@ -89,6 +97,7 @@ export class AppComponent {
   readonly activeVisualization = signal<VisualizationFormat>("table");
   readonly demandRepresentation = signal<DemandRepresentation>("detailedCard");
   readonly graphDemandRepresentation = signal<GraphDemandRepresentation>("circle");
+  readonly graphRoutingAlgorithm = signal<GraphRoutingAlgorithm>("standard");
   readonly timelineSliderMaximum = TIMELINE_SLIDER_MAXIMUM;
 
   private animationFrame?: number;
@@ -187,22 +196,24 @@ export class AppComponent {
     const transitionCounts = this.graphTransitionCounts(phaseByStatus);
     const transitionColors = this.graphTransitionColors();
 
-    const occupiedRoutes: GraphPoint[][] = [];
-    const transitions = [...transitionCounts.entries()].map(([key, count]) => {
+    const transitionRequests = [...transitionCounts.entries()].map(([key]) => {
       const [sourceStatus, targetStatus] = key.split("\u0000");
-      const source = phaseByStatus.get(sourceStatus)!;
-      const target = phaseByStatus.get(targetStatus)!;
-      const points = this.graphTransitionPoints(source, target, graphPhases, occupiedRoutes);
-      occupiedRoutes.push(points);
+      return { key, source: phaseByStatus.get(sourceStatus)!, target: phaseByStatus.get(targetStatus)! };
+    });
+    const pointsByTransition = this.graphRoutingAlgorithm() === "optimized"
+      ? this.graphOptimizedTransitionPoints(transitionRequests, graphPhases)
+      : this.graphStandardTransitionPoints(transitionRequests, graphPhases);
+    const transitions = transitionRequests.map(({ key, source, target }) => {
+      const [sourceStatus, targetStatus] = key.split("\u0000");
       return {
         source: sourceStatus,
         target: targetStatus,
         color: transitionColors.get(key)!,
-        count,
+        count: transitionCounts.get(key)!,
         strokeWidth: GRAPH_TRANSITION_STROKE_WIDTH,
         activeDemandCount: 0,
-        path: this.graphPath(points),
-        points,
+        path: this.graphPath(pointsByTransition.get(key)!),
+        points: pointsByTransition.get(key)!,
       };
     });
     this.separateGraphPorts(transitions, graphPhases);
@@ -268,6 +279,7 @@ export class AppComponent {
   setVisualization(format: VisualizationFormat): void { this.activeVisualization.set(format); }
   setDemandRepresentation(representation: DemandRepresentation): void { this.demandRepresentation.set(representation); }
   setGraphDemandRepresentation(representation: GraphDemandRepresentation): void { this.graphDemandRepresentation.set(representation); }
+  setGraphRoutingAlgorithm(algorithm: GraphRoutingAlgorithm): void { this.graphRoutingAlgorithm.set(algorithm); }
   graphDemandLabelWidth(number: string): number { return Math.max(10, Math.min(36, 3 + number.length * 3.75)); }
   visibilityFilterExpanded(filter: VisibilityFilter): boolean { return this.expandedVisibilityFilters().has(filter); }
   toggleVisibilityFilter(filter: VisibilityFilter): void {
@@ -697,7 +709,102 @@ export class AppComponent {
   // Rotas diretas são preferidas. Trechos horizontais ficam fora da faixa visual
   // dos nós; entre níveis, o espaço central recebe corredores paralelos.
   // A rota externa permanece como garantia para casos densos.
+  private graphStandardTransitionPoints(requests: GraphRouteRequest[], phases: GraphPhaseNode[]): Map<string, GraphPoint[]> {
+    const pointsByTransition = new Map<string, GraphPoint[]>();
+    const occupiedRoutes: GraphPoint[][] = [];
+    for (const request of requests) {
+      const points = this.graphTransitionPoints(request.source, request.target, phases, occupiedRoutes);
+      pointsByTransition.set(request.key, points);
+      occupiedRoutes.push(points);
+    }
+    return pointsByTransition;
+  }
+  // O modo otimizado preserva as fases e procura rotas como um conjunto. Primeiro
+  // fixa as ligações mais longas e, em seguida, revisa cada decisão contra todas
+  // as demais, evitando que a ordem de leitura da planilha determine o resultado.
+  private graphOptimizedTransitionPoints(requests: GraphRouteRequest[], phases: GraphPhaseNode[]): Map<string, GraphPoint[]> {
+    const candidatesByTransition = new Map(requests.map((request) => [
+      request.key,
+      this.graphOptimizedCandidates(request.source, request.target, phases),
+    ]));
+    const routeLength = (request: GraphRouteRequest) => Math.hypot(request.target.x - request.source.x, request.target.y - request.source.y);
+    const routeOrder = [...requests].sort((first, second) => routeLength(second) - routeLength(first) || first.key.localeCompare(second.key, "pt-BR"));
+    const pointsByTransition = new Map<string, GraphPoint[]>();
+
+    for (const request of routeOrder) {
+      const occupiedRoutes = [...pointsByTransition.values()];
+      pointsByTransition.set(request.key, this.graphOptimizedRoute(
+        candidatesByTransition.get(request.key)!, occupiedRoutes, request.source, request.target,
+      ));
+    }
+
+    for (let pass = 0; pass < GRAPH_OPTIMIZATION_PASSES; pass += 1) {
+      for (const request of routeOrder) {
+        const occupiedRoutes = [...pointsByTransition.entries()]
+          .filter(([key]) => key !== request.key)
+          .map(([, points]) => points);
+        pointsByTransition.set(request.key, this.graphOptimizedRoute(
+          candidatesByTransition.get(request.key)!, occupiedRoutes, request.source, request.target,
+        ));
+      }
+    }
+    return pointsByTransition;
+  }
+  private graphOptimizedCandidates(source: GraphPhaseNode, target: GraphPhaseNode, phases: GraphPhaseNode[]): GraphPoint[][] {
+    const fallback = this.graphRouteEndpoints([{ x: source.x, y: source.y }, { x: target.x, y: target.y }], source, target);
+    const routesByPath = new Map<string, GraphPoint[]>();
+    for (const points of this.graphRouteCandidates(source, target, phases)) routesByPath.set(this.graphPath(points), points);
+    if (routesByPath.size === 0) routesByPath.set(this.graphPath(fallback), fallback);
+
+    const ranked = [...routesByPath.values()].sort((first, second) => this.graphRouteScore(first, [], source, target) - this.graphRouteScore(second, [], source, target)
+      || this.graphPath(first).localeCompare(this.graphPath(second), "pt-BR"));
+    const lowerEdge = Math.max(source.y, target.y);
+    const upperRoutes = ranked.filter((points) => !points.some((point) => point.y > lowerEdge));
+    const lowerRoutes = ranked.filter((points) => points.some((point) => point.y > lowerEdge));
+    return [
+      ...upperRoutes.slice(0, GRAPH_OPTIMIZED_ROUTE_CANDIDATES_PER_SIDE),
+      ...lowerRoutes.slice(0, GRAPH_OPTIMIZED_ROUTE_CANDIDATES_PER_SIDE),
+    ];
+  }
+  private graphOptimizedRoute(candidates: GraphPoint[][], occupiedRoutes: GraphPoint[][], source: GraphPhaseNode, target: GraphPhaseNode): GraphPoint[] {
+    return candidates.reduce((best, candidate) => {
+      const candidateScore = this.graphOptimizedRouteScore(candidate, occupiedRoutes, source, target);
+      const bestScore = this.graphOptimizedRouteScore(best, occupiedRoutes, source, target);
+      if (candidateScore !== bestScore) return candidateScore < bestScore ? candidate : best;
+      return this.graphPath(candidate).localeCompare(this.graphPath(best), "pt-BR") < 0 ? candidate : best;
+    });
+  }
+  private graphOptimizedRouteScore(points: GraphPoint[], occupiedRoutes: GraphPoint[][], source: GraphPhaseNode, target: GraphPhaseNode): number {
+    return this.graphRouteScore(points, occupiedRoutes, source, target)
+      + this.graphRouteCrossingPenalty(points, occupiedRoutes);
+  }
+  private graphRouteCrossingPenalty(points: GraphPoint[], occupiedRoutes: GraphPoint[][]): number {
+    let crossings = 0;
+    for (let index = 0; index < points.length - 1; index += 1) {
+      for (const occupied of occupiedRoutes) {
+        for (let occupiedIndex = 0; occupiedIndex < occupied.length - 1; occupiedIndex += 1) {
+          if (this.graphSegmentsProperlyIntersect(points[index], points[index + 1], occupied[occupiedIndex], occupied[occupiedIndex + 1])) crossings += 1;
+        }
+      }
+    }
+    return crossings * GRAPH_ROUTE_CROSSING_PENALTY;
+  }
+  private graphSegmentsProperlyIntersect(firstStart: GraphPoint, firstEnd: GraphPoint, secondStart: GraphPoint, secondEnd: GraphPoint): boolean {
+    const orientation = (start: GraphPoint, end: GraphPoint, point: GraphPoint) =>
+      (end.x - start.x) * (point.y - start.y) - (end.y - start.y) * (point.x - start.x);
+    const firstStartSide = orientation(firstStart, firstEnd, secondStart);
+    const firstEndSide = orientation(firstStart, firstEnd, secondEnd);
+    const secondStartSide = orientation(secondStart, secondEnd, firstStart);
+    const secondEndSide = orientation(secondStart, secondEnd, firstEnd);
+    return firstStartSide * firstEndSide < 0 && secondStartSide * secondEndSide < 0;
+  }
   private graphTransitionPoints(source: GraphPhaseNode, target: GraphPhaseNode, phases: GraphPhaseNode[], occupiedRoutes: GraphPoint[][]): GraphPoint[] {
+    const routes = this.graphRouteCandidates(source, target, phases)
+      .sort((first, second) => this.graphRouteScore(first, occupiedRoutes, source, target) - this.graphRouteScore(second, occupiedRoutes, source, target));
+
+    return routes[0] ?? this.graphRouteEndpoints([{ x: source.x, y: source.y }, { x: target.x, y: target.y }], source, target);
+  }
+  private graphRouteCandidates(source: GraphPhaseNode, target: GraphPhaseNode, phases: GraphPhaseNode[]): GraphPoint[][] {
     const sourceCenter = { x: source.x, y: source.y };
     const targetCenter = { x: target.x, y: target.y };
     const clearance = GRAPH_PHASE_RADIUS + GRAPH_ROUTE_CLEARANCE;
@@ -732,13 +839,10 @@ export class AppComponent {
       }
     }
 
-    const routes = candidates
+    return candidates
       .map((candidate) => this.graphRouteEndpoints(candidate, source, target))
       .filter((points) => this.graphRouteClearsPhases(points, phases, new Set([source.status, target.status]))
-        && this.graphRouteClearsHorizontalPhaseBands(points, phases, new Set([source.status, target.status])))
-      .sort((first, second) => this.graphRouteScore(first, occupiedRoutes, source, target) - this.graphRouteScore(second, occupiedRoutes, source, target));
-
-    return routes[0] ?? this.graphRouteEndpoints([sourceCenter, targetCenter], source, target);
+        && this.graphRouteClearsHorizontalPhaseBands(points, phases, new Set([source.status, target.status])));
   }
   private graphRouteChannels(coordinates: number[], clearance: number, outerClearance = clearance): number[] {
     const sorted = [...new Set(coordinates)].sort((first, second) => first - second);

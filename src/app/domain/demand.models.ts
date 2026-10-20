@@ -82,3 +82,4 @@ export type VisibilityFilter = "status" | "demand" | "demandType";
 export type VisualizationFormat = "table" | "graph";
 export type DemandRepresentation = "detailedCard" | "number";
 export type GraphDemandRepresentation = "circle" | "number";
+export type GraphRoutingAlgorithm = "standard" | "optimized";
