@@ -73,6 +73,7 @@ export interface GraphDemandNode {
   source: string;
   target?: string;
   progress: number;
+  laneOffset: number;
   x: number;
   y: number;
 }

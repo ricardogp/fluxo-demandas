@@ -21,6 +21,12 @@ interface GraphPhasePort {
   side: GraphPortSide;
   offset?: number;
 }
+interface GraphRouteTraversal {
+  key: string;
+  route: string;
+  startedAt: Date;
+  endedAt: Date;
+}
 
 const SAMPLE_EVENTS: DemandEvent[] = [
   { demandNumber: "DEM-1042", demandTitle: "Portal de fornecedores", demandType: "Evolutiva", status: "Descoberta", startedAt: new Date(2026, 7, 3), endedAt: new Date(2026, 7, 7), row: 2 },
@@ -558,6 +564,7 @@ export class AppComponent {
   private graphDemandNodes(phaseByStatus: Map<string, GraphPhaseNode>, transitionByRoute: Map<string, GraphTransition>): GraphDemandNode[] {
     const demands: GraphDemandNode[] = [];
     const current = this.currentTime();
+    const laneOffsets = this.graphDemandLaneOffsetsByTraversal();
 
     for (const history of this.histories()) {
       if (!this.demandVisible(history.number) || !this.demandTypeVisible(history.demandType)) continue;
@@ -592,6 +599,7 @@ export class AppComponent {
           source: source.status,
           target: target.status,
           progress: this.periodProgress(source.startedAt, source.endedAt, current),
+          laneOffset: laneOffsets.get(this.graphRouteTraversalKey(history.number, source, target)) ?? 0,
           x: 0,
           y: 0,
         });
@@ -607,14 +615,65 @@ export class AppComponent {
     }
     for (const [route, demandsAtRoute] of demandsByRoute) {
       const transition = transitionByRoute.get(route)!;
-      const offsets = this.graphDemandLaneOffsets(demandsAtRoute.length);
-      demandsAtRoute.sort((first, second) => first.number.localeCompare(second.number)).forEach((demand, index) => {
+      for (const demand of demandsAtRoute) {
         const { point, normal } = this.graphRoutePosition(transition.points, demand.progress);
-        demand.x = point.x + normal.x * offsets[index];
-        demand.y = point.y + normal.y * offsets[index];
-      });
+        demand.x = point.x + normal.x * demand.laneOffset;
+        demand.y = point.y + normal.y * demand.laneOffset;
+      }
     }
     return demands;
+  }
+  // Faixas são definidas na entrada da ligação. Uma demanda posterior só sai do
+  // corredor central se sua velocidade permitir que alcance outra já em trânsito.
+  private graphDemandLaneOffsetsByTraversal(): Map<string, number> {
+    const traversalsByRoute = new Map<string, GraphRouteTraversal[]>();
+    for (const history of this.histories()) {
+      const visits = this.phaseVisits(history.events);
+      for (let index = 0; index < visits.length - 1; index += 1) {
+        const source = visits[index];
+        const target = visits[index + 1];
+        const route = `${source.status}\u0000${target.status}`;
+        const traversals = traversalsByRoute.get(route) ?? [];
+        traversals.push({
+          key: this.graphRouteTraversalKey(history.number, source, target),
+          route,
+          startedAt: source.startedAt,
+          endedAt: source.endedAt,
+        });
+        traversalsByRoute.set(route, traversals);
+      }
+    }
+
+    const offsets = new Map<string, number>();
+    for (const traversals of traversalsByRoute.values()) {
+      const assigned: Array<{ traversal: GraphRouteTraversal; offset: number }> = [];
+      for (const traversal of traversals.sort((first, second) => first.startedAt.getTime() - second.startedAt.getTime()
+        || first.endedAt.getTime() - second.endedAt.getTime() || first.key.localeCompare(second.key, "pt-BR"))) {
+        const occupiedOffsets = new Set(assigned
+          .filter((previous) => this.graphRouteTraversalsMeet(traversal, previous.traversal))
+          .map((previous) => previous.offset));
+        const offset = this.graphAvailableDemandLane(occupiedOffsets);
+        offsets.set(traversal.key, offset);
+        assigned.push({ traversal, offset });
+      }
+    }
+    return offsets;
+  }
+  private graphRouteTraversalKey(number: string, source: PhaseVisit, target: PhaseVisit): string {
+    return `${number}\u0000${source.status}\u0000${target.status}\u0000${source.startedAt.getTime()}`;
+  }
+  private graphRouteTraversalsMeet(first: GraphRouteTraversal, second: GraphRouteTraversal): boolean {
+    const startedAt = Math.max(first.startedAt.getTime(), second.startedAt.getTime());
+    const endedAt = Math.min(first.endedAt.getTime(), second.endedAt.getTime());
+    if (startedAt > endedAt) return false;
+    const progressDifference = (time: number) => this.periodProgress(first.startedAt, first.endedAt, time)
+      - this.periodProgress(second.startedAt, second.endedAt, time);
+    const atStart = progressDifference(startedAt);
+    const atEnd = progressDifference(endedAt);
+    return atStart === 0 || atEnd === 0 || atStart * atEnd < 0;
+  }
+  private graphAvailableDemandLane(occupiedOffsets: Set<number>): number {
+    return this.graphDemandLaneOffsets(occupiedOffsets.size + 1).find((offset) => !occupiedOffsets.has(offset)) ?? 0;
   }
   // A cor pertence ao par origem-destino, e não à quantidade de demandas na rota.
   // Assim, ela continua a mesma durante a reprodução e após filtros temporários.
@@ -987,8 +1046,8 @@ export class AppComponent {
     return { point: points.at(-1)!, normal: { x: 0, y: 0 } };
   }
   private graphDemandLaneOffsets(count: number): number[] {
-    const offsets = count % 2 === 0 ? [] : [0];
-    for (let distance = count % 2 === 0 ? .5 : 1; offsets.length < count; distance += 1) {
+    const offsets = [0];
+    for (let distance = 1; offsets.length < count; distance += 1) {
       offsets.push(-distance * GRAPH_DEMAND_LANE_SEPARATION);
       if (offsets.length < count) offsets.push(distance * GRAPH_DEMAND_LANE_SEPARATION);
     }

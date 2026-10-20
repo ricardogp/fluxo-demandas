@@ -222,9 +222,33 @@ test("distribui demandas na mesma ligação em faixas laterais", () => {
   const app = new AppComponent() as TestableApp;
 
   assert.deepEqual(app.graphDemandLaneOffsets(1), [0]);
-  assert.deepEqual(app.graphDemandLaneOffsets(2), [-4.5, 4.5]);
+  assert.deepEqual(app.graphDemandLaneOffsets(2), [0, -9]);
   assert.deepEqual(app.graphDemandLaneOffsets(3), [0, -9, 9]);
-  assert.deepEqual(app.graphDemandLaneOffsets(4), [-4.5, 4.5, -13.5, 13.5]);
+  assert.deepEqual(app.graphDemandLaneOffsets(4), [0, -9, 9, -18]);
+});
+
+test("mantém a faixa de demandas à frente quando a nova não pode alcançá-las", () => {
+  const app = new AppComponent();
+  app.events.set([
+    { demandNumber: "DEM-FRENTE", demandTitle: "Demanda à frente", demandType: "Evolutiva", status: "Origem", startedAt: new Date(2026, 0, 1), endedAt: new Date(2026, 0, 11), row: 2 },
+    { demandNumber: "DEM-FRENTE", demandTitle: "Demanda à frente", demandType: "Evolutiva", status: "Destino", startedAt: new Date(2026, 0, 12), endedAt: new Date(2026, 0, 12), row: 3 },
+    { demandNumber: "DEM-LENTA", demandTitle: "Demanda lenta", demandType: "Evolutiva", status: "Origem", startedAt: new Date(2026, 0, 3), endedAt: new Date(2026, 0, 23), row: 4 },
+    { demandNumber: "DEM-LENTA", demandTitle: "Demanda lenta", demandType: "Evolutiva", status: "Destino", startedAt: new Date(2026, 0, 24), endedAt: new Date(2026, 0, 24), row: 5 },
+    { demandNumber: "DEM-RÁPIDA", demandTitle: "Demanda rápida", demandType: "Evolutiva", status: "Origem", startedAt: new Date(2026, 0, 4), endedAt: new Date(2026, 0, 6), row: 6 },
+    { demandNumber: "DEM-RÁPIDA", demandTitle: "Demanda rápida", demandType: "Evolutiva", status: "Destino", startedAt: new Date(2026, 0, 7), endedAt: new Date(2026, 0, 7), row: 7 },
+  ]);
+
+  app.currentTime.set(new Date(2026, 0, 3, 12).getTime());
+  const beforeNewDemand = new Map(app.graph().demands.map((demand) => [demand.number, demand.laneOffset]));
+
+  app.currentTime.set(new Date(2026, 0, 4, 12).getTime());
+  const afterNewDemand = new Map(app.graph().demands.map((demand) => [demand.number, demand.laneOffset]));
+
+  assert.equal(beforeNewDemand.get("DEM-FRENTE"), 0);
+  assert.equal(beforeNewDemand.get("DEM-LENTA"), 0);
+  assert.equal(afterNewDemand.get("DEM-FRENTE"), 0);
+  assert.equal(afterNewDemand.get("DEM-LENTA"), 0);
+  assert.equal(afterNewDemand.get("DEM-RÁPIDA"), -9);
 });
 
 test("escurece os nós do grafo conforme a carga visível da fase", () => {
