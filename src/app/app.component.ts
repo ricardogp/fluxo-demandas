@@ -734,9 +734,15 @@ export class AppComponent {
       if (portsAtSide.length < 2) continue;
       const availablePortWidth = GRAPH_PHASE_RADIUS * 2 - GRAPH_PHASE_PORT_SEPARATION;
       const separation = Math.min(GRAPH_PHASE_PORT_SEPARATION, availablePortWidth / Math.max(1, portsAtSide.length - 1));
-      this.graphPortOrder(portsAtSide).forEach((port, index) => {
-        this.positionGraphPort(port, (index - (portsAtSide.length - 1) / 2) * separation);
-      });
+      const orderedPorts = this.graphPortOrder(portsAtSide);
+      const directPort = orderedPorts.find((port) => this.graphTransitionCanRemainStraight(port.transition, transitions));
+      if (directPort) {
+        this.separateGraphPortsAroundDirectRoute(orderedPorts, directPort, separation);
+      } else {
+        orderedPorts.forEach((port, index) => {
+          this.positionGraphPort(port, (index - (orderedPorts.length - 1) / 2) * separation);
+        });
+      }
     }
 
     // A mudança lateral ocorre somente perto da borda do nó. Usar o ponto
@@ -759,6 +765,32 @@ export class AppComponent {
       transition.points = this.graphSimplifyPoints(transition.points);
       transition.path = this.graphPath(transition.points);
     });
+  }
+  // Uma reta desimpedida é a leitura mais clara entre fases vizinhas. As outras
+  // ligações ainda recebem portas próprias ao redor dela quando compartilham a face.
+  private separateGraphPortsAroundDirectRoute(ports: GraphPhasePort[], directPort: GraphPhasePort, separation: number): void {
+    const directIndex = ports.indexOf(directPort);
+    let before = 0;
+    let after = 0;
+    ports.forEach((port, index) => {
+      if (port === directPort) return;
+      const offset = index < directIndex ? -(++before) * separation : (++after) * separation;
+      this.positionGraphPort(port, offset);
+    });
+  }
+  private graphTransitionCanRemainStraight(transition: GraphTransition, transitions: GraphTransition[]): boolean {
+    if (transition.points.length !== 2) return false;
+    return !transitions.some((other) => other !== transition && this.graphTransitionsShareMainLane(transition, other));
+  }
+  private graphTransitionsShareMainLane(first: GraphTransition, second: GraphTransition): boolean {
+    if (first.source === second.target && first.target === second.source) return true;
+    for (let firstIndex = 0; firstIndex < first.points.length - 1; firstIndex += 1) {
+      for (let secondIndex = 0; secondIndex < second.points.length - 1; secondIndex += 1) {
+        const lane = this.graphSharedLane(first.points[firstIndex], first.points[firstIndex + 1], second.points[secondIndex], second.points[secondIndex + 1]);
+        if (lane?.separation === 0) return true;
+      }
+    }
+    return false;
   }
   private graphPortSide(point: GraphPoint, phase: GraphPhaseNode): GraphPortSide {
     const horizontalDistance = point.x - phase.x;

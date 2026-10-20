@@ -137,7 +137,7 @@ test("separa simetricamente chegada e saída que usam o topo de uma fase", () =>
   assert.match(transitions[1].path, /^M 97.5 86.25 L 97.5 60 L 100 60/);
 });
 
-test("mantém o trecho longo reto ao separar chegadas pelo lado esquerdo", () => {
+test("preserva a reta direta e desloca apenas a chegada concorrente", () => {
   const app = new AppComponent() as TestableApp;
   const phase = (status: string, x: number, y: number) => ({ status, labelLines: [status], color: "#889", activeCount: 0, x, y });
   const phases = [phase("Origem A", 30, 100), phase("Origem B", 30, 160), phase("Destino", 100, 100)];
@@ -148,9 +148,24 @@ test("mantém o trecho longo reto ao separar chegadas pelo lado esquerdo", () =>
 
   app.separateGraphPorts(transitions, phases);
 
-  assert.deepEqual(transitions[0].points, [{ x: 41, y: 100 }, { x: 78.25, y: 100 }, { x: 78.25, y: 97.5 }, { x: 86.25, y: 97.5 }]);
-  assert.doesNotMatch(transitions[0].path, /^M 41 100 L 41 97.5/);
-  assert.match(transitions[0].path, /L 78.25 100 L 78.25 97.5 L 86.25 97.5$/);
+  assert.deepEqual(transitions[0].points, [{ x: 41, y: 100 }, { x: 89, y: 100 }]);
+  assert.equal(transitions[0].path, "M 41 100 L 89 100");
+  assert.deepEqual(transitions[1].points, [{ x: 30, y: 149 }, { x: 78.25, y: 149 }, { x: 78.25, y: 105 }, { x: 86.25, y: 105 }]);
+});
+
+test("separa retas sobrepostas em sentidos opostos", () => {
+  const app = new AppComponent() as TestableApp;
+  const phase = (status: string, x: number, y: number) => ({ status, labelLines: [status], color: "#889", activeCount: 0, x, y });
+  const phases = [phase("Origem", 30, 100), phase("Destino", 100, 100)];
+  const transitions = [
+    { source: "Origem", target: "Destino", color: "#789", count: 1, strokeWidth: 1, path: "", points: [{ x: 41, y: 100 }, { x: 89, y: 100 }] },
+    { source: "Destino", target: "Origem", color: "#789", count: 1, strokeWidth: 1, path: "", points: [{ x: 89, y: 100 }, { x: 41, y: 100 }] },
+  ];
+
+  app.separateGraphPorts(transitions, phases);
+
+  assert.notEqual(transitions[0].points[0].y, transitions[1].points[0].y);
+  assert.ok(transitions.every((transition) => transition.points.every((point) => point.y !== 100)));
 });
 
 test("separa entradas que chegam pelo mesmo lado de uma fase", () => {
