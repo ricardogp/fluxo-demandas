@@ -45,6 +45,13 @@ test("a tabela preserva cartões, representação numérica e painel contextual"
 test("a linha do tempo e o grafo preservam contratos acessíveis", () => {
   assert.match(timeline, /<input class="timeline" type="range" min="0" \[max\]="timelineSliderMaximum\(\)" \[value\]="sliderInputValue\(\)"/);
   assert.match(timeline, /\[attr\.aria-valuetext\]="timelineLabel\(\)"/);
+  assert.match(appTemplate, /\[timelineChart\]="timelineChart\(\)"/);
+  assert.match(timeline, /<svg class="timeline-chart"[^>]*role="img"[^>]*\[attr\.aria-label\]="timelineChartAriaLabel\(\)"/);
+  assert.match(timeline, /<polygon class="timeline-chart-area"/);
+  assert.match(timeline, /<polyline class="timeline-chart-total-line"/);
+  assert.match(timeline, /<line class="timeline-chart-current"/);
+  assert.match(timeline, /<line class="timeline-chart-peak"/);
+  assert.match(timeline, /<div class="timeline-chart-legend" aria-label="Legenda das situações">/);
   assert.match(graph, /<svg class="graph-canvas" \[class\.is-playing\]="playing\(\)"/);
   assert.match(graph, /<path class="graph-transition" \[class\.active\]="transition\.activeDemandCount > 0"/);
   assert.match(graph, /\[attr\.stroke-width\]="transition\.strokeWidth"/);
@@ -70,6 +77,7 @@ test("o estilo compartilhado preserva a geometria compacta", () => {
   assert.match(stylesheet, /\.time-control \{ margin: 0 0 12px; padding: 10px 0;/);
   assert.match(globalStylesheet, /\.app-shell \.timeline-slider \{ margin: 0 0 44px; \}/);
   assert.match(globalStylesheet, /\.app-shell \.selected-date \{ top: calc\(100% \+ 4px\); bottom: auto; \}/);
+  assert.match(globalStylesheet, /\.timeline-chart \{[^}]*width: 100%; height: 82px;/);
   assert.match(stylesheet, /\.graph-phase-count \{ font-size: 7px;/);
   assert.match(globalStylesheet, /\.app-shell \.demand-card \{ padding: 7px; \}/);
   assert.match(globalStylesheet, /\.app-shell \.card-date-range \{ margin-inline: auto; text-align: center; \}/);

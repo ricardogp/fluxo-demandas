@@ -39,6 +39,23 @@ export interface ActiveHint { item: ActiveDemand; x: number; y: number; below: b
 export interface PhaseHint { status: string; items: ActiveDemand[]; x: number; y: number; below: boolean; }
 export interface StatusMetrics { maxConcurrent: number; averageMs: number; p90Ms: number; p95Ms: number; }
 export interface PhaseVisit { status: string; startedAt: Date; endedAt: Date; usesLogicalTime: boolean; }
+export interface TimelineChartSeries {
+  status: string;
+  color: string;
+  maximum: number;
+  areaPoints: string;
+  linePoints: string;
+}
+export interface TimelineChartPeak { count: number; time: number; x: number; y: number; }
+export interface TimelineChartView {
+  width: number;
+  height: number;
+  baseline: number;
+  maximum: number;
+  series: TimelineChartSeries[];
+  totalLinePoints: string;
+  peak: TimelineChartPeak;
+}
 
 export type GraphPhaseLoadState = "empty" | "neutral" | "warning" | "critical" | "overloaded";
 export interface GraphPoint { x: number; y: number; }

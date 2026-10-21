@@ -2,7 +2,7 @@ import { Component, computed, signal, ViewEncapsulation } from "@angular/core";
 import {
   ActiveDemand, ActiveHint, DemandEvent, DemandHistory, DemandRepresentation,
   GraphDemandNode, GraphDemandRepresentation, GraphPhaseLoadState, GraphPhaseNode, GraphPoint, GraphRoutingAlgorithm, GraphTransition,
-  GraphView, PhaseHint, PhaseVisit, StatusDuration, StatusMetrics, TimelineEvent,
+  GraphView, PhaseHint, PhaseVisit, StatusDuration, StatusMetrics, TimelineChartSeries, TimelineChartView, TimelineEvent,
   VisibilityFilter, VisualizationFormat,
 } from "./domain/demand.models";
 import { AppHeaderComponent } from "./components/app-header.component";
@@ -31,6 +31,12 @@ interface GraphRouteRequest {
   key: string;
   source: GraphPhaseNode;
   target: GraphPhaseNode;
+}
+interface TimelineChartSegment {
+  start: number;
+  end: number;
+  counts: number[];
+  total: number;
 }
 
 const SAMPLE_EVENTS: DemandEvent[] = [
@@ -71,6 +77,10 @@ const GRAPH_DEMAND_LANE_SEPARATION = 9;
 const GRAPH_ALWAYS_NEUTRAL_PHASES = new Set(["aberta", "cancelada", "concluida", "em encerramento", "entregue"]);
 const DAY_IN_MS = 86_400_000;
 const TIMELINE_SLIDER_MAXIMUM = 10_000;
+const TIMELINE_CHART_WIDTH = 1000;
+const TIMELINE_CHART_HEIGHT = 82;
+const TIMELINE_CHART_TOP = 6;
+const TIMELINE_CHART_BASELINE = 76;
 
 @Component({
   selector: "app-root",
@@ -240,6 +250,7 @@ export class AppComponent {
     return range === 0 ? 0 : ((this.currentTime() - this.timelineStart().getTime()) / range) * 1000;
   });
   readonly sliderInputValue = computed(() => this.sliderValue() * (TIMELINE_SLIDER_MAXIMUM / 1000));
+  readonly timelineChart = computed<TimelineChartView>(() => this.buildTimelineChart());
   async importSpreadsheet(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
@@ -434,6 +445,102 @@ export class AppComponent {
   timelineEnd(): Date { return this.endOfDay(this.events().reduce((latest, item) => item.endedAt > latest ? item.endedAt : latest, this.events()[0]?.endedAt ?? new Date())); }
 
   private endOfDay(date: Date): Date { return new Date(this.dateOnly(date).getTime() + DAY_IN_MS - 1); }
+
+  private buildTimelineChart(): TimelineChartView {
+    const rangeStart = this.timelineStart().getTime();
+    const rangeEnd = this.timelineEnd().getTime() + 1;
+    const statuses = this.visibleStatusOrder();
+    const statusIndexes = new Map(statuses.map((status, index) => [status, index]));
+    const histories = this.histories().filter((history) => this.demandVisible(history.number) && this.demandTypeVisible(history.demandType));
+    const boundaries = new Set<number>([rangeStart, rangeEnd]);
+    const clampToRange = (time: number) => Math.max(rangeStart, Math.min(rangeEnd, time));
+
+    for (const history of histories) {
+      for (const event of history.events) {
+        boundaries.add(clampToRange(event.timelineStartedAt.getTime()));
+        boundaries.add(clampToRange(this.timelineChartEventEnd(event, rangeEnd)));
+      }
+    }
+
+    const times = [...boundaries].sort((first, second) => first - second);
+    const segments: TimelineChartSegment[] = [];
+    for (let index = 0; index < times.length - 1; index += 1) {
+      const start = times[index];
+      const end = times[index + 1];
+      if (end <= start) continue;
+      const sample = start + (end - start) / 2;
+      const counts = statuses.map(() => 0);
+
+      for (const history of histories) {
+        // Intervalos semiabertos evitam contar duas situações da mesma demanda
+        // exatamente no ponto em que ocorre uma transição.
+        const event = history.events.find((item) => sample >= item.timelineStartedAt.getTime() && sample < this.timelineChartEventEnd(item, rangeEnd));
+        const statusIndex = event ? statusIndexes.get(event.status) : undefined;
+        if (statusIndex !== undefined) counts[statusIndex] += 1;
+      }
+      segments.push({ start, end, counts, total: counts.reduce((sum, count) => sum + count, 0) });
+    }
+
+    const maximum = Math.max(0, ...segments.map((segment) => segment.total));
+    const scaleMaximum = Math.max(1, maximum);
+    const chartX = (time: number) => ((time - rangeStart) / Math.max(1, rangeEnd - rangeStart)) * TIMELINE_CHART_WIDTH;
+    const chartY = (count: number) => TIMELINE_CHART_BASELINE - (count / scaleMaximum) * (TIMELINE_CHART_BASELINE - TIMELINE_CHART_TOP);
+    const point = (x: number, y: number) => `${x.toFixed(3)},${y.toFixed(3)}`;
+    const cumulative = segments.map(() => 0);
+    const series: TimelineChartSeries[] = [];
+
+    statuses.forEach((status, statusIndex) => {
+      const seriesMaximum = Math.max(0, ...segments.map((segment) => segment.counts[statusIndex]));
+      if (seriesMaximum === 0) return;
+      const upper: string[] = [];
+      const lower: string[] = [];
+
+      segments.forEach((segment, segmentIndex) => {
+        const bottom = cumulative[segmentIndex];
+        const top = bottom + segment.counts[statusIndex];
+        upper.push(point(chartX(segment.start), chartY(top)), point(chartX(segment.end), chartY(top)));
+        cumulative[segmentIndex] = top;
+      });
+      for (let segmentIndex = segments.length - 1; segmentIndex >= 0; segmentIndex -= 1) {
+        const segment = segments[segmentIndex];
+        const bottom = cumulative[segmentIndex] - segment.counts[statusIndex];
+        lower.push(point(chartX(segment.end), chartY(bottom)), point(chartX(segment.start), chartY(bottom)));
+      }
+      series.push({
+        status,
+        color: this.laneColor(status),
+        maximum: seriesMaximum,
+        areaPoints: [...upper, ...lower].join(" "),
+        linePoints: upper.join(" "),
+      });
+    });
+
+    const totalLinePoints = segments.flatMap((segment) => [
+      point(chartX(segment.start), chartY(segment.total)),
+      point(chartX(segment.end), chartY(segment.total)),
+    ]).join(" ");
+    const peakSegments = segments.filter((segment) => segment.total === maximum);
+    const peakSegment = peakSegments.reduce(
+      (longest, segment) => segment.end - segment.start > longest.end - longest.start ? segment : longest,
+      peakSegments[0],
+    );
+    const peakTime = peakSegment ? peakSegment.start + (peakSegment.end - peakSegment.start) / 2 : rangeStart;
+
+    return {
+      width: TIMELINE_CHART_WIDTH,
+      height: TIMELINE_CHART_HEIGHT,
+      baseline: TIMELINE_CHART_BASELINE,
+      maximum,
+      series,
+      totalLinePoints,
+      peak: { count: maximum, time: peakTime, x: chartX(peakTime), y: chartY(maximum) },
+    };
+  }
+
+  private timelineChartEventEnd(event: TimelineEvent, rangeEnd: number): number {
+    if (!event.usesLogicalTime) return event.timelineEndedAt.getTime() + DAY_IN_MS;
+    return event.timelineEndedAt.getTime() >= rangeEnd - 1 ? rangeEnd : event.timelineEndedAt.getTime();
+  }
 
   private createTimelineEvents(events: DemandEvent[]): TimelineEvent[] {
     const eventsByStart = new Map<number, DemandEvent[]>();

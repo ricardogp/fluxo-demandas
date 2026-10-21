@@ -746,6 +746,29 @@ test("calcula indicadores de tempo e pico por situação", () => {
   assert.equal(metrics.p95Ms, 5 * day);
 });
 
+test("monta o gráfico temporal por situação e atualiza o pico com os filtros", () => {
+  const app = new AppComponent();
+  app.events.set([
+    { demandNumber: "DEM-A", demandTitle: "Primeira", demandType: "Evolutiva", status: "Análise", startedAt: new Date(2026, 0, 1), endedAt: new Date(2026, 0, 3), row: 2 },
+    { demandNumber: "DEM-B", demandTitle: "Segunda", demandType: "Corretiva", status: "Análise", startedAt: new Date(2026, 0, 2), endedAt: new Date(2026, 0, 2), row: 3 },
+    { demandNumber: "DEM-C", demandTitle: "Terceira", demandType: "Evolutiva", status: "Desenvolvimento", startedAt: new Date(2026, 0, 2), endedAt: new Date(2026, 0, 4), row: 4 },
+  ]);
+
+  const chart = app.timelineChart();
+  assert.equal(chart.maximum, 3);
+  assert.equal(new Date(chart.peak.time).getDate(), 2);
+  assert.equal(chart.series.find((series) => series.status === "Análise")?.maximum, 2);
+  assert.equal(chart.series.find((series) => series.status === "Desenvolvimento")?.maximum, 1);
+  assert.match(chart.totalLinePoints, /^0\.000,/);
+  assert.match(chart.totalLinePoints, /1000\.000,/);
+
+  app.toggleDemandVisibility("DEM-A");
+  assert.equal(app.timelineChart().maximum, 2);
+  app.toggleStatusVisibility("Análise");
+  assert.equal(app.timelineChart().maximum, 1);
+  assert.deepEqual(app.timelineChart().series.map((series) => series.status), ["Desenvolvimento"]);
+});
+
 test("recalcula as métricas com a permanência parcial do passo atual", () => {
   const day = 86_400_000;
   const app = new AppComponent() as TestableApp;
