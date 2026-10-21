@@ -31,6 +31,8 @@ Abaixo do grafo, uma legenda associa o preenchimento de cada marcador ao respect
 
 Os filtros de visualização de situações, demandas e tipos de demanda ficam recolhidos em botões e exibem checkboxes ao serem clicados. As opções recebem as cores correspondentes à situação ou ao tipo de demanda e são distribuídas em tantas colunas quanto necessário, com no máximo três linhas por filtro.
 
+Na escala numérica do gráfico temporal, o valor máximo aparece no topo e zero na base, tanto no início quanto no final da área.
+
 ## Organização do frontend
 
 `AppComponent` é o contêiner da simulação: mantém o estado reativo, a reprodução temporal, os filtros e as regras de domínio do grafo. A interface está separada em componentes de apresentação para que mudanças em uma área não acoplem as demais:

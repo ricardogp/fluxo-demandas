@@ -13,6 +13,10 @@ import { TimelineChartView } from "../domain/demand.models";
         </div>
         <svg class="timeline-chart" [attr.viewBox]="'0 0 ' + timelineChart().width + ' ' + timelineChart().height" preserveAspectRatio="none" role="img" [attr.aria-label]="timelineChartAriaLabel()">
           <title>{{ timelineChartAriaLabel() }}</title>
+          <text class="timeline-chart-scale timeline-chart-scale-start-max" x="3" y="11" text-anchor="start">{{ timelineChart().maximum }}</text>
+          <text class="timeline-chart-scale timeline-chart-scale-start-zero" x="3" [attr.y]="timelineChart().baseline - 1" text-anchor="start">0</text>
+          <text class="timeline-chart-scale timeline-chart-scale-end-max" [attr.x]="timelineChart().width - 3" y="11" text-anchor="end">{{ timelineChart().maximum }}</text>
+          <text class="timeline-chart-scale timeline-chart-scale-end-zero" [attr.x]="timelineChart().width - 3" [attr.y]="timelineChart().baseline - 1" text-anchor="end">0</text>
           <line class="timeline-chart-baseline" x1="0" [attr.x2]="timelineChart().width" [attr.y1]="timelineChart().baseline" [attr.y2]="timelineChart().baseline" />
           <polygon class="timeline-chart-area" [attr.points]="timelineChart().areaPoints" />
           <polyline class="timeline-chart-line" [attr.points]="timelineChart().linePoints" />
