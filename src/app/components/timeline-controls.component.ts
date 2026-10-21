@@ -7,21 +7,15 @@ import { TimelineChartView } from "../domain/demand.models";
     <section class="time-control" aria-labelledby="timeline-title">
       <div class="timeline-heading"><div><h2 id="timeline-title">Linha do tempo das demandas</h2><p class="timeline-instruction">Arraste o marcador para explorar o fluxo em outra data ou sequência do mesmo dia; use Reproduzir para avançar automaticamente.</p></div></div>
       <div class="timeline-chart-block">
-        <div class="timeline-chart-heading"><span>Demandas por situação</span><strong>Pico: {{ peakLabel() }}</strong></div>
+        <div class="timeline-chart-heading"><span [title]="'Inclui: ' + timelineChartScopeLabel()">Demandas nas situações acompanhadas</span><strong>Pico: {{ peakLabel() }}</strong></div>
         <svg class="timeline-chart" [attr.viewBox]="'0 0 ' + timelineChart().width + ' ' + timelineChart().height" preserveAspectRatio="none" role="img" [attr.aria-label]="timelineChartAriaLabel()">
           <title>{{ timelineChartAriaLabel() }}</title>
           <line class="timeline-chart-baseline" x1="0" [attr.x2]="timelineChart().width" [attr.y1]="timelineChart().baseline" [attr.y2]="timelineChart().baseline" />
-          @for (series of timelineChart().series; track series.status) {
-            <polygon class="timeline-chart-area" [attr.points]="series.areaPoints" [attr.fill]="series.color"><title>{{ series.status }}: máximo de {{ series.maximum }}</title></polygon>
-            <polyline class="timeline-chart-series-line" [attr.points]="series.linePoints" [attr.stroke]="series.color" />
-          }
-          <polyline class="timeline-chart-total-line" [attr.points]="timelineChart().totalLinePoints" />
+          <polygon class="timeline-chart-area" [attr.points]="timelineChart().areaPoints" />
+          <polyline class="timeline-chart-line" [attr.points]="timelineChart().linePoints" />
           <line class="timeline-chart-current" [attr.x1]="sliderValue()" [attr.x2]="sliderValue()" y1="0" [attr.y2]="timelineChart().baseline" />
           @if (timelineChart().peak.count > 0) { <line class="timeline-chart-peak" [attr.x1]="timelineChart().peak.x" [attr.x2]="timelineChart().peak.x" [attr.y1]="timelineChart().peak.y" [attr.y2]="timelineChart().baseline" /> }
         </svg>
-        <div class="timeline-chart-legend" aria-label="Legenda das situações">
-          @for (series of timelineChart().series; track series.status) { <span><i [style.background]="series.color"></i>{{ series.status }}</span> }
-        </div>
       </div>
       <div class="timeline-slider">
         <input class="timeline" type="range" min="0" [max]="timelineSliderMaximum()" [value]="sliderInputValue()" (input)="scrub.emit($event)" aria-label="Navegar na linha do tempo" [attr.aria-valuetext]="timelineLabel()" />
@@ -53,11 +47,13 @@ export class TimelineControlsComponent {
 
   peakLabel(): string {
     const peak = this.timelineChart().peak;
-    if (peak.count === 0) return "sem demandas visíveis";
+    if (peak.count === 0) return "sem demandas nas situações acompanhadas";
     return `${peak.count} ${peak.count === 1 ? "demanda" : "demandas"} · ${this.rangeLabel()(new Date(peak.time))}`;
   }
 
   timelineChartAriaLabel(): string {
-    return `Quantidade de demandas por situação ao longo da linha do tempo. Pico de ${this.peakLabel()}.`;
+    return `Quantidade de demandas nas situações ${this.timelineChartScopeLabel()} ao longo da linha do tempo. Pico de ${this.peakLabel()}.`;
   }
+
+  timelineChartScopeLabel(): string { return this.timelineChart().statuses.join(", "); }
 }

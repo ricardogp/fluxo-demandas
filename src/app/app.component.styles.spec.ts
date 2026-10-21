@@ -48,10 +48,10 @@ test("a linha do tempo e o grafo preservam contratos acessíveis", () => {
   assert.match(appTemplate, /\[timelineChart\]="timelineChart\(\)"/);
   assert.match(timeline, /<svg class="timeline-chart"[^>]*role="img"[^>]*\[attr\.aria-label\]="timelineChartAriaLabel\(\)"/);
   assert.match(timeline, /<polygon class="timeline-chart-area"/);
-  assert.match(timeline, /<polyline class="timeline-chart-total-line"/);
+  assert.match(timeline, /<polyline class="timeline-chart-line"/);
   assert.match(timeline, /<line class="timeline-chart-current"/);
   assert.match(timeline, /<line class="timeline-chart-peak"/);
-  assert.match(timeline, /<div class="timeline-chart-legend" aria-label="Legenda das situações">/);
+  assert.doesNotMatch(timeline, /timeline-chart-series-line|timeline-chart-legend/);
   assert.match(graph, /<svg class="graph-canvas" \[class\.is-playing\]="playing\(\)"/);
   assert.match(graph, /<path class="graph-transition" \[class\.active\]="transition\.activeDemandCount > 0"/);
   assert.match(graph, /\[attr\.stroke-width\]="transition\.strokeWidth"/);
