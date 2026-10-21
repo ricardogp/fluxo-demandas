@@ -240,11 +240,6 @@ export class AppComponent {
     return range === 0 ? 0 : ((this.currentTime() - this.timelineStart().getTime()) / range) * 1000;
   });
   readonly sliderInputValue = computed(() => this.sliderValue() * (TIMELINE_SLIDER_MAXIMUM / 1000));
-  readonly hasSameDaySequenceAtCurrent = computed(() => {
-    const current = this.currentTime();
-    return this.histories().some((history) => history.events.some((event) => event.hasSameDaySequence && this.containsTimeline(event, current)));
-  });
-
   async importSpreadsheet(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
@@ -320,7 +315,7 @@ export class AppComponent {
   setSpeed(speed: number): void { this.speed.set(speed); }
   timelineLabel(): string {
     const date = this.currentDate().toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
-    return this.hasSameDaySequenceAtCurrent() ? `${date} · sequência do dia` : date;
+    return date;
   }
   rangeLabel(date: Date): string { return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }); }
   cardDateLabel(date: Date): string { return `${date.getDate().toString().padStart(2, "0")}/${MONTH_ABBREVIATIONS[date.getMonth()]}`; }

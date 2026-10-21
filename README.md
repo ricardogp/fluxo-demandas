@@ -11,7 +11,7 @@ Na primeira aba do arquivo `.xlsx` ou `.xls`, cada linha representa a permanênc
 | DEM-142 | Login com SSO | Análise | 02/09/2026 | 05/09/2026 | Evolutiva |
 | DEM-142 | Login com SSO | Desenvolvimento | 06/09/2026 | 18/09/2026 | Evolutiva |
 
-A aplicação ordena as linhas de cada demanda por data e infere a sequência das situações a partir das transições encontradas. A linha do tempo aceita navegação nos dois sentidos; durante a reprodução, cada intervalo consome tempo proporcional à duração registrada na planilha. Quando duas ou mais etapas da mesma demanda começam na mesma data, a ordem das linhas cria subpassos lógicos naquele dia. Assim, a tabela e o grafo mostram cada transição separadamente, sem alterar as datas, os períodos ou as métricas originais da planilha. O marcador identifica esses pontos como “sequência do dia”.
+A aplicação ordena as linhas de cada demanda por data e infere a sequência das situações a partir das transições encontradas. A linha do tempo aceita navegação nos dois sentidos; durante a reprodução, cada intervalo consome tempo proporcional à duração registrada na planilha. Quando duas ou mais etapas da mesma demanda começam na mesma data, a ordem das linhas cria subpassos lógicos naquele dia. Assim, a tabela e o grafo mostram cada transição separadamente, sem alterar as datas, os períodos ou as métricas originais da planilha.
 
 Cada situação também exibe métricas calculadas até a data atualmente selecionada: máximo de demandas simultâneas (MÁX.), P90 e P95 do tempo de permanência. Uma demanda que ainda está na situação contribui com o tempo decorrido até aquele passo. Datas sem horário são tratadas como dias inteiros, incluindo a data final.
 

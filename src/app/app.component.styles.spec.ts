@@ -68,6 +68,8 @@ test("o estilo compartilhado preserva a geometria compacta", () => {
   assert.match(globalStylesheet, /\.app-shell \.lane-statistics \{ grid-template-columns: repeat\(3, minmax\(0, 1fr\)\); \}/);
   assert.match(stylesheet, /\.lane-content \{[^}]*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\);/);
   assert.match(stylesheet, /\.time-control \{ margin: 0 0 12px; padding: 10px 0;/);
+  assert.match(globalStylesheet, /\.app-shell \.timeline-slider \{ margin: 0 0 44px; \}/);
+  assert.match(globalStylesheet, /\.app-shell \.selected-date \{ top: calc\(100% \+ 4px\); bottom: auto; \}/);
   assert.match(stylesheet, /\.graph-phase-count \{ font-size: 7px;/);
   assert.match(globalStylesheet, /\.app-shell \.demand-card \{ padding: 7px; \}/);
   assert.match(globalStylesheet, /\.app-shell \.card-date-range \{ margin-inline: auto; text-align: center; \}/);

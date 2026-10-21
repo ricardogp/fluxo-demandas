@@ -17,6 +17,7 @@ button, input { font: inherit; }
 .app-shell .demand-card { padding: 7px; }
 .app-shell .demand-card h3 { margin: 5px 0 4px; text-align: center; }
 .app-shell .card-date-range { margin-inline: auto; text-align: center; }
+.app-shell .timeline-slider { margin: 0 0 44px; }.app-shell .selected-date { top: calc(100% + 4px); bottom: auto; }
 .app-shell .progress-track { margin-top: 8px; }
 .app-shell .demand-card h3 { font-size: 11px; font-weight: 400; overflow: visible; overflow-wrap: anywhere; text-overflow: clip; white-space: normal; }
 .graph-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin-top: 8px; color: #b7bdd1; font-size: 10px; }.graph-legend-title { color: #e0e4ef; font-weight: 800; }.graph-legend-item { display: inline-flex; align-items: center; gap: 5px; }.graph-legend-dot { width: 8px; height: 8px; border: 1px solid #fff8; border-radius: 50%; }.light-theme .graph-legend { color: #5f6a7f; }.light-theme .graph-legend-title { color: #384155; }.light-theme .graph-legend-dot { border-color: #fff; }

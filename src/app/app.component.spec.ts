@@ -394,7 +394,7 @@ test("percorre etapas da mesma data em subpassos na tabela e no grafo", () => {
   app.currentTime.set(sameDay + 6 * 60 * 60 * 1000);
   const halfwayDemand = app.graph().demands.find((demand) => demand.number === "DEM-MESMO-DIA");
   assert.equal(halfwayDemand?.progress, 50);
-  assert.match(app.timelineLabel(), /sequência do dia/);
+  assert.doesNotMatch(app.timelineLabel(), /sequência do dia/);
   assert.ok(app.statusMetrics().has("Entregue"));
 
   app.currentTime.set(sameDay + 12 * 60 * 60 * 1000 + 1);
