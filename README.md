@@ -59,6 +59,8 @@ npm run build
 
 Além da saída do Angular em `dist/`, esse comando gera `static/index.html`: um único arquivo HTML com o CSS e JavaScript incorporados. Ele pode ser copiado e aberto localmente no navegador, sem depender dos demais arquivos da pasta de build.
 
+Para gerar uma versão estática com dados incorporados, coloque os arquivos `.xlsx` ou `.xls` diretamente em `static/` antes de executar `npm run build`. Cada planilha será embutida no próprio `static/index.html`, e a aplicação exibirá uma combobox com o nome do arquivo sem a extensão para alternar entre os dados. Os arquivos não precisam acompanhar o HTML depois da geração.
+
 ## Aplicativo desktop
 
 Os comandos abaixo geram o aplicativo instalável para o sistema operacional em que forem executados:

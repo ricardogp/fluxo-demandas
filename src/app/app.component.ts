@@ -11,6 +11,7 @@ import { TableFlowComponent } from "./components/table-flow.component";
 import { TimelineControlsComponent } from "./components/timeline-controls.component";
 import { VisibilityFiltersComponent } from "./components/visibility-filters.component";
 import { SpreadsheetImporter } from "./services/spreadsheet-importer";
+import { EMBEDDED_WORKBOOKS, EmbeddedWorkbook } from "./services/embedded-workbooks";
 
 type GraphPortSide = "top" | "right" | "bottom" | "left";
 interface GraphPhasePort {
@@ -113,6 +114,8 @@ export class AppComponent {
   readonly loading = signal(false);
   readonly error = signal("");
   readonly sourceName = signal("Exemplo de simulação");
+  readonly embeddedWorkbooks = EMBEDDED_WORKBOOKS;
+  readonly selectedEmbeddedWorkbook = signal(EMBEDDED_WORKBOOKS[0]?.fileName ?? "");
   readonly currentTime = signal(this.timelineStart().getTime());
   readonly activeVisualization = signal<VisualizationFormat>("table");
   readonly demandRepresentation = signal<DemandRepresentation>("detailedCard");
@@ -123,6 +126,11 @@ export class AppComponent {
   private animationFrame?: number;
   private lastFrame?: number;
   private readonly spreadsheetImporter = new SpreadsheetImporter();
+
+  constructor() {
+    const firstWorkbook = EMBEDDED_WORKBOOKS[0];
+    if (firstWorkbook) void this.loadEmbeddedWorkbook(firstWorkbook);
+  }
   // Function bindings keep presentation components independent from the store
   // while retaining the same derived-state rules in this container.
   readonly presentation = {
@@ -264,6 +272,23 @@ export class AppComponent {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
     if (!file) return;
+    await this.loadSpreadsheet(file, file.name);
+    input.value = "";
+  }
+
+  async selectEmbeddedWorkbook(fileName: string): Promise<void> {
+    const workbook = EMBEDDED_WORKBOOKS.find((item) => item.fileName === fileName);
+    if (workbook) await this.loadEmbeddedWorkbook(workbook);
+  }
+
+  private async loadEmbeddedWorkbook(workbook: EmbeddedWorkbook): Promise<void> {
+    const binary = atob(workbook.base64);
+    const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+    await this.loadSpreadsheet(new File([bytes], workbook.fileName), workbook.displayName);
+    this.selectedEmbeddedWorkbook.set(workbook.fileName);
+  }
+
+  private async loadSpreadsheet(file: File, sourceName: string): Promise<void> {
     this.loading.set(true);
     this.error.set("");
     this.pause();
@@ -272,13 +297,12 @@ export class AppComponent {
       const parsed = await this.spreadsheetImporter.readFile(file);
       if (!parsed.length) throw new Error("Não encontrei linhas válidas para a simulação.");
       this.events.set(parsed);
-      this.sourceName.set(file.name);
+      this.sourceName.set(sourceName);
       this.currentTime.set(this.timelineStart().getTime());
     } catch (error: unknown) {
       this.error.set(error instanceof Error ? error.message : "Não foi possível ler esta planilha.");
     } finally {
       this.loading.set(false);
-      input.value = "";
     }
   }
 

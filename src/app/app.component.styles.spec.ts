@@ -15,6 +15,8 @@ const graph = read("./components/flow-graph.component.ts");
 test("o contêiner compõe superfícies independentes sem alterar as abas", () => {
   for (const selector of ["fd-app-header", "fd-visibility-filters", "fd-timeline-controls", "fd-table-flow", "fd-flow-graph"]) assert.match(appTemplate, new RegExp(`<${selector}`));
   assert.match(appTemplate, /role="tablist"/);
+  assert.match(appTemplate, /\[embeddedWorkbooks\]="embeddedWorkbooks"/);
+  assert.match(appTemplate, /\(embeddedSpreadsheetSelected\)="selectEmbeddedWorkbook\(\$event\)"/);
   assert.match(appTemplate, /id="table-format-tab"/);
   assert.match(appTemplate, /id="graph-format-tab"/);
   assert.match(appComponent, /encapsulation: ViewEncapsulation\.None/);
@@ -87,6 +89,7 @@ test("o estilo compartilhado preserva a geometria compacta", () => {
   assert.match(globalStylesheet, /\.timeline-chart \{[^}]*width: 100%; height: 82px;/);
   assert.match(globalStylesheet, /\.timeline-chart-scale \{[^}]*pointer-events: none/);
   assert.match(globalStylesheet, /\.timeline-chart-help:hover \.timeline-chart-scope-hint, \.timeline-chart-help:focus-within \.timeline-chart-scope-hint/);
+  assert.match(stylesheet, /\.embedded-workbook-picker select \{/);
   assert.match(stylesheet, /\.graph-phase-count \{ font-size: 7px;/);
   assert.match(globalStylesheet, /\.app-shell \.demand-card \{ padding: 7px; \}/);
   assert.match(globalStylesheet, /\.app-shell \.card-date-range \{ margin-inline: auto; text-align: center; \}/);
