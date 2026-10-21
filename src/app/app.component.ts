@@ -80,14 +80,16 @@ const TIMELINE_CHART_WIDTH = 1000;
 const TIMELINE_CHART_HEIGHT = 82;
 const TIMELINE_CHART_TOP = 6;
 const TIMELINE_CHART_BASELINE = 76;
-const TIMELINE_CHART_STATUSES = new Set([
+const TIMELINE_CHART_STATUSES = [
   "Em atendimento",
   "Em homologação",
   "Aguardando homologação",
   "Homologada",
   "Homologada com implantação autorizada",
   "Em implantação",
-]);
+] as const;
+const timelineChartStatusKey = (status: string) => status.normalize("NFC").toLocaleLowerCase("pt-BR").trim().replace(/\s+/g, " ");
+const TIMELINE_CHART_STATUS_KEYS = new Set<string>(TIMELINE_CHART_STATUSES.map(timelineChartStatusKey));
 
 @Component({
   selector: "app-root",
@@ -480,7 +482,7 @@ export class AppComponent {
         // Intervalos semiabertos evitam contar duas situações da mesma demanda
         // exatamente no ponto em que ocorre uma transição.
         const event = history.events.find((item) => sample >= item.timelineStartedAt.getTime() && sample < this.timelineChartEventEnd(item, rangeEnd));
-        if (event && TIMELINE_CHART_STATUSES.has(event.status)) total += 1;
+        if (event && TIMELINE_CHART_STATUS_KEYS.has(timelineChartStatusKey(event.status))) total += 1;
       }
       segments.push({ start, end, total });
     }

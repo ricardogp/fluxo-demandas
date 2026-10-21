@@ -748,9 +748,9 @@ test("calcula indicadores de tempo e pico por situação", () => {
 
 test("monta uma única série com as situações acompanhadas e ignora o filtro de situação", () => {
   const app = new AppComponent();
+  const importedStatuses = ["EM ATENDIMENTO", "em HOMOLOGAÇÃO", "AGUARDANDO homologação", "homologada", "HOMOLOGADA COM IMPLANTAÇÃO AUTORIZADA", "eM iMPLANTAÇÃO"];
   app.events.set([
-    ...["Em atendimento", "Em homologação", "Aguardando homologação", "Homologada", "Homologada com implantação autorizada", "Em implantação"]
-      .map((status, index) => ({ demandNumber: `DEM-${index}`, demandTitle: status, demandType: "Evolutiva", status, startedAt: new Date(2026, 0, 2), endedAt: new Date(2026, 0, 2), row: index + 2 })),
+    ...importedStatuses.map((status, index) => ({ demandNumber: `DEM-${index}`, demandTitle: status, demandType: "Evolutiva", status, startedAt: new Date(2026, 0, 2), endedAt: new Date(2026, 0, 2), row: index + 2 })),
     { demandNumber: "DEM-FORA", demandTitle: "Fora do escopo", demandType: "Evolutiva", status: "Desenvolvimento", startedAt: new Date(2026, 0, 2), endedAt: new Date(2026, 0, 2), row: 8 },
   ]);
 
@@ -761,7 +761,7 @@ test("monta uma única série com as situações acompanhadas e ignora o filtro 
   assert.match(chart.linePoints, /^0\.000,/);
   assert.match(chart.linePoints, /1000\.000,/);
 
-  for (const status of chart.statuses) app.toggleStatusVisibility(status);
+  for (const status of importedStatuses) app.toggleStatusVisibility(status);
   assert.equal(app.timelineChart().maximum, 6);
   assert.equal(app.timelineChart().linePoints, chart.linePoints);
 
