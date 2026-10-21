@@ -7,7 +7,7 @@ import { TimelineChartView } from "../domain/demand.models";
     <section class="time-control" aria-labelledby="timeline-title">
       <div class="timeline-heading"><div><h2 id="timeline-title">Linha do tempo das demandas</h2><p class="timeline-instruction">Arraste o marcador para explorar o fluxo em outra data ou sequência do mesmo dia; use Reproduzir para avançar automaticamente.</p></div></div>
       <div class="timeline-chart-block">
-        <div class="timeline-chart-heading"><span [title]="'Inclui: ' + timelineChartScopeLabel()">Demandas nas situações acompanhadas</span><strong>Pico: {{ peakLabel() }}</strong></div>
+        <div class="timeline-chart-heading"><span [title]="'Inclui: ' + timelineChartScopeLabel()">Demandas não concluídas no desenvolvimento</span><strong>Pico: {{ peakLabel() }}</strong></div>
         <svg class="timeline-chart" [attr.viewBox]="'0 0 ' + timelineChart().width + ' ' + timelineChart().height" preserveAspectRatio="none" role="img" [attr.aria-label]="timelineChartAriaLabel()">
           <title>{{ timelineChartAriaLabel() }}</title>
           <line class="timeline-chart-baseline" x1="0" [attr.x2]="timelineChart().width" [attr.y1]="timelineChart().baseline" [attr.y2]="timelineChart().baseline" />

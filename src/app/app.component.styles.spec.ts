@@ -46,6 +46,7 @@ test("a linha do tempo e o grafo preservam contratos acessíveis", () => {
   assert.match(timeline, /<input class="timeline" type="range" min="0" \[max\]="timelineSliderMaximum\(\)" \[value\]="sliderInputValue\(\)"/);
   assert.match(timeline, /\[attr\.aria-valuetext\]="timelineLabel\(\)"/);
   assert.match(appTemplate, /\[timelineChart\]="timelineChart\(\)"/);
+  assert.match(timeline, />Demandas não concluídas no desenvolvimento<\/span>/);
   assert.match(timeline, /<svg class="timeline-chart"[^>]*role="img"[^>]*\[attr\.aria-label\]="timelineChartAriaLabel\(\)"/);
   assert.match(timeline, /<polygon class="timeline-chart-area"/);
   assert.match(timeline, /<polyline class="timeline-chart-line"/);
