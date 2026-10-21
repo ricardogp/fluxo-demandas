@@ -46,7 +46,9 @@ test("a linha do tempo e o grafo preservam contratos acessíveis", () => {
   assert.match(timeline, /<input class="timeline" type="range" min="0" \[max\]="timelineSliderMaximum\(\)" \[value\]="sliderInputValue\(\)"/);
   assert.match(timeline, /\[attr\.aria-valuetext\]="timelineLabel\(\)"/);
   assert.match(appTemplate, /\[timelineChart\]="timelineChart\(\)"/);
-  assert.match(timeline, />Demandas não concluídas no desenvolvimento<\/span>/);
+  assert.match(timeline, /<span class="timeline-chart-heading-label">Demandas não concluídas no desenvolvimento/);
+  assert.match(timeline, /<button type="button" aria-label="Exibir situações consideradas no gráfico" aria-describedby="timeline-chart-scope-hint">\?<\/button>/);
+  assert.match(timeline, /<span class="timeline-chart-scope-hint" id="timeline-chart-scope-hint" role="tooltip">Situações consideradas:/);
   assert.match(timeline, /<svg class="timeline-chart"[^>]*role="img"[^>]*\[attr\.aria-label\]="timelineChartAriaLabel\(\)"/);
   assert.match(timeline, /<polygon class="timeline-chart-area"/);
   assert.match(timeline, /<polyline class="timeline-chart-line"/);
@@ -79,6 +81,7 @@ test("o estilo compartilhado preserva a geometria compacta", () => {
   assert.match(globalStylesheet, /\.app-shell \.timeline-slider \{ margin: 0 0 44px; \}/);
   assert.match(globalStylesheet, /\.app-shell \.selected-date \{ top: calc\(100% \+ 4px\); bottom: auto; \}/);
   assert.match(globalStylesheet, /\.timeline-chart \{[^}]*width: 100%; height: 82px;/);
+  assert.match(globalStylesheet, /\.timeline-chart-help:hover \.timeline-chart-scope-hint, \.timeline-chart-help:focus-within \.timeline-chart-scope-hint/);
   assert.match(stylesheet, /\.graph-phase-count \{ font-size: 7px;/);
   assert.match(globalStylesheet, /\.app-shell \.demand-card \{ padding: 7px; \}/);
   assert.match(globalStylesheet, /\.app-shell \.card-date-range \{ margin-inline: auto; text-align: center; \}/);
