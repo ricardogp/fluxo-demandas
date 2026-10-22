@@ -639,11 +639,11 @@ test("inicia no tema claro e alterna para o tema escuro", () => {
   assert.equal(app.theme(), "light");
 });
 
-test("formata as datas compactas do card em dd/mmm", () => {
+test("formata as datas compactas do card em dd/mm/aa", () => {
   const app = new AppComponent();
 
-  assert.equal(app.cardDateLabel(new Date(2026, 0, 3)), "03/jan");
-  assert.equal(app.cardDateLabel(new Date(2026, 11, 19)), "19/dez");
+  assert.equal(app.cardDateLabel(new Date(2026, 0, 3)), "03/01/26");
+  assert.equal(app.cardDateLabel(new Date(2026, 11, 19)), "19/12/26");
 });
 
 test("cada botão de filtro alterna a exibição de sua lista", () => {

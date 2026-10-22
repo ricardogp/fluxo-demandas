@@ -18,7 +18,7 @@ import { ActiveDemand, DemandRepresentation, StatusMetrics } from "../domain/dem
             @for (item of visibleActiveByStatus().get(status) ?? []; track trackByNumber($index, item)) {
               <article class="demand-card" [class.demand-number]="demandRepresentation() === 'number'" tabindex="0" (pointerenter)="showDemandHint($event, item)" (pointerleave)="hideDemandHint()" (focusin)="showDemandHint($event, item)" (focusout)="hideDemandHint()" [attr.aria-describedby]="'demand-hint-' + item.number">
                 <h3 [style.color]="demandTypeColor(item.demandType)">{{ item.number }}</h3>
-                <p class="card-date-range" [attr.aria-label]="'Período de ' + rangeLabel()(item.event.startedAt) + ' até ' + rangeLabel()(item.event.endedAt)"><span>{{ cardDateLabel()(item.event.startedAt) }}</span><span class="card-date-range-separator" aria-hidden="true">a</span><span>{{ cardDateLabel()(item.event.endedAt) }}</span></p><div class="progress-track" aria-hidden="true"><span [style.width.%]="item.progress"></span></div>
+                <p class="card-date-range" [attr.aria-label]="'Período de ' + cardDateLabel()(item.event.startedAt) + ' até ' + cardDateLabel()(item.event.endedAt)"><span>{{ cardDateLabel()(item.event.startedAt) }}</span><span class="card-date-range-separator" aria-hidden="true">a</span><span>{{ cardDateLabel()(item.event.endedAt) }}</span></p><div class="progress-track" aria-hidden="true"><span [style.width.%]="item.progress"></span></div>
               </article>
             } @empty { <p class="empty-lane">Nenhuma demanda nesta etapa.</p> }
           </div>

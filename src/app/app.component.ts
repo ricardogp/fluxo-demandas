@@ -51,7 +51,6 @@ const SAMPLE_EVENTS: DemandEvent[] = [
   { demandNumber: "DEM-1071", demandTitle: "Relatório de SLA", demandType: "Sustentação", status: "Entregue", startedAt: new Date(2026, 8, 11), endedAt: new Date(2026, 8, 11), row: 10 },
 ];
 
-const MONTH_ABBREVIATIONS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 const GRAPH_WIDTH = 1000;
 const GRAPH_MIN_HEIGHT = 220;
 const GRAPH_PHASE_RADIUS = 13.75;
@@ -362,7 +361,12 @@ export class AppComponent {
     return date;
   }
   rangeLabel(date: Date): string { return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }); }
-  cardDateLabel(date: Date): string { return `${date.getDate().toString().padStart(2, "0")}/${MONTH_ABBREVIATIONS[date.getMonth()]}`; }
+  cardDateLabel(date: Date): string {
+    const day = date.getDate().toString().padStart(2, "0");
+    const month = (date.getMonth() + 1).toString().padStart(2, "0");
+    const year = date.getFullYear().toString().slice(-2);
+    return `${day}/${month}/${year}`;
+  }
   durationLabel(durationMs: number): string {
     const days = durationMs / 86_400_000;
     return `${days.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} d`;
