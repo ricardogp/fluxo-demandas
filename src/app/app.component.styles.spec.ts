@@ -17,7 +17,10 @@ test("o contêiner compõe superfícies independentes sem alterar as abas", () =
   assert.match(appTemplate, /role="tablist"/);
   assert.match(appTemplate, /\[embeddedWorkbooks\]="embeddedWorkbooks"/);
   assert.match(appTemplate, /\(embeddedSpreadsheetSelected\)="selectEmbeddedWorkbook\(\$event\)"/);
-  assert.match(read("./components/app-header.component.ts"), />DEMANDAS<select/);
+  const header = read("./components/app-header.component.ts");
+  assert.match(header, />DEMANDAS<select/);
+  assert.match(header, /<label class="import-button is-disabled" aria-disabled="true">/);
+  assert.match(header, /<input type="file" accept="\.xlsx,\.xls"[^>]* disabled \/>/);
   assert.match(appTemplate, /id="table-format-tab"/);
   assert.match(appTemplate, /id="graph-format-tab"/);
   assert.match(appComponent, /encapsulation: ViewEncapsulation\.None/);
@@ -94,6 +97,7 @@ test("o estilo compartilhado preserva a geometria compacta", () => {
   assert.match(globalStylesheet, /\.timeline-instruction-help:hover \.timeline-instruction-hint, \.timeline-instruction-help:focus-within \.timeline-instruction-hint/);
   assert.match(globalStylesheet, /\.timeline-chart-help:hover \.timeline-chart-scope-hint, \.timeline-chart-help:focus-within \.timeline-chart-scope-hint/);
   assert.match(stylesheet, /\.embedded-workbook-picker select \{/);
+  assert.match(stylesheet, /\.import-button\.is-disabled \{[^}]*pointer-events: none/);
   assert.match(stylesheet, /\.graph-phase-count \{ font-size: 7px;/);
   assert.match(globalStylesheet, /\.app-shell \.demand-card \{ padding: 7px; \}/);
   assert.match(globalStylesheet, /\.app-shell \.card-date-range \{ margin-inline: auto; text-align: center; \}/);

@@ -11,9 +11,9 @@ import { EmbeddedWorkbook } from "../services/embedded-workbooks";
         <button class="theme-toggle" type="button" (click)="toggleTheme.emit()" [attr.aria-label]="theme() === 'light' ? 'Ativar tema escuro' : 'Ativar tema claro'">
           <span aria-hidden="true">{{ theme() === 'light' ? '☾' : '☀' }}</span>{{ theme() === 'light' ? 'Tema escuro' : 'Tema claro' }}
         </button>
-        <label class="import-button" [class.is-loading]="loading()">
-          <input type="file" accept=".xlsx,.xls" (change)="spreadsheetSelected.emit($event)" [disabled]="loading()" />
-          <span>{{ loading() ? 'Lendo planilha…' : 'Importar planilha' }}</span>
+          <label class="import-button is-disabled" aria-disabled="true">
+          <input type="file" accept=".xlsx,.xls" (change)="spreadsheetSelected.emit($event)" disabled />
+          <span>Importar planilha</span>
         </label>
       </div>
     </header>

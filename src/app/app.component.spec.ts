@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import test from "node:test";
 
 import "@angular/compiler";
@@ -605,8 +605,13 @@ test("mantém o algoritmo padrão e permite optar pelo otimizado", () => {
   assert.deepEqual(app.graph().transitions.map((transition) => `${transition.source}\u0000${transition.target}`), standardTransitions);
 });
 
-test("o algoritmo otimizado reduz linhas sobrepostas na planilha SIDA", () => {
-  const workbook = XLSX.read(readFileSync(new URL("../../static/SIDA.xlsx", import.meta.url)), { type: "buffer", cellDates: true });
+test("o algoritmo otimizado reduz linhas sobrepostas na planilha SIDA", (context) => {
+  const fixture = new URL("../../static/SIDA.xlsx", import.meta.url);
+  if (!existsSync(fixture)) {
+    context.skip("fixture local static/SIDA.xlsx não disponível");
+    return;
+  }
+  const workbook = XLSX.read(readFileSync(fixture), { type: "buffer", cellDates: true });
   const sheet = workbook.Sheets[workbook.SheetNames[0]];
   const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: null, raw: true });
   const app = new AppComponent();
