@@ -33,7 +33,7 @@ Os filtros de visualização de situações, demandas e tipos de demanda ficam r
 
 Na escala numérica do gráfico temporal, o valor máximo aparece no topo e zero na base, tanto no início quanto no final da área.
 
-Na representação **Número da demanda**, os cards ocupam 75% do tamanho anterior para manter a tabela mais compacta.
+Na representação **Número da demanda**, os cards ocupam metade do tamanho original para manter a tabela mais compacta.
 
 A interface usa fonte Arial, apresenta a área do gráfico em azul-claro, mantém os filtros lado a lado em telas largas e oferece as instruções da linha do tempo no ícone de ajuda do título.
 
