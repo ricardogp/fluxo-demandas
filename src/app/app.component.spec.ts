@@ -606,7 +606,7 @@ test("mantém o algoritmo padrão e permite optar pelo otimizado", () => {
 });
 
 test("o algoritmo otimizado reduz linhas sobrepostas na planilha SIDA", () => {
-  const workbook = XLSX.read(readFileSync(new URL("../../static/fluxo-demandas-sida.xlsx", import.meta.url)), { type: "buffer", cellDates: true });
+  const workbook = XLSX.read(readFileSync(new URL("../../static/SIDA.xlsx", import.meta.url)), { type: "buffer", cellDates: true });
   const sheet = workbook.Sheets[workbook.SheetNames[0]];
   const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: null, raw: true });
   const app = new AppComponent();

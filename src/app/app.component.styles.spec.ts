@@ -17,6 +17,7 @@ test("o contêiner compõe superfícies independentes sem alterar as abas", () =
   assert.match(appTemplate, /role="tablist"/);
   assert.match(appTemplate, /\[embeddedWorkbooks\]="embeddedWorkbooks"/);
   assert.match(appTemplate, /\(embeddedSpreadsheetSelected\)="selectEmbeddedWorkbook\(\$event\)"/);
+  assert.match(read("./components/app-header.component.ts"), />DEMANDAS<select/);
   assert.match(appTemplate, /id="table-format-tab"/);
   assert.match(appTemplate, /id="graph-format-tab"/);
   assert.match(appComponent, /encapsulation: ViewEncapsulation\.None/);
@@ -51,13 +52,13 @@ test("a linha do tempo e o grafo preservam contratos acessíveis", () => {
   assert.match(timeline, /<span class="timeline-chart-heading-label">Demandas não concluídas no desenvolvimento/);
   assert.match(timeline, /<button type="button" aria-label="Exibir situações consideradas no gráfico" aria-describedby="timeline-chart-scope-hint">\?<\/button>/);
   assert.match(timeline, /<span class="timeline-chart-scope-hint" id="timeline-chart-scope-hint" role="tooltip">Situações consideradas:/);
+  assert.match(timeline, /aria-label="Exibir instruções da linha do tempo" aria-describedby="timeline-instruction-hint"/);
+  assert.match(timeline, /<span class="timeline-instruction-hint" id="timeline-instruction-hint" role="tooltip">Arraste o marcador/);
   assert.match(timeline, /<svg class="timeline-chart"[^>]*role="img"[^>]*\[attr\.aria-label\]="timelineChartAriaLabel\(\)"/);
   assert.match(timeline, /<polygon class="timeline-chart-area"/);
   assert.match(timeline, /<polyline class="timeline-chart-line"/);
-  assert.match(timeline, /<text class="timeline-chart-scale timeline-chart-scale-start-max"[^>]*>{{ timelineChart\(\)\.maximum }}<\/text>/);
-  assert.match(timeline, /<text class="timeline-chart-scale timeline-chart-scale-end-max"[^>]*>{{ timelineChart\(\)\.maximum }}<\/text>/);
-  assert.match(timeline, /<text class="timeline-chart-scale timeline-chart-scale-start-zero"[^>]*>0<\/text>/);
-  assert.match(timeline, /<text class="timeline-chart-scale timeline-chart-scale-end-zero"[^>]*>0<\/text>/);
+  assert.match(timeline, /<div class="timeline-chart-scale timeline-chart-scale-start"[^>]*><span>{{ timelineChart\(\)\.maximum }}<\/span><span>0<\/span><\/div>/);
+  assert.match(timeline, /<div class="timeline-chart-scale timeline-chart-scale-end"[^>]*><span>{{ timelineChart\(\)\.maximum }}<\/span><span>0<\/span><\/div>/);
   assert.match(timeline, /<line class="timeline-chart-current"/);
   assert.match(timeline, /<line class="timeline-chart-peak"/);
   assert.doesNotMatch(timeline, /timeline-chart-series-line|timeline-chart-legend/);
@@ -87,7 +88,10 @@ test("o estilo compartilhado preserva a geometria compacta", () => {
   assert.match(globalStylesheet, /\.app-shell \.timeline-slider \{ margin: 0 0 44px; \}/);
   assert.match(globalStylesheet, /\.app-shell \.selected-date \{ top: calc\(100% \+ 4px\); bottom: auto; \}/);
   assert.match(globalStylesheet, /\.timeline-chart \{[^}]*width: 100%; height: 82px;/);
-  assert.match(globalStylesheet, /\.timeline-chart-scale \{[^}]*pointer-events: none/);
+  assert.match(globalStylesheet, /\.timeline-chart-area \{ fill: #9dd8ff;/);
+  assert.match(globalStylesheet, /body \{[^}]*font-family: Arial, sans-serif/);
+  assert.match(globalStylesheet, /\.visibility-controls \{ flex-wrap: nowrap; }/);
+  assert.match(globalStylesheet, /\.timeline-instruction-help:hover \.timeline-instruction-hint, \.timeline-instruction-help:focus-within \.timeline-instruction-hint/);
   assert.match(globalStylesheet, /\.timeline-chart-help:hover \.timeline-chart-scope-hint, \.timeline-chart-help:focus-within \.timeline-chart-scope-hint/);
   assert.match(stylesheet, /\.embedded-workbook-picker select \{/);
   assert.match(stylesheet, /\.graph-phase-count \{ font-size: 7px;/);

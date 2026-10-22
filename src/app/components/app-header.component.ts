@@ -7,7 +7,7 @@ import { EmbeddedWorkbook } from "../services/embedded-workbooks";
     <header class="topbar">
       <div class="brand"><span class="brand-mark" aria-hidden="true">↗</span><span>fluxo<span>_</span>demandas</span></div>
       <div class="topbar-actions">
-        @if (embeddedWorkbooks().length) { <label class="embedded-workbook-picker">Planilha<select [value]="selectedEmbeddedWorkbook()" (change)="embeddedSpreadsheetChanged($event)" [disabled]="loading()">@for (workbook of embeddedWorkbooks(); track workbook.fileName) { <option [value]="workbook.fileName">{{ workbook.displayName }}</option> }</select></label> }
+        @if (embeddedWorkbooks().length) { <label class="embedded-workbook-picker">DEMANDAS<select [value]="selectedEmbeddedWorkbook()" (change)="embeddedSpreadsheetChanged($event)" [disabled]="loading()">@for (workbook of embeddedWorkbooks(); track workbook.fileName) { <option [value]="workbook.fileName">{{ workbook.displayName }}</option> }</select></label> }
         <button class="theme-toggle" type="button" (click)="toggleTheme.emit()" [attr.aria-label]="theme() === 'light' ? 'Ativar tema escuro' : 'Ativar tema claro'">
           <span aria-hidden="true">{{ theme() === 'light' ? '☾' : '☀' }}</span>{{ theme() === 'light' ? 'Tema escuro' : 'Tema claro' }}
         </button>

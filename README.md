@@ -33,6 +33,8 @@ Os filtros de visualização de situações, demandas e tipos de demanda ficam r
 
 Na escala numérica do gráfico temporal, o valor máximo aparece no topo e zero na base, tanto no início quanto no final da área.
 
+A interface usa fonte Arial, apresenta a área do gráfico em azul-claro, mantém os filtros lado a lado em telas largas e oferece as instruções da linha do tempo no ícone de ajuda do título.
+
 ## Organização do frontend
 
 `AppComponent` é o contêiner da simulação: mantém o estado reativo, a reprodução temporal, os filtros e as regras de domínio do grafo. A interface está separada em componentes de apresentação para que mudanças em uma área não acoplem as demais:
