@@ -95,6 +95,8 @@ test("o estilo compartilhado preserva a geometria compacta", () => {
   assert.match(globalStylesheet, /body \{[^}]*font-family: Arial, sans-serif/);
   assert.match(globalStylesheet, /\.visibility-controls \{ flex-wrap: nowrap; }/);
   assert.match(globalStylesheet, /\.timeline-instruction-help:hover \.timeline-instruction-hint, \.timeline-instruction-help:focus-within \.timeline-instruction-hint/);
+  assert.match(globalStylesheet, /\.app-shell \.demand-card\.demand-number \{ width: 75%; min-height: 47px; padding: 6px; \}/);
+  assert.match(globalStylesheet, /\.app-shell \.demand-card\.demand-number h3 \{ font-size: 12px; \}/);
   assert.match(globalStylesheet, /\.timeline-chart-help:hover \.timeline-chart-scope-hint, \.timeline-chart-help:focus-within \.timeline-chart-scope-hint/);
   assert.match(stylesheet, /\.embedded-workbook-picker select \{/);
   assert.match(stylesheet, /\.import-button\.is-disabled \{[^}]*pointer-events: none/);
